@@ -78,7 +78,7 @@ public class VerticoxEndpointTest {
         }
         endpointZ.setZValues(zValues);
 
-        AttributeRequirement req = new AttributeRequirement(new Attribute(Attribute.AttributeType.numeric, "10", "x1"),
+        AttributeRequirement req = new AttributeRequirement(new Attribute(Attribute.AttributeType.numeric, "0", "x1"),
                                                             new Attribute(Attribute.AttributeType.numeric, "inf",
                                                                           "x1"));
         //this selects all individuals
