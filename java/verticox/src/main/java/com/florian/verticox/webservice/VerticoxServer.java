@@ -7,9 +7,12 @@ import com.florian.nscalarproduct.webservice.Server;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirementsRequest;
+import com.florian.verticox.webservice.domain.InitCovariateRequest;
 import com.florian.verticox.webservice.domain.MinimumPeriodRequest;
+import com.florian.verticox.webservice.domain.UpdateCovariateRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -30,6 +33,7 @@ public class VerticoxServer extends Server {
     private Data data;
     private BigDecimal[] zValues;
     private String path;
+    private BigDecimal[][] covariates;
 
     public VerticoxServer(String id) {
         this.serverId = id;
@@ -59,6 +63,28 @@ public class VerticoxServer extends Server {
         multiplier = BigDecimal.valueOf(Math.pow(TEN, precision));
     }
 
+    @PutMapping ("updateCovariateValues")
+    public void updateCovariateValues(@RequestBody UpdateCovariateRequest req) {
+        // This should require some calculation at some point, not quite sure where yet
+        int column = this.data.getAttributeCollumn(req.getAttribute());
+        for (int i = 0; i < population; i++) {
+            this.covariates[column][i] = req.getCovariates()[i];
+        }
+    }
+
+    @PutMapping ("initCovariateData")
+    public void initCovariateData(@RequestBody InitCovariateRequest req) {
+        reset();
+        if (this.data == null) {
+            readData();
+        }
+        localData = new BigInteger[population];
+        int column = this.data.getAttributeCollumn(req.getAttribute());
+        for (int i = 0; i < population; i++) {
+            this.localData[i] = BigInteger.valueOf(this.covariates[column][i].multiply(multiplier).longValue());
+        }
+    }
+
     @PutMapping ("initZData")
     public void initZData() {
         reset();
@@ -75,7 +101,7 @@ public class VerticoxServer extends Server {
     }
 
     @GetMapping ("determineMinimumPeriod")
-    public AttributeRequirement determineMinimumPeriod(MinimumPeriodRequest req) {
+    public AttributeRequirement determineMinimumPeriod(@RequestBody MinimumPeriodRequest req) {
         //Assumption is that time T of events is represented by a real or integer value
         AttributeRequirement requirement = new AttributeRequirement();
         Attribute lower = req.getLowerLimit();
@@ -113,7 +139,7 @@ public class VerticoxServer extends Server {
     }
 
     @PutMapping ("selectIndividuals")
-    public void selectIndividuals(AttributeRequirementsRequest request) {
+    public void selectIndividuals(@RequestBody AttributeRequirementsRequest request) {
         //method to select appropriate individuals.
         //Assumption is that they're onl selected based on eventtime
         //But it is possible to select on multiple attributes at once
@@ -151,6 +177,8 @@ public class VerticoxServer extends Server {
         }
         this.data = parseCsv(path, 0);
         this.population = data.getNumberOfIndividuals();
+
+        this.covariates = new BigDecimal[this.data.getData().size()][this.population];
     }
 
     @Override

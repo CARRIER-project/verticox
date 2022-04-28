@@ -5,7 +5,9 @@ import com.florian.nscalarproduct.webservice.Server;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirementsRequest;
+import com.florian.verticox.webservice.domain.InitCovariateRequest;
 import com.florian.verticox.webservice.domain.MinimumPeriodRequest;
+import com.florian.verticox.webservice.domain.UpdateCovariateRequest;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -26,6 +28,28 @@ public class VerticoxEndpoint extends ServerEndpoint {
             REST_TEMPLATE.put(serverUrl + "/setZValues", zData);
         }
     }
+
+    public void updateCovariateData(String attribute, BigDecimal[] covariates) {
+        UpdateCovariateRequest req = new UpdateCovariateRequest();
+        req.setAttribute(attribute);
+        req.setCovariates(covariates);
+        if (testing) {
+            ((VerticoxServer) (server)).updateCovariateValues(req);
+        } else {
+            REST_TEMPLATE.put(serverUrl + "/updateCovariateValues", req, Void.class);
+        }
+    }
+
+    public void initCovariateData(String attribute) {
+        InitCovariateRequest req = new InitCovariateRequest();
+        req.setAttribute(attribute);
+        if (testing) {
+            ((VerticoxServer) (server)).initCovariateData(req);
+        } else {
+            REST_TEMPLATE.put(serverUrl + "/initCovariateData", req, Void.class);
+        }
+    }
+
 
     public void initZData() {
         if (testing) {

@@ -5,7 +5,11 @@ import com.florian.nscalarproduct.webservice.CentralServer;
 import com.florian.nscalarproduct.webservice.Protocol;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
+import com.florian.verticox.webservice.domain.InitCentralServerRequest;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -37,12 +41,20 @@ public class VerticoxCentralServer extends CentralServer {
         this.secretEndpoint = secretServer;
     }
 
+    @PostMapping ("initCentralServer")
+    public void initCentralServer(@RequestBody InitCentralServerRequest req) {
+        //purely exists for vantage6
+        super.secretServer = req.getSecretServer();
+        super.servers = req.getServers();
+    }
+
     @PutMapping ("setPrecision")
     public void setPrecision(int precision) {
         this.precision = precision;
         multiplier = BigDecimal.valueOf(Math.pow(TEN, precision));
     }
 
+    @GetMapping ("sumRelevantZ")
     public BigDecimal sumRelevantZ(String zServer, AttributeRequirement relevantT) {
         for (ServerEndpoint endpoint : endpoints) {
             if (endpoint.getServerId().equals(zServer)) {
@@ -59,7 +71,7 @@ public class VerticoxCentralServer extends CentralServer {
                 .divide(multiplier);
     }
 
-    public BigInteger nparty(List<ServerEndpoint> endpoints, ServerEndpoint secretEndpoint) {
+    private BigInteger nparty(List<ServerEndpoint> endpoints, ServerEndpoint secretEndpoint) {
         CentralStation station = new CentralStation();
         Protocol prot = new Protocol(endpoints, secretEndpoint, "start");
         return station.calculateNPartyScalarProduct(prot);
