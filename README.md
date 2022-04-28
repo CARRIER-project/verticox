@@ -8,7 +8,9 @@ components of the verticox algorithm that require querying which samples have a 
 
 These are the components:
 
-## $\sum \limits_{n \in E} \mathbf{x}_{nk}$ (for datanodes)$
+![Selection_180](https://user-images.githubusercontent.com/131889/165753100-6563d7d2-c10e-4a73-93fd-2a77d981e8ab.png)
+
+<!-- ## $\sum \limits_{n \in E} \mathbf{x}_{nk}$ (for datanodes)$
 Where $E$ is the collection of samples that are NOT right-censored.
 
-## $\sum \limits_{j \in R_t} exp(K \overline{z}_j)$
+## $\sum \limits_{j \in R_t} exp(K \overline{z}_j)$ -->
