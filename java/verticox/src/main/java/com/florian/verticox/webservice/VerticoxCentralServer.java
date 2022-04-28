@@ -4,8 +4,8 @@ import com.florian.nscalarproduct.station.CentralStation;
 import com.florian.nscalarproduct.webservice.CentralServer;
 import com.florian.nscalarproduct.webservice.Protocol;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
-import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
 import com.florian.verticox.webservice.domain.InitCentralServerRequest;
+import com.florian.verticox.webservice.domain.SumRelevantValuesRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -54,13 +53,13 @@ public class VerticoxCentralServer extends CentralServer {
         multiplier = BigDecimal.valueOf(Math.pow(TEN, precision));
     }
 
-    @GetMapping ("sumRelevantZ")
-    public BigDecimal sumRelevantZ(String zServer, AttributeRequirement relevantT) {
+    @GetMapping ("sumRelevantValues")
+    public BigDecimal sumRelevantValues(@RequestBody SumRelevantValuesRequest req) {
         for (ServerEndpoint endpoint : endpoints) {
-            if (endpoint.getServerId().equals(zServer)) {
-                ((VerticoxEndpoint) endpoint).initZData();
+            if (endpoint.getServerId().equals(req.getValueServer())) {
+                ((VerticoxEndpoint) endpoint).initZData(req.getRequirements());
             } else {
-                ((VerticoxEndpoint) endpoint).selectIndividuals(Arrays.asList(relevantT));
+                ((VerticoxEndpoint) endpoint).selectIndividuals(req.getRequirements());
             }
         }
         secretEndpoint.addSecretStation("start", endpoints.stream().map(x -> x.getServerId()).collect(

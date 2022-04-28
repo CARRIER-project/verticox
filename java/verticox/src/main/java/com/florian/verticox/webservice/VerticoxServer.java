@@ -2,14 +2,13 @@ package com.florian.verticox.webservice;
 
 import com.florian.nscalarproduct.data.Attribute;
 import com.florian.nscalarproduct.data.Data;
+import com.florian.nscalarproduct.encryption.AES;
 import com.florian.nscalarproduct.station.DataStation;
 import com.florian.nscalarproduct.webservice.Server;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirementsRequest;
-import com.florian.verticox.webservice.domain.InitCovariateRequest;
 import com.florian.verticox.webservice.domain.MinimumPeriodRequest;
-import com.florian.verticox.webservice.domain.UpdateCovariateRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,13 +26,14 @@ public class VerticoxServer extends Server {
     private static final int TEN = 10; //checkstyle's a bitch
     private int precision = DEFAULT_PRECISION; //precision for the n-party protocol since that works with integers
     private BigDecimal multiplier = BigDecimal.valueOf(Math.pow(TEN, precision));
+    private AES aes;
 
     private static final int MINIMUM_EVENT_POPULATION = 10;
 
     private Data data;
-    private BigDecimal[] zValues;
+    private BigDecimal[] values;
     private String path;
-    private BigDecimal[][] covariates;
+
 
     public VerticoxServer(String id) {
         this.serverId = id;
@@ -51,10 +51,9 @@ public class VerticoxServer extends Server {
         readData();
     }
 
-
-    @PutMapping ("setZValues")
-    public void setZValues(BigDecimal[] zValues) {
-        this.zValues = zValues;
+    @PutMapping ("setValues")
+    public void setValues(BigDecimal[] values) {
+        this.values = values;
     }
 
     @PutMapping ("setPrecision")
@@ -63,37 +62,19 @@ public class VerticoxServer extends Server {
         multiplier = BigDecimal.valueOf(Math.pow(TEN, precision));
     }
 
-    @PutMapping ("updateCovariateValues")
-    public void updateCovariateValues(@RequestBody UpdateCovariateRequest req) {
-        // This should require some calculation at some point, not quite sure where yet
-        int column = this.data.getAttributeCollumn(req.getAttribute());
-        for (int i = 0; i < population; i++) {
-            this.covariates[column][i] = req.getCovariates()[i];
-        }
-    }
-
-    @PutMapping ("initCovariateData")
-    public void initCovariateData(@RequestBody InitCovariateRequest req) {
+    @PutMapping ("initValueData")
+    public void initValueData(@RequestBody AttributeRequirementsRequest request) {
         reset();
         if (this.data == null) {
             readData();
         }
-        localData = new BigInteger[population];
-        int column = this.data.getAttributeCollumn(req.getAttribute());
+        // first select appropriate population
+        selectIndividuals(request);
         for (int i = 0; i < population; i++) {
-            this.localData[i] = BigInteger.valueOf(this.covariates[column][i].multiply(multiplier).longValue());
-        }
-    }
-
-    @PutMapping ("initZData")
-    public void initZData() {
-        reset();
-        if (this.data == null) {
-            readData();
-        }
-        localData = new BigInteger[population];
-        for (int i = 0; i < population; i++) {
-            localData[i] = BigInteger.valueOf(zValues[i].multiply(multiplier).longValue());
+            // selected population currently has localData = 1
+            // Not selected currently has localData = 0
+            // This way if the criteria & data are in the same location only the applicable population is selected
+            localData[i] = localData[i].multiply(BigInteger.valueOf(values[i].multiply(multiplier).longValue()));
         }
 
         this.population = localData.length;
@@ -177,8 +158,6 @@ public class VerticoxServer extends Server {
         }
         this.data = parseCsv(path, 0);
         this.population = data.getNumberOfIndividuals();
-
-        this.covariates = new BigDecimal[this.data.getData().size()][this.population];
     }
 
     @Override

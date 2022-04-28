@@ -1,11 +1,25 @@
 ## Verticox N-party scalar product protocol wrapper
 
 This is a wrapper that can be used to incorperate the N-party scalar product protocol within verticox by Dai et al. The
-advantage of using this wrapper is that you no longer need to share the time of events among all parties.
+advantage of using this wrapper is that you no longer need to share the time of events among all parties. This wrapper
+allows you to set a value per individual. Then insert this value into the n-party protocol.
 
-### ToDo:
+The assumption is that only 1 party contains values (e.g. co-variates) for a given value the other parties only contain
+selection criteria (e.g. individual is right-cencored, individual has event-time t ). It is possible for party A to
+contain values for individual 1, party B for individual 2 and party C knows the selection criteria. It is also
+acceptable if A knows both the relevant values & selection criteria. But it should not be the case that both A & B know
+relevant values
 
-Local data is currently not actually used. This seems wrong.
+To use this method the following needs to be done:
+
+1) setPrecision (default 5)
+2) determineMinimumPeriod (can be skipped if you minimumperiods are already known)
+3) setValues for the party who owns the relevant data
+4) sumRelevantValues
+
+#### Open question:
+
+Do the values need to be encrypted when shared?
 
 The following methods are implemented:
 
@@ -15,28 +29,17 @@ Set the precision to be used for double values for the product protocol. Expecte
 
 - An int indicating the precision
 
-### updateCovariateVariables:
-
-A method to update the locally available covariate values. Expected input:
-
-- Attributename of relevant attribute
-- List of covariate values of this attribute, ordered according to the shared population ordering
-
-### initCovariateVariables:
-
-A method that inits the localdata for the scalar product protocol with locally available covariate. Expected input:
-
-- Attributename of relevant attribute
-
-### setZValues:
+### setValues:
 
 A method to set the auxilery values for each individual. Expected input:
 
-- List of z-values, ordered according to the shared population ordering
+- List of auxilery values, ordered according to the shared population ordering
 
-### initZValues:
+### initValues:
 
-A method that inits the localdata for the scalar product protocol with locally available zValues. Expected input:
+A method that inits the localdata for the scalar product protocol with locally available values. Expected input:
+
+- List of selection criteria, for example the time period of relevant individuals.
 
 ### determineMinimumPeriod:
 
@@ -47,7 +50,14 @@ point. Expected input:
 
 ### selectRelevantIndividuals:
 
-Select a population to be used in the scalar product protocol according to certain criteria. Expected input:
+Select a population to be used in the scalar product protocol according to certain criteria. This method does not need
+to be called independently. Expected input:
+
+- List of selection criteria, for example the time period of relevant individuals
+
+### sumRelevantValues:
+
+Sums the values based on the relevant individuals. Expected input:
 
 - List of selection criteria, for example the time period of relevant individuals
 
