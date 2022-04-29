@@ -19,22 +19,22 @@ public class VerticoxEndpoint extends ServerEndpoint {
         super(url);
     }
 
-    public void setZValues(BigDecimal[] zData) {
+    public void setValues(BigDecimal[] data) {
         if (testing) {
-            ((VerticoxServer) (server)).setValues(zData);
+            ((VerticoxServer) (server)).setValues(data);
         } else {
-            REST_TEMPLATE.put(serverUrl + "/setZValues", zData);
+            REST_TEMPLATE.put(serverUrl + "/setZValues", data);
         }
     }
 
 
-    public void initZData(List<AttributeRequirement> requirements) {
+    public void initData(List<AttributeRequirement> requirements) {
         AttributeRequirementsRequest req = new AttributeRequirementsRequest();
         req.setRequirements(requirements);
         if (testing) {
             ((VerticoxServer) (server)).initValueData(req);
         } else {
-            REST_TEMPLATE.put(serverUrl + "/initZData", req, Void.class);
+            REST_TEMPLATE.put(serverUrl + "/initData", req, Void.class);
         }
     }
 

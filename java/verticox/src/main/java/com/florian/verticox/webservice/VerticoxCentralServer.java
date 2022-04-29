@@ -57,7 +57,7 @@ public class VerticoxCentralServer extends CentralServer {
     public BigDecimal sumRelevantValues(@RequestBody SumRelevantValuesRequest req) {
         for (ServerEndpoint endpoint : endpoints) {
             if (endpoint.getServerId().equals(req.getValueServer())) {
-                ((VerticoxEndpoint) endpoint).initZData(req.getRequirements());
+                ((VerticoxEndpoint) endpoint).initData(req.getRequirements());
             } else {
                 ((VerticoxEndpoint) endpoint).selectIndividuals(req.getRequirements());
             }

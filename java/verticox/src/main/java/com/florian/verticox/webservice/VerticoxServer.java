@@ -146,6 +146,7 @@ public class VerticoxServer extends Server {
                 }
             }
         }
+        checkHorizontalSplit(data, localData);
 
         this.population = localData.length;
         this.dataStations.put("start", new DataStation(this.serverId, this.localData));

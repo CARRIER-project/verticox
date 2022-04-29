@@ -1,0 +1,12 @@
+numeric,numeric,numeric,bool
+ID,x1,x2,locallyPresent
+1,1,0,TRUE
+2,1,1,TRUE
+3,0,0,TRUE
+4,1,1,TRUE
+5,0,0,TRUE
+6,0,1,TRUE
+7,1,1,TRUE
+8,0,0,TRUE
+9,1,1,TRUE
+10,0,0,TRUE

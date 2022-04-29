@@ -17,17 +17,15 @@ To use this method the following needs to be done:
 3) setValues for the party who owns the relevant data
 4) sumRelevantValues
 
-#### Open question:
-
-Do the values need to be encrypted when shared?
-
-The following methods are implemented:
+## Implemented methods:
 
 ### setPrecision:
 
 Set the precision to be used for double values for the product protocol. Expected input:
 
 - An int indicating the precision
+
+Default precision used is 5. Always make sure to keep the precision the same across the various parties involved.
 
 ### setValues:
 
@@ -61,3 +59,13 @@ Sums the values based on the relevant individuals. Expected input:
 
 - List of selection criteria, for example the time period of relevant individuals
 
+### Handling a Hybird split in the data
+
+To handle a Hybrid split in your data include an attributecolumn in all relevant datasets named "locallyPresent" with "
+bool" as it's type. Locally available data should have the value "TRUE". Missing records are then inserted as a row that
+has the value "FALSE" for this attribute. This should be handled in a preprocessing step.
+
+Important to note; datasets still need to have the same ordering for their records. It is assumed that recordlinkage is
+handled in a preprocessing step as well.
+
+This functionality is only available in the java implementation.
