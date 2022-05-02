@@ -107,7 +107,7 @@ public class VerticoxEndpointTest {
         assertEquals(resultSmall.getLowerLimit().getValue(), "0");
         assertEquals(resultSmall.getUpperLimit().getValue(), "inf");
 
-        //only 1 example has value 0, so minimum requirement will be [0-2]
+        //only 1 example has value 0, so minimum requirement will be [0-2)
         assertEquals(resultBigStarting0.getLowerLimit().getValue(), "0");
         assertEquals(resultBigStarting0.getUpperLimit().getValue(), "2");
         //13 examples have value 1, so value will be used, not range
@@ -115,7 +115,7 @@ public class VerticoxEndpointTest {
         //5 examples have value 2, there are also not enough examples >2, so minimum requirement will be [2-inf]
         assertEquals(resultBigStarting2.getLowerLimit().getValue(), "2");
         assertEquals(resultBigStarting2.getUpperLimit().getValue(), "inf");
-        //1 example has value 3, so minimum requirement will be [3-inf]
+        //1 example has value 3, so minimum requirement will be [3-inf)
         assertEquals(resultBigStarting3.getLowerLimit().getValue(), "3");
         assertEquals(resultBigStarting3.getUpperLimit().getValue(), "inf");
     }
