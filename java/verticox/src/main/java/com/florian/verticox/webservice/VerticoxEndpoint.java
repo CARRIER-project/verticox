@@ -6,8 +6,11 @@ import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirementsRequest;
 import com.florian.verticox.webservice.domain.MinimumPeriodRequest;
+import com.florian.verticox.webservice.domain.PublicKeyResponse;
+import com.florian.verticox.webservice.domain.SetValuesRequest;
 
-import java.math.BigDecimal;
+import javax.crypto.NoSuchPaddingException;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 public class VerticoxEndpoint extends ServerEndpoint {
@@ -19,11 +22,19 @@ public class VerticoxEndpoint extends ServerEndpoint {
         super(url);
     }
 
-    public void setValues(BigDecimal[] data) {
+    public void setValues(SetValuesRequest req) throws NoSuchPaddingException, NoSuchAlgorithmException {
         if (testing) {
-            ((VerticoxServer) (server)).setValues(data);
+            ((VerticoxServer) (server)).setValues(req);
         } else {
-            REST_TEMPLATE.put(serverUrl + "/setZValues", data);
+            REST_TEMPLATE.put(serverUrl + "/setZValues", req);
+        }
+    }
+
+    public PublicKeyResponse getPublicKey() {
+        if (testing) {
+            return ((VerticoxServer) (server)).getPublicKey();
+        } else {
+            return REST_TEMPLATE.getForEntity(serverUrl + "/getPublicKey", PublicKeyResponse.class).getBody();
         }
     }
 

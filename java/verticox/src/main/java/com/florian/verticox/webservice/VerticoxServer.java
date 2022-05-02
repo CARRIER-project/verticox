@@ -3,18 +3,24 @@ package com.florian.verticox.webservice;
 import com.florian.nscalarproduct.data.Attribute;
 import com.florian.nscalarproduct.data.Data;
 import com.florian.nscalarproduct.encryption.AES;
+import com.florian.nscalarproduct.encryption.RSA;
 import com.florian.nscalarproduct.station.DataStation;
 import com.florian.nscalarproduct.webservice.Server;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirementsRequest;
 import com.florian.verticox.webservice.domain.MinimumPeriodRequest;
+import com.florian.verticox.webservice.domain.PublicKeyResponse;
+import com.florian.verticox.webservice.domain.SetValuesRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import javax.crypto.NoSuchPaddingException;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,7 +32,7 @@ public class VerticoxServer extends Server {
     private static final int TEN = 10; //checkstyle's a bitch
     private int precision = DEFAULT_PRECISION; //precision for the n-party protocol since that works with integers
     private BigDecimal multiplier = BigDecimal.valueOf(Math.pow(TEN, precision));
-    private AES aes;
+    private final RSA rsa = new RSA();
 
     private static final int MINIMUM_EVENT_POPULATION = 10;
 
@@ -35,25 +41,40 @@ public class VerticoxServer extends Server {
     private String path;
 
 
-    public VerticoxServer(String id) {
+    public VerticoxServer(String id)
+            throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
         this.serverId = id;
     }
 
 
-    public VerticoxServer(String id, List<ServerEndpoint> endpoints) {
+    public VerticoxServer(String id, List<ServerEndpoint> endpoints)
+            throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
         this.serverId = id;
         this.setEndpoints(endpoints);
     }
 
-    public VerticoxServer(String path, String id) {
+    public VerticoxServer(String path, String id)
+            throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
         this.path = path;
         this.serverId = id;
         readData();
     }
 
+    @GetMapping ("getPublicKey")
+    public PublicKeyResponse getPublicKey() {
+        PublicKeyResponse res = new PublicKeyResponse();
+        res.setKey(rsa.getPublicKey().getEncoded());
+        return res;
+    }
+
     @PutMapping ("setValues")
-    public void setValues(BigDecimal[] values) {
-        this.values = values;
+    public void setValues(SetValuesRequest req) throws NoSuchPaddingException, NoSuchAlgorithmException {
+        AES aes = new AES(rsa.decryptAESKey(req.getEncryptedAes()));
+        String[] encrypted = req.getValues();
+        this.values = new BigDecimal[encrypted.length];
+        for (int i = 0; i < encrypted.length; i++) {
+            this.values[i] = aes.decryptBigDecimal(encrypted[i]);
+        }
     }
 
     @PutMapping ("setPrecision")
@@ -86,7 +107,6 @@ public class VerticoxServer extends Server {
         //Assumption is that time T of events is represented by a real or integer value
         AttributeRequirement requirement = new AttributeRequirement();
         Attribute lower = req.getLowerLimit();
-        requirement.setLowerLimit(lower);
 
         List<Attribute> unique = data.getAttributeValues(lower.getAttributeName());
         List<Attribute> sorted = unique.stream().sorted().collect(Collectors.toList());
@@ -96,9 +116,22 @@ public class VerticoxServer extends Server {
             if (a.compareTo(lower) < 0) {
                 //value is below minimum, ignore
                 continue;
+            } else if (a.compareTo(lower) == 0) {
+                //range of 1 value
+                requirement.setLowerLimit(null);
+                requirement.setUpperLimit(null);
+                requirement.setRange(false);
+                requirement.setValue(lower);
+                requirement.setRange(false);
+                if (countIndividuals(requirement) >= MINIMUM_EVENT_POPULATION) {
+                    //found a range that contains sufficiently large population return requirement
+                    return requirement;
+                }
             } else {
-                //value is above, or equal to minimum, attempt to use it as upperlimit
+                //value is above minimum, attempt to use it as upperlimit
                 requirement.setUpperLimit(a);
+                requirement.setLowerLimit(lower);
+                requirement.setRange(true);
                 if (countIndividuals(requirement) >= MINIMUM_EVENT_POPULATION) {
                     //found a range that contains sufficiently large population return requirement
                     return requirement;

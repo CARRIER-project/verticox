@@ -27,11 +27,22 @@ Set the precision to be used for double values for the product protocol. Expecte
 
 Default precision used is 5. Always make sure to keep the precision the same across the various parties involved.
 
+### getPublicKey:
+
+A method to acces the public key used in the RSA protocol. This allows us to efficiently encrypt the auxilery values
+using the AES protocol. The AES key should then be encrypted using this key. This protects against a man in the middle
+attack. Important to note: this encryption is needed due to the split code between 2 docker images for our verticox
+implementation in Vantage6. This split nature requires us to communicate the auxilery values between the two docker
+images 1 party owns. This communication runs via a VPN that is maintained within the vantage6 infrastructure. An
+implementation of the verticox protocol that does not utilize this split infrastructure would not need to encrypt the
+auxilery values as it does not need to communicate them between two docker images.
+
 ### setValues:
 
 A method to set the auxilery values for each individual. Expected input:
 
-- List of auxilery values, ordered according to the shared population ordering
+- List of auxilery values, ordered according to the shared population ordering. These values are encrypted usin AES
+- Encrypted AES key using the RSA publickey provided by the webservice
 
 ### initValues:
 
