@@ -103,40 +103,21 @@ public class VerticoxEndpointTest {
         AttributeRequirement resultBigStarting3 = endpointBig.determineMinimumPeriod(
                 new Attribute(Attribute.AttributeType.numeric, "3", "x1"));
 
+        //Small dataset, so entire range is included
         assertEquals(resultSmall.getLowerLimit().getValue(), "0");
-        assertEquals(resultSmall.getUpperLimit().getValue(), "1");
+        assertEquals(resultSmall.getUpperLimit().getValue(), "inf");
 
-        //only 1 example has value 0, so minimum requirement will be [0-2)
+        //only 1 example has value 0, so minimum requirement will be [0-2]
         assertEquals(resultBigStarting0.getLowerLimit().getValue(), "0");
         assertEquals(resultBigStarting0.getUpperLimit().getValue(), "2");
         //13 examples have value 1, so value will be used, not range
         assertEquals(resultBigStarting1.getValue().getValue(), "1");
-        //5 examples have value 2, so minimum requirement will be [2-3)
+        //5 examples have value 2, there are also not enough examples >2, so minimum requirement will be [2-inf]
         assertEquals(resultBigStarting2.getLowerLimit().getValue(), "2");
-        assertEquals(resultBigStarting2.getUpperLimit().getValue(), "3");
-        //1 example has value 3, but its also the maximum value, so the minimum requirement will be 3 on it's own
-        assertEquals(resultBigStarting3.getValue().getValue(), "3");
-    }
-
-    private SetValuesRequest createSetValuesRequest(VerticoxEndpoint endpointZ, BigDecimal[] values) {
-        SetValuesRequest req = new SetValuesRequest();
-        try {
-            AES aes = new AES();
-            byte[] rsaPublicKey = endpointZ.getPublicKey().getKey();
-            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(rsaPublicKey);
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            PublicKey pubKey = keyFactory.generatePublic(keySpec);
-            cipher.init(Cipher.ENCRYPT_MODE, pubKey);
-            String[] encrypted = new String[values.length];
-            for (int i = 0; i < values.length; i++) {
-                encrypted[i] = aes.encrypt(values[i]);
-            }
-            req.setValues(encrypted);
-            req.setEncryptedAes(cipher.doFinal(aes.getKey().getEncoded()));
-        } catch (Exception e) {
-
-        }
-        return req;
+        assertEquals(resultBigStarting2.getUpperLimit().getValue(), "inf");
+        //1 example has value 3, so minimum requirement will be [3-inf]
+        assertEquals(resultBigStarting3.getLowerLimit().getValue(), "3");
+        assertEquals(resultBigStarting3.getUpperLimit().getValue(), "inf");
     }
 
     @Test
@@ -354,4 +335,24 @@ public class VerticoxEndpointTest {
         assertEquals(result.longValue(), expected.longValue(), multiplier.longValue());
     }
 
+    private SetValuesRequest createSetValuesRequest(VerticoxEndpoint endpointZ, BigDecimal[] values) {
+        SetValuesRequest req = new SetValuesRequest();
+        try {
+            AES aes = new AES();
+            byte[] rsaPublicKey = endpointZ.getPublicKey().getKey();
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(rsaPublicKey);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PublicKey pubKey = keyFactory.generatePublic(keySpec);
+            cipher.init(Cipher.ENCRYPT_MODE, pubKey);
+            String[] encrypted = new String[values.length];
+            for (int i = 0; i < values.length; i++) {
+                encrypted[i] = aes.encrypt(values[i]);
+            }
+            req.setValues(encrypted);
+            req.setEncryptedAes(cipher.doFinal(aes.getKey().getEncoded()));
+        } catch (Exception e) {
+
+        }
+        return req;
+    }
 }

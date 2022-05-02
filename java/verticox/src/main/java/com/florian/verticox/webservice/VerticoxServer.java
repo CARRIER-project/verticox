@@ -139,6 +139,9 @@ public class VerticoxServer extends Server {
             }
         }
         //no sufficiently large population was found, return the maximum possible range
+        requirement.setUpperLimit(new Attribute(lower.getType(), "inf", lower.getAttributeName()));
+        requirement.setLowerLimit(lower);
+        requirement.setRange(true);
         return requirement;
     }
 
