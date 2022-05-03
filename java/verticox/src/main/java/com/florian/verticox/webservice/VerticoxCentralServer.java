@@ -4,19 +4,20 @@ import com.florian.nscalarproduct.station.CentralStation;
 import com.florian.nscalarproduct.webservice.CentralServer;
 import com.florian.nscalarproduct.webservice.Protocol;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
+import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
 import com.florian.verticox.webservice.domain.InitCentralServerRequest;
+import com.florian.verticox.webservice.domain.MinimumPeriodRequest;
 import com.florian.verticox.webservice.domain.SumRelevantValuesRequest;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
+@RestController
 public class VerticoxCentralServer extends CentralServer {
     private List<ServerEndpoint> endpoints = new ArrayList<>();
     private ServerEndpoint secretEndpoint;
@@ -40,6 +41,18 @@ public class VerticoxCentralServer extends CentralServer {
         this.secretEndpoint = secretServer;
     }
 
+    private void initEndpoints() {
+        if (endpoints.size() == 0) {
+            endpoints = new ArrayList<>();
+            for (String s : servers) {
+                endpoints.add(new VerticoxEndpoint(s));
+            }
+        }
+        if (secretEndpoint == null) {
+            secretEndpoint = new ServerEndpoint(secretServer);
+        }
+    }
+
     @PostMapping ("initCentralServer")
     public void initCentralServer(@RequestBody InitCentralServerRequest req) {
         //purely exists for vantage6
@@ -47,14 +60,31 @@ public class VerticoxCentralServer extends CentralServer {
         super.servers = req.getServers();
     }
 
-    @PutMapping ("setPrecision")
-    public void setPrecision(int precision) {
+    @PutMapping ("setPrecisionCentral")
+    public void setPrecisionCentral(int precision) {
+        initEndpoints();
         this.precision = precision;
         multiplier = BigDecimal.valueOf(Math.pow(TEN, precision));
+        endpoints.stream().forEach(x -> ((VerticoxEndpoint) x).setPrecision(precision));
+    }
+
+    @PostMapping ("determineMinimumPeriodCentral")
+    public AttributeRequirement determineMinimumPeriodCentral(@RequestBody MinimumPeriodRequest req) {
+        initEndpoints();
+        List<AttributeRequirement> list = endpoints.stream()
+                .map(x -> ((VerticoxEndpoint) x).determineMinimumPeriod(req.getLowerLimit())).collect(
+                        Collectors.toList()).stream().filter(Objects::nonNull).collect(Collectors.toList());
+        //If the attribute exists it only exists in one place, so return first value in the list, the rest was null
+        //if it doesn't exist return null
+        if (list.size() > 0) {
+            return list.get(0);
+        }
+        return null;
     }
 
     @GetMapping ("sumRelevantValues")
     public BigDecimal sumRelevantValues(@RequestBody SumRelevantValuesRequest req) {
+        initEndpoints();
         for (ServerEndpoint endpoint : endpoints) {
             if (endpoint.getServerId().equals(req.getValueServer())) {
                 ((VerticoxEndpoint) endpoint).initData(req.getRequirements());

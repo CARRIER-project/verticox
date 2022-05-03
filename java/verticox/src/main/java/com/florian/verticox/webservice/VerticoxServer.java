@@ -15,6 +15,7 @@ import com.florian.verticox.webservice.domain.SetValuesRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.crypto.NoSuchPaddingException;
 import java.io.UnsupportedEncodingException;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 
 import static com.florian.nscalarproduct.data.Parser.parseCsv;
 
+@RestController
 public class VerticoxServer extends Server {
     private static final int DEFAULT_PRECISION = 5; //checkstyle's a bitch
     private static final int TEN = 10; //checkstyle's a bitch
@@ -40,6 +42,9 @@ public class VerticoxServer extends Server {
     private BigDecimal[] values;
     private String path;
 
+    public VerticoxServer() throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
+        super();
+    }
 
     public VerticoxServer(String id)
             throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
@@ -107,6 +112,11 @@ public class VerticoxServer extends Server {
         //Assumption is that time T of events is represented by a real or integer value
         AttributeRequirement requirement = new AttributeRequirement();
         Attribute lower = req.getLowerLimit();
+
+        if (data.getAttributeCollumn(lower.getAttributeName()) == null) {
+            //attribute not locally known, return null
+            return null;
+        }
 
         List<Attribute> unique = data.getAttributeValues(lower.getAttributeName());
         List<Attribute> sorted = unique.stream().sorted().collect(Collectors.toList());

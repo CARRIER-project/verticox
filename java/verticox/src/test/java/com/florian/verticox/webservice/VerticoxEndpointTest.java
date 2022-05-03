@@ -4,6 +4,7 @@ import com.florian.nscalarproduct.data.Attribute;
 import com.florian.nscalarproduct.encryption.AES;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
+import com.florian.verticox.webservice.domain.MinimumPeriodRequest;
 import com.florian.verticox.webservice.domain.SetValuesRequest;
 import com.florian.verticox.webservice.domain.SumRelevantValuesRequest;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class VerticoxEndpointTest {
 
@@ -39,11 +41,7 @@ public class VerticoxEndpointTest {
         VerticoxServer server2 = new VerticoxServer("resources/smallK2Example_firsthalf.csv", "2");
         VerticoxEndpoint endpoint2 = new VerticoxEndpoint(server2);
 
-        BigDecimal[] values = new BigDecimal[10];
-        Random r = new Random();
-        for (int i = 0; i < 10; i++) {
-            values[i] = BigDecimal.valueOf(r.nextDouble());
-        }
+        BigDecimal[] values = generateValues();
 
         endpointZ.setValues(createSetValuesRequest(endpointZ, values));
 
@@ -65,12 +63,13 @@ public class VerticoxEndpointTest {
         server2.setEndpoints(all);
 
         VerticoxCentralServer central = new VerticoxCentralServer(true);
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
 
         int precision = 5;
         BigDecimal multiplier = BigDecimal.valueOf(Math.pow(10, precision));
         endpointZ.setPrecision(precision);
         endpoint2.setPrecision(precision);
-        central.setPrecision(precision);
+        central.setPrecisionCentral(precision);
         secret.setPrecision(precision);
 
         central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
@@ -82,6 +81,15 @@ public class VerticoxEndpointTest {
         assertEquals(result.longValue(), expected.longValue(), multiplier.longValue());
     }
 
+    private BigDecimal[] generateValues() {
+        BigDecimal[] values = new BigDecimal[10];
+        Random r = new Random();
+        for (int i = 0; i < 10; i++) {
+            values[i] = BigDecimal.valueOf(r.nextDouble());
+        }
+        return values;
+    }
+
     @Test
     public void testMinimumPeriod()
             throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
@@ -89,19 +97,44 @@ public class VerticoxEndpointTest {
         VerticoxEndpoint endpointsmall = new VerticoxEndpoint(smalExample);
 
         VerticoxServer bigExample = new VerticoxServer("resources/bigK2Example_firsthalf.csv", "Z");
+        VerticoxServer bigExampleSecondHalf = new VerticoxServer("resources/smallK2Example_secondhalf.csv", "Z2");
+
         VerticoxEndpoint endpointBig = new VerticoxEndpoint(bigExample);
+        VerticoxEndpoint endpointSecondHalf = new VerticoxEndpoint(bigExampleSecondHalf);
+
+        VerticoxServer secret = new VerticoxServer("3", Arrays.asList(endpointBig, endpointSecondHalf));
+        ServerEndpoint secretEnd = new ServerEndpoint(secret);
+
+        List<ServerEndpoint> all = new ArrayList<>();
+        all.add(endpointBig);
+        all.add(endpointSecondHalf);
+
+        VerticoxCentralServer central = new VerticoxCentralServer(true);
+        central.initEndpoints(Arrays.asList(endpointBig, endpointSecondHalf), secretEnd);
 
 
         AttributeRequirement resultSmall = endpointsmall.determineMinimumPeriod(
                 new Attribute(Attribute.AttributeType.numeric, "0", "x1"));
-        AttributeRequirement resultBigStarting0 = endpointBig.determineMinimumPeriod(
-                new Attribute(Attribute.AttributeType.numeric, "0", "x1"));
-        AttributeRequirement resultBigStarting1 = endpointBig.determineMinimumPeriod(
-                new Attribute(Attribute.AttributeType.numeric, "1", "x1"));
-        AttributeRequirement resultBigStarting2 = endpointBig.determineMinimumPeriod(
-                new Attribute(Attribute.AttributeType.numeric, "2", "x1"));
-        AttributeRequirement resultBigStarting3 = endpointBig.determineMinimumPeriod(
-                new Attribute(Attribute.AttributeType.numeric, "3", "x1"));
+
+        MinimumPeriodRequest req1 = new MinimumPeriodRequest();
+        req1.setLowerLimit(new Attribute(Attribute.AttributeType.numeric, "0", "x1"));
+        MinimumPeriodRequest req2 = new MinimumPeriodRequest();
+        req2.setLowerLimit(new Attribute(Attribute.AttributeType.numeric, "1", "x1"));
+        MinimumPeriodRequest req3 = new MinimumPeriodRequest();
+        req3.setLowerLimit(new Attribute(Attribute.AttributeType.numeric, "2", "x1"));
+        MinimumPeriodRequest req4 = new MinimumPeriodRequest();
+        req4.setLowerLimit(new Attribute(Attribute.AttributeType.numeric, "3", "x1"));
+        MinimumPeriodRequest reqNull = new MinimumPeriodRequest();
+        reqNull.setLowerLimit(new Attribute(Attribute.AttributeType.numeric, "3", "nonsense"));
+        MinimumPeriodRequest reqX3 = new MinimumPeriodRequest();
+        reqX3.setLowerLimit(new Attribute(Attribute.AttributeType.numeric, "0", "x3"));
+
+        AttributeRequirement resultBigStarting0 = central.determineMinimumPeriodCentral(req1);
+        AttributeRequirement resultBigStarting1 = central.determineMinimumPeriodCentral(req2);
+        AttributeRequirement resultBigStarting2 = central.determineMinimumPeriodCentral(req3);
+        AttributeRequirement resultBigStarting3 = central.determineMinimumPeriodCentral(req4);
+        AttributeRequirement resultBigStartingNull = central.determineMinimumPeriodCentral(reqNull);
+        AttributeRequirement resultBigStartingX3 = central.determineMinimumPeriodCentral(reqX3);
 
         //Small dataset, so entire range is included
         assertEquals(resultSmall.getLowerLimit().getValue(), "0");
@@ -118,6 +151,13 @@ public class VerticoxEndpointTest {
         //1 example has value 3, so minimum requirement will be [3-inf)
         assertEquals(resultBigStarting3.getLowerLimit().getValue(), "3");
         assertEquals(resultBigStarting3.getUpperLimit().getValue(), "inf");
+
+        //This attribute does not exist so the result is null
+        assertNull(resultBigStartingNull);
+
+        //x3 only has less than 10 examples with value 0 so the entire range is used again
+        assertEquals(resultBigStartingX3.getLowerLimit().getValue(), "0");
+        assertEquals(resultBigStartingX3.getUpperLimit().getValue(), "inf");
     }
 
     @Test
@@ -133,11 +173,7 @@ public class VerticoxEndpointTest {
                 "resources/hybridsplit/smallK2Example_secondhalf_morepopulation.csv", "3");
         VerticoxEndpoint endpoint3 = new VerticoxEndpoint(server3);
 
-        BigDecimal[] values = new BigDecimal[10];
-        Random r = new Random();
-        for (int i = 0; i < 10; i++) {
-            values[i] = BigDecimal.valueOf(r.nextDouble());
-        }
+        BigDecimal[] values = generateValues();
         endpointZ.setValues(createSetValuesRequest(endpointZ, values));
 
         AttributeRequirement req = new AttributeRequirement();
@@ -160,12 +196,13 @@ public class VerticoxEndpointTest {
         server3.setEndpoints(all);
 
         VerticoxCentralServer central = new VerticoxCentralServer(true);
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
 
         int precision = 5;
         BigDecimal multiplier = BigDecimal.valueOf(Math.pow(10, precision));
         endpointZ.setPrecision(precision);
         endpoint2.setPrecision(precision);
-        central.setPrecision(precision);
+        central.setPrecisionCentral(precision);
         secret.setPrecision(precision);
 
         central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
@@ -188,11 +225,7 @@ public class VerticoxEndpointTest {
         VerticoxServer server3 = new VerticoxServer("resources/smallK2Example_firsthalf.csv", "2");
         VerticoxEndpoint endpoint3 = new VerticoxEndpoint(server3);
 
-        BigDecimal[] values = new BigDecimal[10];
-        Random r = new Random();
-        for (int i = 0; i < 10; i++) {
-            values[i] = BigDecimal.valueOf(r.nextDouble());
-        }
+        BigDecimal[] values = generateValues();
         endpointZ.setValues(createSetValuesRequest(endpointZ, values));
 
         AttributeRequirement req = new AttributeRequirement();
@@ -215,13 +248,14 @@ public class VerticoxEndpointTest {
         server3.setEndpoints(all);
 
         VerticoxCentralServer central = new VerticoxCentralServer(true);
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
 
         int precision = 5;
         BigDecimal multiplier = BigDecimal.valueOf(Math.pow(10, precision));
         endpointZ.setPrecision(precision);
         endpoint2.setPrecision(precision);
         endpoint3.setPrecision(precision);
-        central.setPrecision(precision);
+        central.setPrecisionCentral(precision);
         secret.setPrecision(precision);
 
         central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
@@ -242,11 +276,7 @@ public class VerticoxEndpointTest {
         VerticoxServer server2 = new VerticoxServer("resources/smallK2Example_firsthalf.csv", "2");
         VerticoxEndpoint endpoint2 = new VerticoxEndpoint(server2);
 
-        BigDecimal[] values = new BigDecimal[10];
-        Random r = new Random();
-        for (int i = 0; i < 10; i++) {
-            values[i] = BigDecimal.valueOf(r.nextDouble());
-        }
+        BigDecimal[] values = generateValues();
         endpointZ.setValues(createSetValuesRequest(endpointZ, values));
 
         AttributeRequirement req = new AttributeRequirement(new Attribute(Attribute.AttributeType.numeric, "0", "x1"),
@@ -267,12 +297,13 @@ public class VerticoxEndpointTest {
         server2.setEndpoints(all);
 
         VerticoxCentralServer central = new VerticoxCentralServer(true);
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
 
         int precision = 5;
         BigDecimal multiplier = BigDecimal.valueOf(Math.pow(10, precision));
         endpointZ.setPrecision(precision);
         endpoint2.setPrecision(precision);
-        central.setPrecision(precision);
+        central.setPrecisionCentral(precision);
         secret.setPrecision(precision);
 
         central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
@@ -293,11 +324,7 @@ public class VerticoxEndpointTest {
         VerticoxServer server2 = new VerticoxServer("resources/smallK2Example_firsthalf.csv", "2");
         VerticoxEndpoint endpoint2 = new VerticoxEndpoint(server2);
 
-        BigDecimal[] values = new BigDecimal[10];
-        Random r = new Random();
-        for (int i = 0; i < 10; i++) {
-            values[i] = BigDecimal.valueOf(r.nextDouble());
-        }
+        BigDecimal[] values = generateValues();
         endpointZ.setValues(createSetValuesRequest(endpointZ, values));
 
         AttributeRequirement req = new AttributeRequirement(new Attribute(Attribute.AttributeType.numeric, "0", "x1"),
@@ -318,12 +345,13 @@ public class VerticoxEndpointTest {
         server2.setEndpoints(all);
 
         VerticoxCentralServer central = new VerticoxCentralServer(true);
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
 
         int precision = 5;
         BigDecimal multiplier = BigDecimal.valueOf(Math.pow(10, precision));
         endpointZ.setPrecision(precision);
         endpoint2.setPrecision(precision);
-        central.setPrecision(precision);
+        central.setPrecisionCentral(precision);
         secret.setPrecision(precision);
 
         central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
