@@ -8,7 +8,10 @@ import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
 import com.florian.verticox.webservice.domain.InitCentralServerRequest;
 import com.florian.verticox.webservice.domain.MinimumPeriodRequest;
 import com.florian.verticox.webservice.domain.SumRelevantValuesRequest;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -82,7 +85,7 @@ public class VerticoxCentralServer extends CentralServer {
         return null;
     }
 
-    @GetMapping ("sumRelevantValues")
+    @PostMapping ("sumRelevantValues")
     public BigDecimal sumRelevantValues(@RequestBody SumRelevantValuesRequest req) {
         initEndpoints();
         for (ServerEndpoint endpoint : endpoints) {

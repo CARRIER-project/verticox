@@ -83,3 +83,8 @@ Important to note; datasets still need to have the same ordering for their recor
 handled in a preprocessing step as well.
 
 This functionality is only available in the java implementation.
+
+#### SOAPUI example project
+A SOAPUI example project is also present in this repository.
+Do be aware that the method "setValues" does not work straightforwardly as it requires also using the correct keys for the various encryptions. This isn't easily doable in SOAPUI.
+However, it serves as an example for the various requests

@@ -12,10 +12,8 @@ import com.florian.nscalarproduct.webservice.domain.AttributeRequirementsRequest
 import com.florian.verticox.webservice.domain.MinimumPeriodRequest;
 import com.florian.verticox.webservice.domain.PublicKeyResponse;
 import com.florian.verticox.webservice.domain.SetValuesRequest;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.*;
 
 import javax.crypto.NoSuchPaddingException;
 import java.io.UnsupportedEncodingException;
@@ -40,6 +38,8 @@ public class VerticoxServer extends Server {
 
     private Data data;
     private BigDecimal[] values;
+
+    @Value ("${datapath}")
     private String path;
 
     public VerticoxServer() throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
@@ -73,7 +73,7 @@ public class VerticoxServer extends Server {
     }
 
     @PutMapping ("setValues")
-    public void setValues(SetValuesRequest req) throws NoSuchPaddingException, NoSuchAlgorithmException {
+    public void setValues(@RequestBody SetValuesRequest req) throws NoSuchPaddingException, NoSuchAlgorithmException {
         AES aes = new AES(rsa.decryptAESKey(req.getEncryptedAes()));
         String[] encrypted = req.getValues();
         this.values = new BigDecimal[encrypted.length];
@@ -107,8 +107,13 @@ public class VerticoxServer extends Server {
         this.dataStations.put("start", new DataStation(this.serverId, this.localData));
     }
 
-    @GetMapping ("determineMinimumPeriod")
+    @PostMapping ("determineMinimumPeriod")
     public AttributeRequirement determineMinimumPeriod(@RequestBody MinimumPeriodRequest req) {
+        reset();
+        if (this.data == null) {
+            readData();
+        }
+
         //Assumption is that time T of events is represented by a real or integer value
         AttributeRequirement requirement = new AttributeRequirement();
         Attribute lower = req.getLowerLimit();
@@ -142,6 +147,7 @@ public class VerticoxServer extends Server {
                 requirement.setUpperLimit(a);
                 requirement.setLowerLimit(lower);
                 requirement.setRange(true);
+                requirement.setValue(null);
                 if (countIndividuals(requirement) >= MINIMUM_EVENT_POPULATION) {
                     //found a range that contains sufficiently large population return requirement
                     return requirement;
@@ -152,6 +158,7 @@ public class VerticoxServer extends Server {
         requirement.setUpperLimit(new Attribute(lower.getType(), "inf", lower.getAttributeName()));
         requirement.setLowerLimit(lower);
         requirement.setRange(true);
+        requirement.setValue(null);
         return requirement;
     }
 

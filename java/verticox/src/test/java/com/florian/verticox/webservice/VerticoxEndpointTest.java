@@ -1,5 +1,7 @@
 package com.florian.verticox.webservice;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.florian.nscalarproduct.data.Attribute;
 import com.florian.nscalarproduct.encryption.AES;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
@@ -44,6 +46,14 @@ public class VerticoxEndpointTest {
         BigDecimal[] values = generateValues();
 
         endpointZ.setValues(createSetValuesRequest(endpointZ, values));
+
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            System.out.println(mapper.writerWithDefaultPrettyPrinter()
+                                       .writeValueAsString(createSetValuesRequest(endpointZ, values)));
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
 
         AttributeRequirement req = new AttributeRequirement();
         req.setValue(new Attribute(Attribute.AttributeType.numeric, "1", "x1"));
@@ -139,18 +149,24 @@ public class VerticoxEndpointTest {
         //Small dataset, so entire range is included
         assertEquals(resultSmall.getLowerLimit().getValue(), "0");
         assertEquals(resultSmall.getUpperLimit().getValue(), "inf");
+        assertNull(resultSmall.getValue());
 
         //only 1 example has value 0, so minimum requirement will be [0-2)
         assertEquals(resultBigStarting0.getLowerLimit().getValue(), "0");
         assertEquals(resultBigStarting0.getUpperLimit().getValue(), "2");
+        assertNull(resultBigStarting0.getValue());
         //13 examples have value 1, so value will be used, not range
         assertEquals(resultBigStarting1.getValue().getValue(), "1");
+        assertNull(resultBigStarting1.getUpperLimit());
+        assertNull(resultBigStarting1.getLowerLimit());
         //5 examples have value 2, there are also not enough examples >2, so minimum requirement will be [2-inf]
         assertEquals(resultBigStarting2.getLowerLimit().getValue(), "2");
         assertEquals(resultBigStarting2.getUpperLimit().getValue(), "inf");
+        assertNull(resultBigStarting2.getValue());
         //1 example has value 3, so minimum requirement will be [3-inf)
         assertEquals(resultBigStarting3.getLowerLimit().getValue(), "3");
         assertEquals(resultBigStarting3.getUpperLimit().getValue(), "inf");
+        assertNull(resultBigStarting3.getValue());
 
         //This attribute does not exist so the result is null
         assertNull(resultBigStartingNull);
@@ -158,6 +174,7 @@ public class VerticoxEndpointTest {
         //x3 only has less than 10 examples with value 0 so the entire range is used again
         assertEquals(resultBigStartingX3.getLowerLimit().getValue(), "0");
         assertEquals(resultBigStartingX3.getUpperLimit().getValue(), "inf");
+        assertNull(resultBigStartingX3.getValue());
     }
 
     @Test

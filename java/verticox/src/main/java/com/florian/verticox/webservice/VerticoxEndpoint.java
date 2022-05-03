@@ -63,7 +63,7 @@ public class VerticoxEndpoint extends ServerEndpoint {
         if (testing) {
             return ((VerticoxServer) (server)).determineMinimumPeriod(req);
         } else {
-            return REST_TEMPLATE.getForEntity(serverUrl + "/countIndividuals", AttributeRequirement.class, req)
+            return REST_TEMPLATE.postForEntity(serverUrl + "/determineMinimumPeriod", req, AttributeRequirement.class)
                     .getBody();
         }
     }
