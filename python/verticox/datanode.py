@@ -7,21 +7,26 @@ RHO = 0.25
 
 
 class DataNode(Resource):
-    def __init__(self, features: Optional[np.array] = None, events: Optional[np.array] = None,
+    def __init__(self, covariates: Optional[np.array] = None, events: Optional[np.array] = None,
                  rho: float = RHO):
-        self.features = features
+        self.covariates = covariates
         self.events = events
 
         # Local update
-        RHO = 0.25
+        self.rho = rho
 
         # Parts that stay constant over iterations
         # Square all covariates and sum them together
         # The formula says for every patient, x needs to be multiplied by itself.
         # Squaring all covariates with themselves comes down to the same thing since x_nk is supposed to
         # be one-dimensional
-        self.multiplied_covariates = (X * X.transpose()).sum(axis=0)
-        self.covariates_summed = features.sum(axis=0)
+        self.covariates_multiplied= (covariates * covariates.transpose()).sum(axis=0)
+        self.covariates_sum= covariates.sum(axis=0)
+
+    def put(self, z, gamma):
+        sigma = DataNode.local_update(self.covariates, z, gamma, self.rho,
+                                      self.covariates_multiplied, self.covariates_sum)
+
 
     @staticmethod
     def sum_covariates(covariates: np.array):
@@ -62,8 +67,8 @@ class DataNode(Resource):
 
     @staticmethod
     def local_update(covariates: np.array, z: np.array, gamma: np.array, rho,
-                     multiplied_covariates, covariates_sum):
-        beta = DataNode.compute_beta(covariates, z, gamma, rho, multiplied_covariates,
+                     covariates_multiplied, covariates_sum):
+        beta = DataNode.compute_beta(covariates, z, gamma, rho, covariates_multiplied,
                                      covariates_sum)
 
         return DataNode.compute_sigma(beta, covariates)
