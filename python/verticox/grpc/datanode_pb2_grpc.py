@@ -14,8 +14,8 @@ class DataNodeStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.UpdateNode = channel.unary_unary(
-                '/DataNode/UpdateNode',
+        self.update = channel.unary_unary(
+                '/DataNode/update',
                 request_serializer=datanode__pb2.UpdateRequest.SerializeToString,
                 response_deserializer=datanode__pb2.LocalAuxiliaries.FromString,
                 )
@@ -24,7 +24,7 @@ class DataNodeStub(object):
 class DataNodeServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def UpdateNode(self, request, context):
+    def update(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -33,8 +33,8 @@ class DataNodeServicer(object):
 
 def add_DataNodeServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'UpdateNode': grpc.unary_unary_rpc_method_handler(
-                    servicer.UpdateNode,
+            'update': grpc.unary_unary_rpc_method_handler(
+                    servicer.update,
                     request_deserializer=datanode__pb2.UpdateRequest.FromString,
                     response_serializer=datanode__pb2.LocalAuxiliaries.SerializeToString,
             ),
@@ -49,7 +49,7 @@ class DataNode(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def UpdateNode(request,
+    def update(request,
             target,
             options=(),
             channel_credentials=None,
@@ -59,7 +59,7 @@ class DataNode(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/DataNode/UpdateNode',
+        return grpc.experimental.unary_unary(request, target, '/DataNode/update',
             datanode__pb2.UpdateRequest.SerializeToString,
             datanode__pb2.LocalAuxiliaries.FromString,
             options, channel_credentials,

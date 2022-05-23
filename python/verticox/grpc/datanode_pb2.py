@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x64\x61tanode.proto\"8\n\rUpdateRequest\x12\t\n\x01z\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\x12\r\n\x05gamma\x18\x03 \x03(\x02\"0\n\x10LocalAuxiliaries\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\x32=\n\x08\x44\x61taNode\x12\x31\n\nUpdateNode\x12\x0e.UpdateRequest\x1a\x11.LocalAuxiliaries\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x64\x61tanode.proto\"8\n\rUpdateRequest\x12\t\n\x01z\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\x12\r\n\x05gamma\x18\x03 \x03(\x02\"0\n\x10LocalAuxiliaries\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\x32\x39\n\x08\x44\x61taNode\x12-\n\x06update\x12\x0e.UpdateRequest\x1a\x11.LocalAuxiliaries\"\x00\x62\x06proto3')
 
 
 
@@ -43,5 +43,5 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _LOCALAUXILIARIES._serialized_start=76
   _LOCALAUXILIARIES._serialized_end=124
   _DATANODE._serialized_start=126
-  _DATANODE._serialized_end=187
+  _DATANODE._serialized_end=183
 # @@protoc_insertion_point(module_scope)
