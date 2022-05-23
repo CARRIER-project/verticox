@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+service DataNode{
+  rpc UpdateNode(UpdateRequest) returns (LocalAuxiliaries) {}
+}
+
+message UpdateRequest{
+  repeated float z = 1;
+  repeated float sigma = 2;
+  repeated float gamma = 3;
+}
+
+message LocalAuxiliaries {
+  repeated float gamma = 1;
+  repeated float sigma = 2;
+}
