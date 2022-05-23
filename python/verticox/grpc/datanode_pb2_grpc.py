@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import datanode_pb2 as datanode__pb2
+from verticox.grpc import datanode_pb2 as verticox_dot_grpc_dot_datanode__pb2
 
 
 class DataNodeStub(object):
@@ -16,8 +16,8 @@ class DataNodeStub(object):
         """
         self.update = channel.unary_unary(
                 '/DataNode/update',
-                request_serializer=datanode__pb2.UpdateRequest.SerializeToString,
-                response_deserializer=datanode__pb2.LocalAuxiliaries.FromString,
+                request_serializer=verticox_dot_grpc_dot_datanode__pb2.UpdateRequest.SerializeToString,
+                response_deserializer=verticox_dot_grpc_dot_datanode__pb2.LocalAuxiliaries.FromString,
                 )
 
 
@@ -35,8 +35,8 @@ def add_DataNodeServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
-                    request_deserializer=datanode__pb2.UpdateRequest.FromString,
-                    response_serializer=datanode__pb2.LocalAuxiliaries.SerializeToString,
+                    request_deserializer=verticox_dot_grpc_dot_datanode__pb2.UpdateRequest.FromString,
+                    response_serializer=verticox_dot_grpc_dot_datanode__pb2.LocalAuxiliaries.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -60,7 +60,7 @@ class DataNode(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/DataNode/update',
-            datanode__pb2.UpdateRequest.SerializeToString,
-            datanode__pb2.LocalAuxiliaries.FromString,
+            verticox_dot_grpc_dot_datanode__pb2.UpdateRequest.SerializeToString,
+            verticox_dot_grpc_dot_datanode__pb2.LocalAuxiliaries.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
