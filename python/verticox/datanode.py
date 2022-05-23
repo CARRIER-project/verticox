@@ -1,32 +1,43 @@
 import numpy as np
-from flask import Flask
-from flask_restful import Resource
 from typing import Optional
+from verticox.grpc.datanode_pb2_grpc import DataNodeServicer
+from verticox.grpc.datanode_pb2 import UpdateRequest, LocalAuxiliaries
 
 RHO = 0.25
 
 
-class DataNode(Resource):
+class DataNode(DataNodeServicer):
     def __init__(self, covariates: Optional[np.array] = None, events: Optional[np.array] = None,
                  rho: float = RHO):
+        """
+
+        Args:
+            covariates:
+            events:
+            rho:
+        """
         self.covariates = covariates
         self.events = events
 
-        # Local update
         self.rho = rho
-
         # Parts that stay constant over iterations
         # Square all covariates and sum them together
         # The formula says for every patient, x needs to be multiplied by itself.
         # Squaring all covariates with themselves comes down to the same thing since x_nk is supposed to
         # be one-dimensional
-        self.covariates_multiplied= (covariates * covariates.transpose()).sum(axis=0)
-        self.covariates_sum= covariates.sum(axis=0)
+        self.covariates_multiplied = (covariates * covariates.transpose()).sum(axis=0)
+        self.covariates_sum = covariates.sum(axis=0)
 
-    def put(self, z, gamma):
-        sigma = DataNode.local_update(self.covariates, z, gamma, self.rho,
-                                      self.covariates_multiplied, self.covariates_sum)
+    def update(self, request: UpdateRequest, context):
+        sigma = DataNode.local_update(self.covariates,
+                                      np.array(request.z),
+                                      np.array(request.gamma),
+                                      self.rho, self.covariates_multiplied, self.covariates_sum)
 
+        # TODO: Kind of pointless to send back the same gamma, will probably remove this later
+        response = LocalAuxiliaries(gamma=request.gamma, sigma=sigma.tolist())
+
+        return response
 
     @staticmethod
     def sum_covariates(covariates: np.array):
