@@ -6,7 +6,7 @@ import grpc
 import numpy as np
 from sksurv.datasets import load_whas500
 
-from verticox.grpc.datanode_pb2 import LocalAuxiliaries, NumFeatures
+from verticox.grpc.datanode_pb2 import LocalAuxiliaries, NumFeatures, NumSamples
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,8 @@ class DataNode(DataNodeServicer):
                                       np.array(request.gamma),
                                       self.rho, self.features_multiplied, self.features_sum)
 
-        # TODO: Kind of pointless to send back the same gamma, will probably remove this later
+        # TODO: Kind of pointless to send back the same gamma. I have to figure out where gamma
+        #  is updated
         response = LocalAuxiliaries(gamma=request.gamma, sigma=sigma.tolist())
         logger.info('Finished local update, returning results.')
 
@@ -55,7 +56,10 @@ class DataNode(DataNodeServicer):
         num_features = self.features.shape[1]
         return NumFeatures(numFeatures=num_features)
 
+    def getNumSamples(self, request, context=None):
+        num_samples = self.features.shape[0]
 
+        return NumSamples(numSamples=num_samples)
 
     @staticmethod
     def sum_covariates(covariates: np.array):

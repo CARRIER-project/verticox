@@ -2,7 +2,7 @@ syntax = "proto3";
 
 service DataNode{
   rpc update(UpdateRequest) returns (LocalAuxiliaries) {}
-  rpc getNumFeature(Empty) returns (NumFeatures){}
+  rpc getNumFeatures(Empty) returns (NumFeatures){}
   rpc getNumSamples(Empty) returns (NumSamples){}
 }
 
@@ -12,7 +12,7 @@ message UpdateRequest{
 }
 
 message LocalAuxiliaries {
-  repeated float gamma = 1;
+  float gamma = 1;
   repeated float sigma = 2;
 }
 
