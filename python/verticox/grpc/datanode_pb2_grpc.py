@@ -19,12 +19,23 @@ class DataNodeStub(object):
                 request_serializer=verticox_dot_grpc_dot_datanode__pb2.UpdateRequest.SerializeToString,
                 response_deserializer=verticox_dot_grpc_dot_datanode__pb2.LocalAuxiliaries.FromString,
                 )
+        self.getNumFeatures = channel.unary_unary(
+                '/DataNode/getNumFeatures',
+                request_serializer=verticox_dot_grpc_dot_datanode__pb2.Empty.SerializeToString,
+                response_deserializer=verticox_dot_grpc_dot_datanode__pb2.NumFeatures.FromString,
+                )
 
 
 class DataNodeServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def update(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getNumFeatures(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -37,6 +48,11 @@ def add_DataNodeServicer_to_server(servicer, server):
                     servicer.update,
                     request_deserializer=verticox_dot_grpc_dot_datanode__pb2.UpdateRequest.FromString,
                     response_serializer=verticox_dot_grpc_dot_datanode__pb2.LocalAuxiliaries.SerializeToString,
+            ),
+            'getNumFeatures': grpc.unary_unary_rpc_method_handler(
+                    servicer.getNumFeatures,
+                    request_deserializer=verticox_dot_grpc_dot_datanode__pb2.Empty.FromString,
+                    response_serializer=verticox_dot_grpc_dot_datanode__pb2.NumFeatures.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -62,5 +78,22 @@ class DataNode(object):
         return grpc.experimental.unary_unary(request, target, '/DataNode/update',
             verticox_dot_grpc_dot_datanode__pb2.UpdateRequest.SerializeToString,
             verticox_dot_grpc_dot_datanode__pb2.LocalAuxiliaries.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def getNumFeatures(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/DataNode/getNumFeatures',
+            verticox_dot_grpc_dot_datanode__pb2.Empty.SerializeToString,
+            verticox_dot_grpc_dot_datanode__pb2.NumFeatures.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
