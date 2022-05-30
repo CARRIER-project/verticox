@@ -13,7 +13,7 @@ relevant values
 To use this method the following needs to be done:
 
 1) setPrecision (default 5)
-2) determineMinimumPeriod (can be skipped if you minimumperiods are already known)
+2) determineMinimumTimeInterval (can be skipped if you minimumTimeInterval are already known)
 3) setValues for the party who owns the relevant data
 4) sumRelevantValues
 
