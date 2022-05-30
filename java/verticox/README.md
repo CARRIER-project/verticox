@@ -51,7 +51,7 @@ A method that inits the localdata for the scalar product protocol with locally a
 
 - List of selection criteria, for example the time period of relevant individuals.
 
-### determineMinimumPeriod:
+### determineMinimumTimeInterval:
 
 A method that can determine the smallest time period needed to include at least 10 individuals based on a given starting
 point. Expected input:
