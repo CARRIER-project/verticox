@@ -36,7 +36,7 @@ def test_elementwise_multiply_sum():
     np.testing.assert_array_equal(result, np.array([22, 28]))
 
 
-def test_local_update():
+def test_local_update_sigma_shape_is_num_patients():
     rho = 1
     covariates = np.arange(NUM_PATIENTS * NUM_FEATURES).reshape((NUM_PATIENTS, NUM_FEATURES))
     z = np.arange(NUM_PATIENTS)
@@ -49,6 +49,7 @@ def test_local_update():
     assert sigma.shape == (
         NUM_PATIENTS,), f'Updated value is not an array of shape {(NUM_FEATURES,)} but of shape: ' \
                         f'{sigma.shape}'
+
 
 
 def test_get_num_features_returns_num_features():
