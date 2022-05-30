@@ -13,7 +13,7 @@ relevant values
 To use this method the following needs to be done:
 
 1) setPrecision (default 5)
-2) determineMinimumPeriod (can be skipped if you minimumperiods are already known)
+2) determineMinimumTimeInterval (can be skipped if you minimumTimeInterval are already known)
 3) setValues for the party who owns the relevant data
 4) sumRelevantValues
 
@@ -51,7 +51,7 @@ A method that inits the localdata for the scalar product protocol with locally a
 
 - List of selection criteria, for example the time period of relevant individuals.
 
-### determineMinimumPeriod:
+### determineMinimumTimeInterval:
 
 A method that can determine the smallest time period needed to include at least 10 individuals based on a given starting
 point. Expected input:
