@@ -17,17 +17,18 @@ MAX_WORKERS = 1
 
 
 class DataNode(DataNodeServicer):
-    def __init__(self, features: np.array = None, events: Optional[np.array] = None,
-                 rho: float = RHO):
+    def __init__(self, features: np.array = None, event_times: Optional[np.array] = None,
+                 right_censored: Optional[np.array] = None, rho: float = RHO):
         """
 
         Args:
             features:
-            events:
+            event_times:
             rho:
         """
         self.features = features
-        self.events = events
+        self.event_times = event_times
+        self.right_censored = right_censored
 
         self.rho = rho
         # Parts that stay constant over iterations
@@ -111,7 +112,7 @@ def serve():
     features, events = load_whas500()
     features = features.values.astype(float)
     server = grpc.server(ThreadPoolExecutor(max_workers=MAX_WORKERS))
-    add_DataNodeServicer_to_server(DataNode(features=features, events=events), server)
+    add_DataNodeServicer_to_server(DataNode(features=features, event_times=events), server)
     server.add_insecure_port(f'[::]:{PORT}')
     logger.info(f'Starting datanode on port {PORT}')
     server.start()
