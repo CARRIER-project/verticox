@@ -14,10 +14,10 @@ class DataNodeStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.update = channel.unary_unary(
-                '/DataNode/update',
-                request_serializer=verticox_dot_grpc_dot_datanode__pb2.UpdateRequest.SerializeToString,
-                response_deserializer=verticox_dot_grpc_dot_datanode__pb2.LocalAuxiliaries.FromString,
+        self.fit = channel.unary_unary(
+                '/DataNode/fit',
+                request_serializer=verticox_dot_grpc_dot_datanode__pb2.Empty.SerializeToString,
+                response_deserializer=verticox_dot_grpc_dot_datanode__pb2.LocalParameters.FromString,
                 )
         self.getNumFeatures = channel.unary_unary(
                 '/DataNode/getNumFeatures',
@@ -29,12 +29,22 @@ class DataNodeStub(object):
                 request_serializer=verticox_dot_grpc_dot_datanode__pb2.Empty.SerializeToString,
                 response_deserializer=verticox_dot_grpc_dot_datanode__pb2.NumSamples.FromString,
                 )
+        self.updateParameters = channel.unary_unary(
+                '/DataNode/updateParameters',
+                request_serializer=verticox_dot_grpc_dot_datanode__pb2.AggregatedParameters.SerializeToString,
+                response_deserializer=verticox_dot_grpc_dot_datanode__pb2.Empty.FromString,
+                )
+        self.computeGamma = channel.unary_unary(
+                '/DataNode/computeGamma',
+                request_serializer=verticox_dot_grpc_dot_datanode__pb2.Empty.SerializeToString,
+                response_deserializer=verticox_dot_grpc_dot_datanode__pb2.Empty.FromString,
+                )
 
 
 class DataNodeServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def update(self, request, context):
+    def fit(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -52,13 +62,25 @@ class DataNodeServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def updateParameters(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def computeGamma(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_DataNodeServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'update': grpc.unary_unary_rpc_method_handler(
-                    servicer.update,
-                    request_deserializer=verticox_dot_grpc_dot_datanode__pb2.UpdateRequest.FromString,
-                    response_serializer=verticox_dot_grpc_dot_datanode__pb2.LocalAuxiliaries.SerializeToString,
+            'fit': grpc.unary_unary_rpc_method_handler(
+                    servicer.fit,
+                    request_deserializer=verticox_dot_grpc_dot_datanode__pb2.Empty.FromString,
+                    response_serializer=verticox_dot_grpc_dot_datanode__pb2.LocalParameters.SerializeToString,
             ),
             'getNumFeatures': grpc.unary_unary_rpc_method_handler(
                     servicer.getNumFeatures,
@@ -69,6 +91,16 @@ def add_DataNodeServicer_to_server(servicer, server):
                     servicer.getNumSamples,
                     request_deserializer=verticox_dot_grpc_dot_datanode__pb2.Empty.FromString,
                     response_serializer=verticox_dot_grpc_dot_datanode__pb2.NumSamples.SerializeToString,
+            ),
+            'updateParameters': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateParameters,
+                    request_deserializer=verticox_dot_grpc_dot_datanode__pb2.AggregatedParameters.FromString,
+                    response_serializer=verticox_dot_grpc_dot_datanode__pb2.Empty.SerializeToString,
+            ),
+            'computeGamma': grpc.unary_unary_rpc_method_handler(
+                    servicer.computeGamma,
+                    request_deserializer=verticox_dot_grpc_dot_datanode__pb2.Empty.FromString,
+                    response_serializer=verticox_dot_grpc_dot_datanode__pb2.Empty.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -81,7 +113,7 @@ class DataNode(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def update(request,
+    def fit(request,
             target,
             options=(),
             channel_credentials=None,
@@ -91,9 +123,9 @@ class DataNode(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/DataNode/update',
-            verticox_dot_grpc_dot_datanode__pb2.UpdateRequest.SerializeToString,
-            verticox_dot_grpc_dot_datanode__pb2.LocalAuxiliaries.FromString,
+        return grpc.experimental.unary_unary(request, target, '/DataNode/fit',
+            verticox_dot_grpc_dot_datanode__pb2.Empty.SerializeToString,
+            verticox_dot_grpc_dot_datanode__pb2.LocalParameters.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -128,5 +160,39 @@ class DataNode(object):
         return grpc.experimental.unary_unary(request, target, '/DataNode/getNumSamples',
             verticox_dot_grpc_dot_datanode__pb2.Empty.SerializeToString,
             verticox_dot_grpc_dot_datanode__pb2.NumSamples.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def updateParameters(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/DataNode/updateParameters',
+            verticox_dot_grpc_dot_datanode__pb2.AggregatedParameters.SerializeToString,
+            verticox_dot_grpc_dot_datanode__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def computeGamma(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/DataNode/computeGamma',
+            verticox_dot_grpc_dot_datanode__pb2.Empty.SerializeToString,
+            verticox_dot_grpc_dot_datanode__pb2.Empty.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

@@ -1,6 +1,6 @@
 import numpy as np
 from numpy.testing import assert_array_equal
-from verticox.aggregator import L_z_parametrized, group_samples_at_risk
+from verticox.aggregator import Lz, group_samples_at_risk
 
 
 def test_lz_outputs_scalar():
@@ -13,7 +13,7 @@ def test_lz_outputs_scalar():
     sigma = z
     rho = 2
 
-    result = L_z_parametrized(z, num_parties, gamma, sigma, rho, samples_at_risk)
+    result = Lz.parametrized(z, num_parties, gamma, sigma, rho, samples_at_risk)
 
     assert np.isscalar(result)
 

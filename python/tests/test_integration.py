@@ -16,9 +16,16 @@ _logger = logging.getLogger(__name__)
 MAX_WORKERS = 1
 PORT = 7777
 
+DATA_LIMIT = 10
 
-def get_test_dataset():
+
+def get_test_dataset(limit=None):
     features, events = load_whas500()
+
+    if limit:
+        features = features.head(limit)
+        events = events[:DATA_LIMIT]
+
     features = features.values.astype(float)
 
     return features, events
@@ -46,7 +53,7 @@ def split_events(events):
 def test_integration(caplog):
     caplog.set_level(logging.DEBUG)
 
-    features, events = get_test_dataset()
+    features, events = get_test_dataset(limit=DATA_LIMIT)
     event_times, right_censored = split_events(events)
     server, port = run_datanode_grpc_server(features, event_times, right_censored)
 
@@ -58,4 +65,4 @@ def test_integration(caplog):
     logging.info(f'Initializing aggregator connected to {len(institutions)} institutions')
     aggregator = Aggregator([stub], event_times, right_censored)
 
-    aggregator.fit()
+    aggregator.fit_one()

@@ -14,28 +14,28 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1cverticox/grpc/datanode.proto\")\n\rUpdateRequest\x12\t\n\x01z\x18\x01 \x03(\x02\x12\r\n\x05gamma\x18\x02 \x03(\x02\"0\n\x10LocalAuxiliaries\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\"\"\n\x0bNumFeatures\x12\x13\n\x0bnumFeatures\x18\x01 \x01(\x05\" \n\nNumSamples\x12\x12\n\nnumSamples\x18\x01 \x01(\x05\"\x07\n\x05\x45mpty2\x8b\x01\n\x08\x44\x61taNode\x12-\n\x06update\x12\x0e.UpdateRequest\x1a\x11.LocalAuxiliaries\"\x00\x12(\n\x0egetNumFeatures\x12\x06.Empty\x1a\x0c.NumFeatures\"\x00\x12&\n\rgetNumSamples\x12\x06.Empty\x1a\x0b.NumSamples\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1cverticox/grpc/datanode.proto\"?\n\x14\x41ggregatedParameters\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\x12\t\n\x01z\x18\x03 \x03(\x02\"/\n\x0fLocalParameters\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\"\"\n\x0bNumFeatures\x12\x13\n\x0bnumFeatures\x18\x01 \x01(\x05\" \n\nNumSamples\x12\x12\n\nnumSamples\x18\x01 \x01(\x05\"\x07\n\x05\x45mpty2\xd6\x01\n\x08\x44\x61taNode\x12!\n\x03\x66it\x12\x06.Empty\x1a\x10.LocalParameters\"\x00\x12(\n\x0egetNumFeatures\x12\x06.Empty\x1a\x0c.NumFeatures\"\x00\x12&\n\rgetNumSamples\x12\x06.Empty\x1a\x0b.NumSamples\"\x00\x12\x33\n\x10updateParameters\x12\x15.AggregatedParameters\x1a\x06.Empty\"\x00\x12 \n\x0c\x63omputeGamma\x12\x06.Empty\x1a\x06.Empty\"\x00\x62\x06proto3')
 
 
 
-_UPDATEREQUEST = DESCRIPTOR.message_types_by_name['UpdateRequest']
-_LOCALAUXILIARIES = DESCRIPTOR.message_types_by_name['LocalAuxiliaries']
+_AGGREGATEDPARAMETERS = DESCRIPTOR.message_types_by_name['AggregatedParameters']
+_LOCALPARAMETERS = DESCRIPTOR.message_types_by_name['LocalParameters']
 _NUMFEATURES = DESCRIPTOR.message_types_by_name['NumFeatures']
 _NUMSAMPLES = DESCRIPTOR.message_types_by_name['NumSamples']
 _EMPTY = DESCRIPTOR.message_types_by_name['Empty']
-UpdateRequest = _reflection.GeneratedProtocolMessageType('UpdateRequest', (_message.Message,), {
-  'DESCRIPTOR' : _UPDATEREQUEST,
+AggregatedParameters = _reflection.GeneratedProtocolMessageType('AggregatedParameters', (_message.Message,), {
+  'DESCRIPTOR' : _AGGREGATEDPARAMETERS,
   '__module__' : 'verticox.grpc.datanode_pb2'
-  # @@protoc_insertion_point(class_scope:UpdateRequest)
+  # @@protoc_insertion_point(class_scope:AggregatedParameters)
   })
-_sym_db.RegisterMessage(UpdateRequest)
+_sym_db.RegisterMessage(AggregatedParameters)
 
-LocalAuxiliaries = _reflection.GeneratedProtocolMessageType('LocalAuxiliaries', (_message.Message,), {
-  'DESCRIPTOR' : _LOCALAUXILIARIES,
+LocalParameters = _reflection.GeneratedProtocolMessageType('LocalParameters', (_message.Message,), {
+  'DESCRIPTOR' : _LOCALPARAMETERS,
   '__module__' : 'verticox.grpc.datanode_pb2'
-  # @@protoc_insertion_point(class_scope:LocalAuxiliaries)
+  # @@protoc_insertion_point(class_scope:LocalParameters)
   })
-_sym_db.RegisterMessage(LocalAuxiliaries)
+_sym_db.RegisterMessage(LocalParameters)
 
 NumFeatures = _reflection.GeneratedProtocolMessageType('NumFeatures', (_message.Message,), {
   'DESCRIPTOR' : _NUMFEATURES,
@@ -62,16 +62,16 @@ _DATANODE = DESCRIPTOR.services_by_name['DataNode']
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
-  _UPDATEREQUEST._serialized_start=32
-  _UPDATEREQUEST._serialized_end=73
-  _LOCALAUXILIARIES._serialized_start=75
-  _LOCALAUXILIARIES._serialized_end=123
-  _NUMFEATURES._serialized_start=125
-  _NUMFEATURES._serialized_end=159
-  _NUMSAMPLES._serialized_start=161
-  _NUMSAMPLES._serialized_end=193
-  _EMPTY._serialized_start=195
-  _EMPTY._serialized_end=202
-  _DATANODE._serialized_start=205
-  _DATANODE._serialized_end=344
+  _AGGREGATEDPARAMETERS._serialized_start=32
+  _AGGREGATEDPARAMETERS._serialized_end=95
+  _LOCALPARAMETERS._serialized_start=97
+  _LOCALPARAMETERS._serialized_end=144
+  _NUMFEATURES._serialized_start=146
+  _NUMFEATURES._serialized_end=180
+  _NUMSAMPLES._serialized_start=182
+  _NUMSAMPLES._serialized_end=214
+  _EMPTY._serialized_start=216
+  _EMPTY._serialized_end=223
+  _DATANODE._serialized_start=226
+  _DATANODE._serialized_end=440
 # @@protoc_insertion_point(module_scope)
