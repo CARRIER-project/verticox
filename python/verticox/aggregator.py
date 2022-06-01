@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict
+from typing import List, Dict, Union
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -14,7 +14,8 @@ RHO = 0.25
 E = 0.1
 
 
-def group_samples_at_risk(event_times: ArrayLike, right_censored: ArrayLike):
+def group_samples_at_risk(event_times: ArrayLike,
+                          right_censored: ArrayLike) -> Dict[Union[float, int], List[int]]:
     """
     Groups the indices of samples on whether they are at risk at a certain time.
 
@@ -83,7 +84,7 @@ class Aggregator:
 
             # Turning the while in the paper into a do-until type thing. This means I have to
             # flip the > sign
-            if np.linalg.norm(self.z - z_old) <= e and np.linalg.norm(self.z - self.sigma) <= \
+            if np.linalg.norm(self.z - z_old) <= self.e and np.linalg.norm(self.z - self.sigma) <= \
                     self.e:
                 break
 
@@ -162,9 +163,11 @@ class Aggregator:
 
 
 class Lz:
-
+    # TODO: It might be easier if the fixed parameters are class variables
+    # TODO: Vectorizing might make things easier
     @staticmethod
-    def parametrized(z: np.array, K: int, gamma: np.array, sigma: float, rho: float, Rt: ArrayLike):
+    def parametrized(z: ArrayLike, K: int, gamma: ArrayLike, sigma: ArrayLike, rho: float,
+                     Rt: Dict[Union[int, float], List[int]]):
         """
         Equation 12
         Args:
@@ -199,11 +202,6 @@ class Lz:
         element_wise = np.square(z) / 2 - sigma + (gamma / rho) * z
         return K * rho * element_wise.sum()
 
-    #
-    # @staticmethod
-    # def compute_first_order_derivative(z: ArrayLike, ):
-    #
-
     @staticmethod
     def find_z(num_parties, gamma: ArrayLike, sigma: ArrayLike,
                rho: float, Rt: Dict[int, List[int]], z_start: ArrayLike):
@@ -219,3 +217,60 @@ class Lz:
 
         logger.debug(f'Found minimum z at {minimum}')
         return minimum.x
+
+    @staticmethod
+    def derivative_1_parametrized(z: np.array, K: int, gamma: np.array, sigma: ArrayLike,
+                                  rho: float,
+                                  Rt: Dict[Union[int, float], List[int]], sample_idx: int,
+                                  event_times: ArrayLike):
+        """
+
+        Args:
+            z:
+            K:
+            gamma:
+            sigma:
+            rho:
+            Rt:
+            z_index:
+            sample_idx:
+            event_times:
+
+        Returns:
+
+        """
+        dt = len(Rt)
+        u_event_time = event_times[sample_idx]
+
+        relevant_event_times = [t for t in Rt.keys() if t <= u_event_time]
+
+        # First part
+        # Numerator
+        enumerator = K * np.exp(K * z[sample_idx])
+
+        # Denominator
+        denominator = 0
+        for t in relevant_event_times:
+            samples_at_risk = Rt[t]
+            z_samples_at_risk = z[samples_at_risk]
+
+            denominator += dt * (K * np.exp(K * z[sample_idx])) / np.sum(np.exp(K * z_samples_at_risk))
+
+        first_part = enumerator / denominator
+
+        # Second part
+        second_part = K * rho * (z[sample_idx] - sigma[sample_idx] - (gamma[sample_idx] / rho))
+
+        return first_part + second_part
+
+    @staticmethod
+    def jacobian(z: np.array, K: int, gamma: np.array, sigma: ArrayLike, rho: float,
+                 Rt: Dict[Union[int, float], List[int]],
+                 event_times: ArrayLike) -> ArrayLike:
+        result = np.zeros(z.shape)
+
+        for i in range(z):
+            result[i] = Lz.derivative_1_parametrized(z, K=K, gamma=gamma, sigma=sigma, rho=rho,
+                                                     Rt=Rt, sample_idx=i, event_times=event_times)
+
+        return result
