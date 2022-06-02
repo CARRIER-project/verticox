@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1cverticox/grpc/datanode.proto\"?\n\x14\x41ggregatedParameters\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\x12\t\n\x01z\x18\x03 \x03(\x02\"/\n\x0fLocalParameters\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\"\"\n\x0bNumFeatures\x12\x13\n\x0bnumFeatures\x18\x01 \x01(\x05\" \n\nNumSamples\x12\x12\n\nnumSamples\x18\x01 \x01(\x05\"\x07\n\x05\x45mpty2\xd6\x01\n\x08\x44\x61taNode\x12!\n\x03\x66it\x12\x06.Empty\x1a\x10.LocalParameters\"\x00\x12(\n\x0egetNumFeatures\x12\x06.Empty\x1a\x0c.NumFeatures\"\x00\x12&\n\rgetNumSamples\x12\x06.Empty\x1a\x0b.NumSamples\"\x00\x12\x33\n\x10updateParameters\x12\x15.AggregatedParameters\x1a\x06.Empty\"\x00\x12 \n\x0c\x63omputeGamma\x12\x06.Empty\x1a\x06.Empty\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1cverticox/grpc/datanode.proto\"?\n\x14\x41ggregatedParameters\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\x12\t\n\x01z\x18\x03 \x03(\x02\"/\n\x0fLocalParameters\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\"\"\n\x0bNumFeatures\x12\x13\n\x0bnumFeatures\x18\x01 \x01(\x05\" \n\nNumSamples\x12\x12\n\nnumSamples\x18\x01 \x01(\x05\"\x14\n\x04\x42\x65ta\x12\x0c\n\x04\x62\x65ta\x18\x01 \x03(\x02\"\x07\n\x05\x45mpty2\xf0\x01\n\x08\x44\x61taNode\x12!\n\x03\x66it\x12\x06.Empty\x1a\x10.LocalParameters\"\x00\x12(\n\x0egetNumFeatures\x12\x06.Empty\x1a\x0c.NumFeatures\"\x00\x12&\n\rgetNumSamples\x12\x06.Empty\x1a\x0b.NumSamples\"\x00\x12\x33\n\x10updateParameters\x12\x15.AggregatedParameters\x1a\x06.Empty\"\x00\x12 \n\x0c\x63omputeGamma\x12\x06.Empty\x1a\x06.Empty\"\x00\x12\x18\n\x07getBeta\x12\x06.Empty\x1a\x05.Betab\x06proto3')
 
 
 
@@ -22,6 +22,7 @@ _AGGREGATEDPARAMETERS = DESCRIPTOR.message_types_by_name['AggregatedParameters']
 _LOCALPARAMETERS = DESCRIPTOR.message_types_by_name['LocalParameters']
 _NUMFEATURES = DESCRIPTOR.message_types_by_name['NumFeatures']
 _NUMSAMPLES = DESCRIPTOR.message_types_by_name['NumSamples']
+_BETA = DESCRIPTOR.message_types_by_name['Beta']
 _EMPTY = DESCRIPTOR.message_types_by_name['Empty']
 AggregatedParameters = _reflection.GeneratedProtocolMessageType('AggregatedParameters', (_message.Message,), {
   'DESCRIPTOR' : _AGGREGATEDPARAMETERS,
@@ -51,6 +52,13 @@ NumSamples = _reflection.GeneratedProtocolMessageType('NumSamples', (_message.Me
   })
 _sym_db.RegisterMessage(NumSamples)
 
+Beta = _reflection.GeneratedProtocolMessageType('Beta', (_message.Message,), {
+  'DESCRIPTOR' : _BETA,
+  '__module__' : 'verticox.grpc.datanode_pb2'
+  # @@protoc_insertion_point(class_scope:Beta)
+  })
+_sym_db.RegisterMessage(Beta)
+
 Empty = _reflection.GeneratedProtocolMessageType('Empty', (_message.Message,), {
   'DESCRIPTOR' : _EMPTY,
   '__module__' : 'verticox.grpc.datanode_pb2'
@@ -70,8 +78,10 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _NUMFEATURES._serialized_end=180
   _NUMSAMPLES._serialized_start=182
   _NUMSAMPLES._serialized_end=214
-  _EMPTY._serialized_start=216
-  _EMPTY._serialized_end=223
-  _DATANODE._serialized_start=226
-  _DATANODE._serialized_end=440
+  _BETA._serialized_start=216
+  _BETA._serialized_end=236
+  _EMPTY._serialized_start=238
+  _EMPTY._serialized_end=245
+  _DATANODE._serialized_start=248
+  _DATANODE._serialized_end=488
 # @@protoc_insertion_point(module_scope)

@@ -6,6 +6,7 @@ service DataNode{
   rpc getNumSamples(Empty) returns (NumSamples){}
   rpc updateParameters(AggregatedParameters) returns (Empty){}
   rpc computeGamma(Empty) returns (Empty){}
+  rpc getBeta(Empty) returns (Beta);
 }
 
 message AggregatedParameters {
@@ -26,6 +27,10 @@ message NumFeatures{
 
 message NumSamples{
   int32 numSamples = 1;
+}
+
+message Beta{
+  repeated float beta = 1;
 }
 
 message Empty{}

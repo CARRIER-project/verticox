@@ -11,7 +11,9 @@ from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 logger = logging.getLogger(__name__)
 
 RHO = 0.25
-E = 0.1
+E = 0.00001
+OPTIMIZATION_METHOD = 'TNC'
+ARRAY_LOG_LIMIT = 5
 
 
 def group_samples_at_risk(event_times: ArrayLike,
@@ -100,10 +102,11 @@ class Aggregator:
         self.sigma = self.aggregate_sigmas(self.sigma_per_institution)
         self.gamma = self.aggregate_gammas(self.gamma_per_institution)
 
-        z = Lz.find_z(self.num_institutions, self.gamma, self.sigma, self.rho, self.Rt, self.z)
+        self.z = Lz.find_z(self.num_institutions, self.gamma, self.sigma, self.rho, self.Rt, self.z,
+                      self.num_institutions, self.event_times)
 
         z_per_institution = self.compute_z_per_institution(self.gamma_per_institution,
-                                                           self.sigma_per_institution, z)
+                                                           self.sigma_per_institution, self.z)
 
         # Update parameters at datanodes
         for idx, node in enumerate(self.institutions):
@@ -161,6 +164,13 @@ class Aggregator:
         response = self.institutions[0].getNumSamples(Empty())
         return response.numSamples
 
+    def get_betas(self):
+        betas = []
+        for institution in self.institutions:
+            betas.append(institution.getBeta())
+
+        return np.array(betas)
+
 
 class Lz:
     # TODO: It might be easier if the fixed parameters are class variables
@@ -193,7 +203,7 @@ class Lz:
         result = 0
         for t, group in Rt.items():
             z_at_risk = z[group]
-            result += dt * (K * np.exp(z_at_risk)).sum()
+            result += dt * np.log((K * np.exp(z_at_risk)).sum())
 
         return result
 
@@ -203,17 +213,25 @@ class Lz:
         return K * rho * element_wise.sum()
 
     @staticmethod
-    def find_z(num_parties, gamma: ArrayLike, sigma: ArrayLike,
-               rho: float, Rt: Dict[int, List[int]], z_start: ArrayLike):
+    def find_z(num_parties, gamma: ArrayLike, sigma: ArrayLike, rho: float,
+               Rt: Dict[int, List[int]], z_start: ArrayLike, K: int, event_times: ArrayLike):
         logger.debug('Creating L(z) with parameters:')
-        logger.debug(f'num_parties: {num_parties}  gamma: {gamma}, sigma: {sigma} rho: {rho} '
+        logger.debug(f'num_parties: {num_parties}  gamma: {gamma[:ARRAY_LOG_LIMIT]}..., sigma: '
+                     f'{sigma[:ARRAY_LOG_LIMIT]}... '
+                     f'rho:'
+                     f' {rho} '
                      f'Rt: {list(Rt.keys())[:5]}...')
         L_z = lambda z: Lz.parametrized(z=z, K=num_parties, gamma=gamma, sigma=sigma, rho=rho,
                                         Rt=Rt)
 
         logger.debug(f'Finding minimum z starting at {z_start[:5]}...')
 
-        minimum = minimize(L_z, z_start)
+        jac = lambda z: Lz.jacobian(z, K, gamma, sigma, rho, Rt, event_times)
+
+        minimum = minimize(L_z, z_start, jac=jac, method=OPTIMIZATION_METHOD)
+
+        if not minimum.success:
+            raise Exception('Could not find minimum z')
 
         logger.debug(f'Found minimum z at {minimum}')
         return minimum.x
@@ -254,7 +272,8 @@ class Lz:
             samples_at_risk = Rt[t]
             z_samples_at_risk = z[samples_at_risk]
 
-            denominator += dt * (K * np.exp(K * z[sample_idx])) / np.sum(np.exp(K * z_samples_at_risk))
+            denominator += dt * (K * np.exp(K * z[sample_idx])) / np.sum(
+                np.exp(K * z_samples_at_risk))
 
         first_part = enumerator / denominator
 
@@ -269,7 +288,7 @@ class Lz:
                  event_times: ArrayLike) -> ArrayLike:
         result = np.zeros(z.shape)
 
-        for i in range(z):
+        for i in range(z.shape[0]):
             result[i] = Lz.derivative_1_parametrized(z, K=K, gamma=gamma, sigma=sigma, rho=rho,
                                                      Rt=Rt, sample_idx=i, event_times=event_times)
 

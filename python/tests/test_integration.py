@@ -16,7 +16,7 @@ _logger = logging.getLogger(__name__)
 MAX_WORKERS = 1
 PORT = 7777
 
-DATA_LIMIT = 10
+DATA_LIMIT = 5
 
 
 def get_test_dataset(limit=None):
@@ -65,4 +65,6 @@ def test_integration(caplog):
     logging.info(f'Initializing aggregator connected to {len(institutions)} institutions')
     aggregator = Aggregator([stub], event_times, right_censored)
 
-    aggregator.fit_one()
+    aggregator.fit()
+
+    logging.info(f'Betas: {aggregator.get_betas()}')

@@ -7,7 +7,7 @@ import numpy as np
 from sksurv.datasets import load_whas500
 
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
-    NumSamples, Empty
+    NumSamples, Empty, Beta
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class DataNode(DataNodeServicer):
         self.sigma = sigma
         self.beta = beta
 
-        logging.debug(f'Updated sigma to {self.sigma}, beta to {self.beta}')
+        logging.debug(f'Updated sigma to {self.sigma[:5]}..., beta to {self.beta[:5]}...')
 
         response = LocalParameters(gamma=self.gamma, sigma=sigma.tolist())
         logger.info('Finished local update, returning results.')
@@ -94,6 +94,9 @@ class DataNode(DataNodeServicer):
         num_samples = self.num_samples
 
         return NumSamples(numSamples=num_samples)
+
+    def getBeta(self, request, context=None):
+        return Beta(beta=self.beta.tolist())
 
     @staticmethod
     def _sum_covariates(covariates: np.array):
