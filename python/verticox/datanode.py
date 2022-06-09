@@ -16,7 +16,7 @@ RHO = 0.25
 
 class DataNode(DataNodeServicer):
     def __init__(self, features: np.array = None, event_times: Optional[np.array] = None,
-                 right_censored: Optional[np.array] = None, rho: float = RHO):
+                 right_censored: Optional[np.array] = None, rho: float = RHO, name=None):
         """
 
         Args:
@@ -24,7 +24,9 @@ class DataNode(DataNodeServicer):
             event_times:
             rho:
         """
-        logger.debug(f'Initializing datanode: {self}')
+        self.name = name
+        self._logger = logging.getLogger(f'{__name__} :: {self.name}')
+        self._logger.debug(f'Initializing datanode {self.name}')
         self.features = features
         self.num_features = self.features.shape[1]
         self.event_times = event_times
@@ -47,7 +49,7 @@ class DataNode(DataNodeServicer):
         self.beta = np.zeros((self.num_features))
 
     def fit(self, request, context=None):
-        logger.info('Performing local update...')
+        self._logger.info('Performing local update...')
         sigma, beta = DataNode._local_update(self.features, self.z, self.gamma, self.rho,
                                              self.features_multiplied, self.features_sum)
 
@@ -56,8 +58,8 @@ class DataNode(DataNodeServicer):
 
         logging.debug(f'Updated sigma to {self.sigma[:5]}..., beta to {self.beta[:5]}...')
 
-        response = LocalParameters(gamma=self.gamma, sigma=sigma.tolist())
-        logger.info('Finished local update, returning results.')
+        response = LocalParameters(gamma=self.gamma.tolist(), sigma=sigma.tolist())
+        self._logger.info('Finished local update, returning results.')
 
         return response
 
@@ -92,9 +94,9 @@ class DataNode(DataNodeServicer):
         return NumSamples(numSamples=num_samples)
 
     def getBeta(self, request, context=None):
-        logger.debug(f'Returning beta')
+        self._logger.debug(f'Returning beta')
         result = self.beta.tolist()
-        logger.debug('Converted beta to list')
+        self._logger.debug('Converted beta to list')
         return Beta(beta=result)
 
     @staticmethod
@@ -154,4 +156,5 @@ async def serve(features=None, event_times=None, right_censored=None, port=DEFAU
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     serve()

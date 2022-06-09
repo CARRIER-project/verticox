@@ -1,8 +1,7 @@
-import asyncio
 import logging
+from logging.handlers import RotatingFileHandler
 from multiprocessing import Process
-from time import sleep
-import pytest
+
 from verticox.grpc.datanode_pb2 import Empty
 
 logging.basicConfig(level=logging.DEBUG)
@@ -37,11 +36,11 @@ def get_test_dataset(limit=None):
     return features, events
 
 
-def run_datanode_grpc_server(features, event_times, right_censored, port):
+def run_datanode_grpc_server(features, event_times, right_censored, port, name):
     server = grpc.server(ThreadPoolExecutor(),
                          options=GRPC_OPTIONS)
     add_DataNodeServicer_to_server(DataNode(features=features, event_times=event_times,
-                                            right_censored=right_censored), server)
+                                            right_censored=right_censored, name=name), server)
     server.add_insecure_port(f'[::]:{port}')
     _logger.info(f'Starting datanode on port {port}')
     server.start()
@@ -56,24 +55,29 @@ def split_events(events):
     return times, right_censored
 
 
-def test_integration(caplog=None):
-    if caplog:
-        caplog.set_level(logging.DEBUG)
+def test_integration():
+    _logger.addHandler(RotatingFileHandler('log.txt'))
+
     features, events = get_test_dataset(limit=DATA_LIMIT)
     num_features = features.shape[1]
     feature_split = num_features // 2
-    features1 = features[:feature_split]
-    features2 = features[feature_split:]
+    features1 = features[:, :feature_split]
+    features2 = features[:, feature_split:]
     event_times, right_censored = split_events(events)
 
-    p1 = Process(target=run_datanode, args=(event_times, features1, right_censored, PORT1))
-    p2 = Process(target=run_datanode, args=(event_times, features2, right_censored, PORT2))
+    p1 = Process(target=run_datanode, args=(event_times, features1, right_censored, PORT1, 'first'))
+    p2 = Process(target=run_datanode, args=(event_times, features2, right_censored, PORT2,
+                                            'second'))
 
     p1.start()
     p2.start()
 
-    # stub1 = get_datanode_client(PORT1)
-    # stub2 = get_datanode_client(PORT2)
+    stub1 = get_datanode_client(PORT1)
+    stub2 = get_datanode_client(PORT2)
+
+    print(stub1.getBeta(Empty()))
+    print(stub2.getBeta(Empty()))
+
     # institutions = [stub1, stub2]
 
     # logging.info(f'Initializing aggregator connected to {len(institutions)} institutions')
@@ -99,8 +103,8 @@ def run_aggregator(ports, event_times, right_censored):
     _logger.info(f'Resulting betas: {aggregator.get_betas()}')
 
 
-def run_datanode(event_times, features, right_censored, port):
-    run_datanode_grpc_server(features, event_times, right_censored, port)
+def run_datanode(event_times, features, right_censored, port, name):
+    run_datanode_grpc_server(features, event_times, right_censored, port, name)
 
 
 def get_datanode_client(port):

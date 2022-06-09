@@ -98,6 +98,7 @@ class Aggregator:
 
         for idx, institution in enumerate(self.institutions):
             updated = institution.fit(Empty())
+            logger.debug(f'Updated values: {updated}')
             sigma_per_institution[idx] = np.array(updated.sigma)
             self.gamma_per_institution[idx] = np.array(updated.gamma)
 
@@ -140,9 +141,13 @@ class Aggregator:
         z_per_institution = np.zeros((self.num_institutions, self.num_samples))
         sigma_gamma_all_institutions = sigma_per_institution + gamma_per_institution / self.rho
         sigma_gamma_all_institutions = sigma_gamma_all_institutions.sum(axis=0)
+
+        logger.debug(f'Sigma per institution: \n{sigma_per_institution}')
+        logger.debug(f'Gamma per institution: \n{gamma_per_institution}')
         # TODO: vectorize
         for i in range(self.num_institutions):
-            z_per_institution[i] = z + sigma_per_institution[i] + gamma_per_institution / self.rho \
+            z_per_institution[i] = z + sigma_per_institution[i] + gamma_per_institution[i] / \
+                                   self.rho \
                                    - 1 / self.num_institutions * sigma_gamma_all_institutions
 
         return z_per_institution
