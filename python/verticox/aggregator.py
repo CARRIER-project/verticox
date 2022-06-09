@@ -4,14 +4,14 @@ from typing import List, Dict, Union
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.optimize import minimize
-
+import asyncio
 from verticox.grpc.datanode_pb2 import Empty, AggregatedParameters
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 
 logger = logging.getLogger(__name__)
 
 RHO = 0.25
-E = 0.00001
+E = 0.001
 OPTIMIZATION_METHOD = 'TNC'
 ARRAY_LOG_LIMIT = 5
 
@@ -72,21 +72,21 @@ class Aggregator:
         self.Rt = group_samples_at_risk(event_times, right_censored)
         # Initializing parameters
         self.z = np.zeros(self.num_samples)
+        self.z_old = self.z
         self.gamma = np.zeros(self.num_samples)
         self.sigma = np.zeros(self.num_samples)
-        self.sigma_per_institution = np.zeros((self.num_institutions, self.num_samples,))
         self.gamma_per_institution = np.zeros((self.num_institutions, self.num_samples,))
         self.num_iterations = 0
 
     def fit(self):
-        z_old = self.z
 
         while True:
             self.fit_one()
 
             # Turning the while in the paper into a do-until type thing. This means I have to
             # flip the > sign
-            if np.linalg.norm(self.z - z_old) <= self.e and np.linalg.norm(self.z - self.sigma) <= \
+            if np.linalg.norm(self.z - self.z_old) <= self.e and \
+                    np.linalg.norm(self.z - self.sigma) <= \
                     self.e:
                 break
 
@@ -94,19 +94,27 @@ class Aggregator:
 
     def fit_one(self):
         # TODO: Parallelize
+        sigma_per_institution = np.zeros((self.num_institutions, self.num_samples,))
+
         for idx, institution in enumerate(self.institutions):
             updated = institution.fit(Empty())
-            self.sigma_per_institution[idx] = np.array(updated.sigma)
+            sigma_per_institution[idx] = np.array(updated.sigma)
             self.gamma_per_institution[idx] = np.array(updated.gamma)
 
-        self.sigma = self.aggregate_sigmas(self.sigma_per_institution)
+        self.sigma = self.aggregate_sigmas(sigma_per_institution)
         self.gamma = self.aggregate_gammas(self.gamma_per_institution)
 
+        logger.info(f'Updated sigma: {self.sigma}')
+        logger.info(f'Updated gamma: {self.gamma}')
+
+        self.z_old = self.z
         self.z = Lz.find_z(self.num_institutions, self.gamma, self.sigma, self.rho, self.Rt, self.z,
-                      self.num_institutions, self.event_times)
+                           self.num_institutions, self.event_times)
 
         z_per_institution = self.compute_z_per_institution(self.gamma_per_institution,
-                                                           self.sigma_per_institution, self.z)
+                                                           sigma_per_institution, self.z)
+
+        logger.debug(f'z per institution: {z_per_institution}')
 
         # Update parameters at datanodes
         for idx, node in enumerate(self.institutions):
@@ -131,7 +139,7 @@ class Aggregator:
         """
         z_per_institution = np.zeros((self.num_institutions, self.num_samples))
         sigma_gamma_all_institutions = sigma_per_institution + gamma_per_institution / self.rho
-        sigma_gamma_all_institutions.sum(axis=0)
+        sigma_gamma_all_institutions = sigma_gamma_all_institutions.sum(axis=0)
         # TODO: vectorize
         for i in range(self.num_institutions):
             z_per_institution[i] = z + sigma_per_institution[i] + gamma_per_institution / self.rho \
@@ -233,7 +241,7 @@ class Lz:
         if not minimum.success:
             raise Exception('Could not find minimum z')
 
-        logger.debug(f'Found minimum z at {minimum}')
+        logger.debug(f'Found minimum z at {minimum.x}')
         return minimum.x
 
     @staticmethod

@@ -4,17 +4,14 @@ from typing import Optional
 
 import grpc
 import numpy as np
-from sksurv.datasets import load_whas500
 
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
     NumSamples, Empty, Beta
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
 
 logger = logging.getLogger(__name__)
-
+DEFAULT_PORT = 7777
 RHO = 0.25
-PORT = 8888
-MAX_WORKERS = 1
 
 
 class DataNode(DataNodeServicer):
@@ -27,6 +24,7 @@ class DataNode(DataNodeServicer):
             event_times:
             rho:
         """
+        logger.debug(f'Initializing datanode: {self}')
         self.features = features
         self.num_features = self.features.shape[1]
         self.event_times = event_times
@@ -46,8 +44,6 @@ class DataNode(DataNodeServicer):
         self.z = np.zeros((self.num_samples,))
         self.sigma = np.zeros((self.num_samples,))
 
-        self.sigma_all = None
-        self.gamma_all = None
         self.beta = np.zeros((self.num_features))
 
     def fit(self, request, context=None):
@@ -67,8 +63,8 @@ class DataNode(DataNodeServicer):
 
     def updateParameters(self, request, context=None):
         self.z = np.array(request.z)
-        self.sigma_all = np.array(request.sigma)
-        self.gamma_all = np.array(request.gamma)
+        self.sigma = np.array(request.sigma)
+        self.sigma = np.array(request.gamma)
 
         return Empty()
 
@@ -82,7 +78,7 @@ class DataNode(DataNodeServicer):
         Returns:
 
         """
-        self.gamma = self.gamma_all + self.rho * self.sigma_all - self.z
+        self.gamma = self.gamma + self.rho * self.sigma - self.z
 
         return Empty()
 
@@ -96,7 +92,10 @@ class DataNode(DataNodeServicer):
         return NumSamples(numSamples=num_samples)
 
     def getBeta(self, request, context=None):
-        return Beta(beta=self.beta.tolist())
+        logger.debug(f'Returning beta')
+        result = self.beta.tolist()
+        logger.debug('Converted beta to list')
+        return Beta(beta=result)
 
     @staticmethod
     def _sum_covariates(covariates: np.array):
@@ -144,17 +143,15 @@ class DataNode(DataNodeServicer):
         return DataNode._compute_sigma(beta, covariates), beta
 
 
-def serve():
-    features, events = load_whas500()
-    features = features.values.astype(float)
-    server = grpc.server(ThreadPoolExecutor(max_workers=MAX_WORKERS))
-    add_DataNodeServicer_to_server(DataNode(features=features, event_times=events), server)
-    server.add_insecure_port(f'[::]:{PORT}')
-    logger.info(f'Starting datanode on port {PORT}')
+async def serve(features=None, event_times=None, right_censored=None, port=DEFAULT_PORT):
+    server = grpc.server(ThreadPoolExecutor(max_workers=1))
+    add_DataNodeServicer_to_server(DataNode(features=features, event_times=event_times,
+                                            right_censored=right_censored), server)
+    server.add_insecure_port(f'[::]:{port}')
+    print(f'Starting datanode on port {port}')
     server.start()
     server.wait_for_termination()
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
     serve()
