@@ -11,12 +11,12 @@ from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServic
 
 logger = logging.getLogger(__name__)
 DEFAULT_PORT = 7777
-RHO = 0.25
+RHO = 0.01
 
 
 class DataNode(DataNodeServicer):
     def __init__(self, features: np.array = None, event_times: Optional[np.array] = None,
-                 right_censored: Optional[np.array] = None, rho: float = RHO, name=None):
+                 right_censored: Optional[np.array] = None, name=None):
         """
 
         Args:
@@ -24,6 +24,7 @@ class DataNode(DataNodeServicer):
             event_times:
             rho:
         """
+
         self.name = name
         self._logger = logging.getLogger(f'{__name__} :: {self.name}')
         self._logger.debug(f'Initializing datanode {self.name}')
@@ -31,24 +32,38 @@ class DataNode(DataNodeServicer):
         self.num_features = self.features.shape[1]
         self.event_times = event_times
         self.right_censored = right_censored
-        self.rho = rho
 
         # Parts that stay constant over iterations
         # Square all covariates and sum them together
         # The formula says for every patient, x needs to be multiplied by itself.
-        # Squaring all covariates with themselves comes down to the same thing since x_nk is supposed to
-        # be one-dimensional
+        # Squaring all covariates with themselves comes down to the same thing since x_nk is
+        # supposed to be one-dimensional
         self.features_multiplied = DataNode._multiply_covariates(features)
         self.features_sum = features.sum(axis=0)
         self.num_samples = self.features.shape[0]
 
-        self.gamma = np.zeros((self.num_samples,))
-        self.z = np.zeros((self.num_samples,))
-        self.sigma = np.zeros((self.num_samples,))
+        self.rho = None
+        self.beta = None
+        self.sigma = None
+        self.z = None
+        self.gamma = None
 
-        self.beta = np.zeros((self.num_features))
+        self.prepared = False
+
+    def prepare(self, request, context=None):
+        self.gamma = np.full((self.num_samples,), request.gamma)
+        self.z = np.full((self.num_samples,), request.z)
+        self.beta = np.full((self.num_features,), request.beta)
+        self.rho = request.rho
+
+        self.prepared = True
+
+        return Empty()
 
     def fit(self, request, context=None):
+        if not self.prepared:
+            raise Exception('Datanode has not been prepared!')
+
         self._logger.info('Performing local update...')
         sigma, beta = DataNode._local_update(self.features, self.z, self.gamma, self.rho,
                                              self.features_multiplied, self.features_sum)

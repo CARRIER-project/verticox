@@ -78,8 +78,6 @@ def test_integration():
         _logger.info('Starting aggregator')
         aggregator_process.start()
         aggregator_process.join()
-        p1.kill()
-        p2.kill()
 
     except Exception as e:
         _logger.error(e)
@@ -87,7 +85,8 @@ def test_integration():
         # Make sure all processes are always killed
         p1.kill()
         p2.kill()
-
+        p1.join()
+        p2.join()
 
 def run_aggregator(ports, event_times, right_censored):
     stubs = [get_datanode_client(port) for port in ports]

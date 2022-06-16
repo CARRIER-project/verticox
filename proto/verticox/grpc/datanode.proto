@@ -6,7 +6,15 @@ service DataNode{
   rpc getNumSamples(Empty) returns (NumSamples){}
   rpc updateParameters(AggregatedParameters) returns (Empty){}
   rpc computeGamma(Empty) returns (Empty){}
-  rpc getBeta(Empty) returns (Beta);
+  rpc getBeta(Empty) returns (Beta){};
+  rpc prepare(InitialValues) returns (Empty){};
+}
+
+message InitialValues{
+  float gamma = 1;
+  float z = 2;
+  float beta = 3;
+  float rho = 4;
 }
 
 message AggregatedParameters {

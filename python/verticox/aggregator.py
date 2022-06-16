@@ -4,14 +4,18 @@ from typing import List, Dict, Union
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.optimize import minimize
-import asyncio
-from verticox.grpc.datanode_pb2 import Empty, AggregatedParameters
+
+from verticox.grpc.datanode_pb2 import Empty, AggregatedParameters, InitialValues
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 
 logger = logging.getLogger(__name__)
 
-RHO = 0.25
+RHO = 0.01
 E = 0.001
+BETA = 0
+Z = 0
+GAMMA = 0
+
 OPTIMIZATION_METHOD = 'TNC'
 ARRAY_LOG_LIMIT = 5
 
@@ -73,14 +77,25 @@ class Aggregator:
         # Initializing parameters
         self.z = np.zeros(self.num_samples)
         self.z_old = self.z
-        self.gamma = np.zeros(self.num_samples)
+        self.gamma = np.ones(self.num_samples)
         self.sigma = np.zeros(self.num_samples)
-        self.gamma_per_institution = np.zeros((self.num_institutions, self.num_samples,))
+        self.gamma_per_institution = np.ones((self.num_institutions, self.num_samples,))
         self.num_iterations = 0
+
+        self.prepare_datanodes(GAMMA, Z, BETA, RHO)
+
+    def prepare_datanodes(self, gamma, z, beta, rho):
+        initial_values = InitialValues(gamma=gamma, z=z, beta=beta, rho=rho)
+
+        for i in self.institutions:
+            i.prepare(initial_values)
 
     def fit(self):
 
         while True:
+            logger.info('\n\n----------------------------------------\n'
+                        'Starting new iteration...'
+                        '\n----------------------------------------')
             self.fit_one()
 
             # Turning the while in the paper into a do-until type thing. This means I have to

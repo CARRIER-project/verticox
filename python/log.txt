@@ -1,0 +1,66 @@
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting aggregator
+Starting datanode on port 7779
+Starting datanode on port 7777
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting aggregator
+Starting datanode on port 7777
+Starting aggregator
+Starting datanode on port 7779
+Starting datanode on port 7777
+Starting aggregator
+Starting datanode on port 7779
+Starting datanode on port 7777
+Starting aggregator
+Starting datanode on port 7779
+Starting datanode on port 7777
+Starting aggregator
+Starting datanode on port 7779
+Starting datanode on port 7777
+Starting aggregator
+Starting datanode on port 7779
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
