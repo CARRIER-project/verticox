@@ -2,8 +2,6 @@ import logging
 from logging.handlers import RotatingFileHandler
 from multiprocessing import Process
 
-from verticox.grpc.datanode_pb2 import Empty
-
 logging.basicConfig(level=logging.DEBUG)
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
@@ -56,41 +54,39 @@ def split_events(events):
 
 
 def test_integration():
-    _logger.addHandler(RotatingFileHandler('log.txt'))
+    try:
+        _logger.addHandler(RotatingFileHandler('log.txt'))
 
-    features, events = get_test_dataset(limit=DATA_LIMIT)
-    num_features = features.shape[1]
-    feature_split = num_features // 2
-    features1 = features[:, :feature_split]
-    features2 = features[:, feature_split:]
-    event_times, right_censored = split_events(events)
+        features, events = get_test_dataset(limit=DATA_LIMIT)
+        num_features = features.shape[1]
+        feature_split = num_features // 2
+        features1 = features[:, :feature_split]
+        features2 = features[:, feature_split:]
+        event_times, right_censored = split_events(events)
 
-    p1 = Process(target=run_datanode, args=(event_times, features1, right_censored, PORT1, 'first'))
-    p2 = Process(target=run_datanode, args=(event_times, features2, right_censored, PORT2,
-                                            'second'))
+        p1 = Process(target=run_datanode,
+                     args=(event_times, features1, right_censored, PORT1, 'first'))
+        p2 = Process(target=run_datanode, args=(event_times, features2, right_censored, PORT2,
+                                                'second'))
 
-    p1.start()
-    p2.start()
+        p1.start()
+        p2.start()
 
-    stub1 = get_datanode_client(PORT1)
-    stub2 = get_datanode_client(PORT2)
+        aggregator_process = Process(target=run_aggregator,
+                                     args=([PORT1, PORT2], event_times, right_censored))
 
-    print(stub1.getBeta(Empty()))
-    print(stub2.getBeta(Empty()))
+        _logger.info('Starting aggregator')
+        aggregator_process.start()
+        aggregator_process.join()
+        p1.kill()
+        p2.kill()
 
-    # institutions = [stub1, stub2]
-
-    # logging.info(f'Initializing aggregator connected to {len(institutions)} institutions')
-    # aggregator = Aggregator(institutions, event_times, right_censored)
-
-    aggregator_process = Process(target=run_aggregator,
-                                 args=([PORT1, PORT2], event_times, right_censored))
-
-    _logger.info('Starting aggregator')
-    aggregator_process.start()
-    aggregator_process.join()
-    p1.kill()
-    p2.kill()
+    except Exception as e:
+        _logger.error(e)
+    finally:
+        # Make sure all processes are always killed
+        p1.kill()
+        p2.kill()
 
 
 def run_aggregator(ports, event_times, right_censored):

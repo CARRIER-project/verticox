@@ -105,8 +105,8 @@ class Aggregator:
         self.sigma = self.aggregate_sigmas(sigma_per_institution)
         self.gamma = self.aggregate_gammas(self.gamma_per_institution)
 
-        logger.info(f'Updated sigma: {self.sigma}')
-        logger.info(f'Updated gamma: {self.gamma}')
+        logger.info(f'Aggregated sigma: {self.sigma}')
+        logger.info(f'Aggregated gamma: {self.gamma}')
 
         self.z_old = self.z
         self.z = Lz.find_z(self.num_institutions, self.gamma, self.sigma, self.rho, self.Rt, self.z,
