@@ -10,7 +10,7 @@ from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 
 logger = logging.getLogger(__name__)
 
-RHO = 0.01
+RHO = 0.5
 E = 0.001
 BETA = 0
 Z = 0
@@ -87,6 +87,8 @@ class Aggregator:
     def prepare_datanodes(self, gamma, z, beta, rho):
         initial_values = InitialValues(gamma=gamma, z=z, beta=beta, rho=rho)
 
+        logger.debug(f'Preparing datanodes with: {initial_values}')
+
         for i in self.institutions:
             i.prepare(initial_values)
 
@@ -94,7 +96,7 @@ class Aggregator:
 
         while True:
             logger.info('\n\n----------------------------------------\n'
-                        'Starting new iteration...'
+                        '          Starting new iteration...'
                         '\n----------------------------------------')
             self.fit_one()
 

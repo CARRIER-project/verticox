@@ -47,6 +47,7 @@ class DataNode(DataNodeServicer):
         self.sigma = None
         self.z = None
         self.gamma = None
+        self.aggregated_gamma = None
 
         self.prepared = False
 
@@ -81,7 +82,7 @@ class DataNode(DataNodeServicer):
     def updateParameters(self, request, context=None):
         self.z = np.array(request.z)
         self.sigma = np.array(request.sigma)
-        self.sigma = np.array(request.gamma)
+        self.aggregated_gamma = np.array(request.gamma)
 
         return Empty()
 
@@ -95,7 +96,7 @@ class DataNode(DataNodeServicer):
         Returns:
 
         """
-        self.gamma = self.gamma + self.rho * self.sigma - self.z
+        self.gamma = self.aggregated_gamma + self.rho * self.sigma - self.z
 
         return Empty()
 

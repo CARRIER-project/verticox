@@ -5,10 +5,11 @@ from multiprocessing import Process
 logging.basicConfig(level=logging.DEBUG)
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
+import traceback
 
 import grpc
 from sksurv.datasets import load_whas500
-
+from sksurv.linear_model import CoxPHSurvivalAnalysis
 from verticox.aggregator import Aggregator
 from verticox.datanode import DataNode
 from verticox.grpc.datanode_pb2_grpc import add_DataNodeServicer_to_server, DataNodeStub
@@ -25,9 +26,13 @@ DATA_LIMIT = 5
 def get_test_dataset(limit=None):
     features, events = load_whas500()
 
+    numerical_columns = features.columns[features.dtypes == float]
+
+    features = features[numerical_columns]
+
     if limit:
         features = features.head(limit)
-        events = events[:DATA_LIMIT]
+        events = events[:limit]
 
     features = features.values.astype(float)
 
@@ -53,11 +58,24 @@ def split_events(events):
     return times, right_censored
 
 
+def get_target_result(features, events):
+    model = CoxPHSurvivalAnalysis()
+
+    model.fit(features, events)
+
+    return model.coef_
+
+
 def test_integration():
     try:
         _logger.addHandler(RotatingFileHandler('log.txt'))
 
-        features, events = get_test_dataset(limit=DATA_LIMIT)
+        features, events = get_test_dataset(limit=20)
+
+        target_result = get_target_result(features, events)
+
+        _logger.info(f'Target result: {target_result}')
+
         num_features = features.shape[1]
         feature_split = num_features // 2
         features1 = features[:, :feature_split]
@@ -80,13 +98,14 @@ def test_integration():
         aggregator_process.join()
 
     except Exception as e:
-        _logger.error(e)
+        traceback.print_exc()
     finally:
         # Make sure all processes are always killed
         p1.kill()
         p2.kill()
         p1.join()
         p2.join()
+
 
 def run_aggregator(ports, event_times, right_censored):
     stubs = [get_datanode_client(port) for port in ports]
