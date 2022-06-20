@@ -1,4 +1,5 @@
 import logging
+from collections import namedtuple
 from typing import List, Dict, Union
 
 import numpy as np
@@ -126,7 +127,7 @@ class Aggregator:
         logger.info(f'Aggregated gamma: {self.gamma}')
 
         self.z_old = self.z
-        self.z = Lz.find_z(self.num_institutions, self.gamma, self.sigma, self.rho, self.Rt, self.z,
+        self.z = Lz.find_z(self.gamma, self.sigma, self.rho, self.Rt, self.z,
                            self.num_institutions, self.event_times)
 
         z_per_institution = self.compute_z_per_institution(self.gamma_per_institution,
@@ -203,28 +204,25 @@ class Aggregator:
 
 
 class Lz:
-    # TODO: It might be easier if the fixed parameters are class variables
     # TODO: Vectorizing might make things easier
+
+    Parameters = namedtuple('Parameters', ['gamma', 'sigma', 'rho', 'Rt', 'K', 'event_times'])
+
     @staticmethod
-    def parametrized(z: ArrayLike, K: int, gamma: ArrayLike, sigma: ArrayLike, rho: float,
-                     Rt: Dict[Union[int, float], List[int]]):
+    def parametrized(z: ArrayLike, params: Parameters):
         """
         Equation 12
         Args:
             z:
-            K:
-            gamma:
-            sigma:
-            rho:
-            Rt:
+            params:
 
         Returns:
 
         """
-        dt = len(Rt)
+        dt = len(params.Rt)
 
-        component1 = Lz.component1(z, K, Rt, dt)
-        component2 = Lz.component2(z, K, sigma, gamma, rho)
+        component1 = Lz.component1(z, params.K, params.Rt, dt)
+        component2 = Lz.component2(z, params.K, params.sigma, params.gamma, params.rho)
 
         return component1 + component2
 
@@ -243,20 +241,18 @@ class Lz:
         return K * rho * element_wise.sum()
 
     @staticmethod
-    def find_z(num_parties, gamma: ArrayLike, sigma: ArrayLike, rho: float,
+    def find_z(gamma: ArrayLike, sigma: ArrayLike, rho: float,
                Rt: Dict[int, List[int]], z_start: ArrayLike, K: int, event_times: ArrayLike):
+
+        params = Lz.Parameters(gamma, sigma, rho, Rt, K, event_times)
+
         logger.debug('Creating L(z) with parameters:')
-        logger.debug(f'num_parties: {num_parties}  gamma: {gamma[:ARRAY_LOG_LIMIT]}..., sigma: '
-                     f'{sigma[:ARRAY_LOG_LIMIT]}... '
-                     f'rho:'
-                     f' {rho} '
-                     f'Rt: {list(Rt.keys())[:5]}...')
-        L_z = lambda z: Lz.parametrized(z=z, K=num_parties, gamma=gamma, sigma=sigma, rho=rho,
-                                        Rt=Rt)
+        logger.debug(params)
+        L_z = lambda z: Lz.parametrized(z=z, params=params)
 
         logger.debug(f'Finding minimum z starting at {z_start[:5]}...')
 
-        jac = lambda z: Lz.jacobian(z, K, gamma, sigma, rho, Rt, event_times)
+        jac = lambda z: Lz.jacobian(z, params)
 
         minimum = minimize(L_z, z_start, jac=jac, method=OPTIMIZATION_METHOD)
 
@@ -267,59 +263,100 @@ class Lz:
         return minimum.x
 
     @staticmethod
-    def derivative_1_parametrized(z: np.array, K: int, gamma: np.array, sigma: ArrayLike,
-                                  rho: float,
-                                  Rt: Dict[Union[int, float], List[int]], sample_idx: int,
-                                  event_times: ArrayLike):
+    def derivative_1_parametrized(z: np.array, params: Parameters, sample_idx: int):
         """
 
         Args:
             z:
-            K:
-            gamma:
-            sigma:
-            rho:
-            Rt:
-            z_index:
+            params:
             sample_idx:
-            event_times:
+
 
         Returns:
 
         """
-        dt = len(Rt)
-        u_event_time = event_times[sample_idx]
+        dt = len(params.Rt)
+        u_event_time = params.event_times[sample_idx]
 
-        relevant_event_times = [t for t in Rt.keys() if t <= u_event_time]
+        relevant_event_times = [t for t in params.Rt.keys() if t <= u_event_time]
 
         # First part
         # Numerator
-        enumerator = K * np.exp(K * z[sample_idx])
+        enumerator = params.K * np.exp(params.K * z[sample_idx])
 
         # Denominator
         denominator = 0
         for t in relevant_event_times:
-            samples_at_risk = Rt[t]
+            samples_at_risk = params.Rt[t]
             z_samples_at_risk = z[samples_at_risk]
 
-            denominator += dt * (K * np.exp(K * z[sample_idx])) / np.sum(
-                np.exp(K * z_samples_at_risk))
+            denominator += dt * (params.K * np.exp(params.K * z[sample_idx])) / np.sum(
+                np.exp(params.K * z_samples_at_risk))
 
         first_part = enumerator / denominator
 
         # Second part
-        second_part = K * rho * (z[sample_idx] - sigma[sample_idx] - (gamma[sample_idx] / rho))
+        second_part = params.K * params.rho * (z[sample_idx] - params.sigma[sample_idx] - (
+                params.gamma[sample_idx] / params.rho))
 
         return first_part + second_part
 
     @staticmethod
-    def jacobian(z: np.array, K: int, gamma: np.array, sigma: ArrayLike, rho: float,
-                 Rt: Dict[Union[int, float], List[int]],
-                 event_times: ArrayLike) -> ArrayLike:
+    def jacobian(z: ArrayLike, params: Parameters) -> ArrayLike:
         result = np.zeros(z.shape)
 
         for i in range(z.shape[0]):
-            result[i] = Lz.derivative_1_parametrized(z, K=K, gamma=gamma, sigma=sigma, rho=rho,
-                                                     Rt=Rt, sample_idx=i, event_times=event_times)
+            result[i] = Lz.derivative_1_parametrized(z, params, sample_idx=i)
 
         return result
+
+    @staticmethod
+    def hessian(z: ArrayLike, params: Parameters):
+        # The hessian is a N x N matrix where N is the number of elements in z
+        N = z.shape[0]
+        mat = np.zeros((N, N))
+
+        for u in range(N):
+            for v in range(N):
+
+                if u == v:
+                    # Formula for diagonals
+                    mat[u, v] = Lz.derivative_2_diagonal(z, params, u)
+                else:
+                    # Formula for off-diagonals
+                    mat[u, v] = Lz.derivative_2_off_diagonal(z, params, u, v)
+
+    @staticmethod
+    def derivative_2_diagonal(z: ArrayLike, params: Parameters, u):
+        dt = len(params.Rt)
+
+        u_event_time = params.event_times[u]
+        relevant_event_times = [t for t in params.Rt.keys() if t <= u_event_time]
+
+        summed = 0
+
+        for t in relevant_event_times:
+            first_part = np.square(params.K) * np.exp(params.K * z[u]) / \
+                         np.exp(params.K * z[params.Rt[t]]).sum()
+
+            second_part = np.square(params.K) * np.square(np.exp(params.K * z[u])) / \
+                          np.square(np.exp(params.K * z[params.Rt[t]]).sum())
+
+            summed += dt * (first_part - second_part)
+
+        return summed + params.K * params.rho
+
+    @staticmethod
+    def derivative_2_off_diagonal(z: ArrayLike, params: Parameters, u, v):
+        dt = len(params.Rt)
+
+        min_event_time = min(params.event_times[u], params.event_times[u])
+        relevant_event_times = [t for t in params.Rt.keys() if t <= min_event_time]
+
+        summed = 0
+
+        for t in relevant_event_times:
+            summed += dt * np.square(params.K) * np.exp(params.K * z[u]) * np.exp(params.K * z[v]) / \
+                      np.square(np.exp(params.K * z[params.Rt[t]]).sum())
+
+        return summed
