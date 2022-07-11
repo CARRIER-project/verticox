@@ -20,7 +20,7 @@ MAX_WORKERS = 5
 PORT1 = 7777
 PORT2 = 7779
 GRPC_OPTIONS = [('wait_for_ready', True)]
-DATA_LIMIT = 5
+DATA_LIMIT = 10
 
 
 def get_test_dataset(limit=None):
@@ -67,26 +67,25 @@ def get_target_result(features, events):
 
 
 def test_integration():
+    _logger.addHandler(RotatingFileHandler('log.txt'))
+
+    features, events = get_test_dataset(limit=DATA_LIMIT)
+
+    target_result = get_target_result(features, events)
+
+    _logger.info(f'Target result: {target_result}')
+
+    num_features = features.shape[1]
+    feature_split = num_features // 2
+    features1 = features[:, :feature_split]
+    features2 = features[:, feature_split:]
+    event_times, right_censored = split_events(events)
+
+    p1 = Process(target=run_datanode,
+                 args=(event_times, features1, right_censored, PORT1, 'first'))
+    p2 = Process(target=run_datanode, args=(event_times, features2, right_censored, PORT2,
+                                            'second'))
     try:
-        _logger.addHandler(RotatingFileHandler('log.txt'))
-
-        features, events = get_test_dataset(limit=20)
-
-        target_result = get_target_result(features, events)
-
-        _logger.info(f'Target result: {target_result}')
-
-        num_features = features.shape[1]
-        feature_split = num_features // 2
-        features1 = features[:, :feature_split]
-        features2 = features[:, feature_split:]
-        event_times, right_censored = split_events(events)
-
-        p1 = Process(target=run_datanode,
-                     args=(event_times, features1, right_censored, PORT1, 'first'))
-        p2 = Process(target=run_datanode, args=(event_times, features2, right_censored, PORT2,
-                                                'second'))
-
         p1.start()
         p2.start()
 

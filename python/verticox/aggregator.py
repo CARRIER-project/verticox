@@ -17,7 +17,7 @@ BETA = 0
 Z = 0
 GAMMA = 0
 
-OPTIMIZATION_METHOD = 'TNC'
+OPTIMIZATION_METHOD = 'BFGS'
 ARRAY_LOG_LIMIT = 5
 
 
@@ -205,6 +205,7 @@ class Aggregator:
 
 class Lz:
     # TODO: Vectorizing might make things easier
+    # TODO: Move to its own module
 
     Parameters = namedtuple('Parameters', ['gamma', 'sigma', 'rho', 'Rt', 'K', 'event_times'])
 
@@ -285,17 +286,22 @@ class Lz:
 
         first_part = 0
         for t in relevant_event_times:
-            denominator = 0
-            for j in params.Rt[t]:
-                denominator += np.exp(params.K * z[j])
+            denominator = Lz.bottom(z, params, t)
 
-            first_part += dt * (enumerator/denominator)
+            first_part += dt * (enumerator / denominator)
 
         # Second part
         second_part = params.K * params.rho * (z[sample_idx] - params.sigma[sample_idx] - (
                 params.gamma[sample_idx] / params.rho))
 
         return first_part + second_part
+
+    @staticmethod
+    def bottom(z, params, t):
+        denominator = 0
+        for j in params.Rt[t]:
+            denominator += np.exp(params.K * z[j])
+        return denominator
 
     @staticmethod
     def jacobian(z: ArrayLike, params: Parameters) -> ArrayLike:
@@ -326,17 +332,24 @@ class Lz:
     def derivative_2_diagonal(z: ArrayLike, params: Parameters, u):
         dt = len(params.Rt)
 
+        print(f'Dt: {dt}')
+
         u_event_time = params.event_times[u]
+
+        print(f'u event time: {u_event_time}')
         relevant_event_times = [t for t in params.Rt.keys() if t <= u_event_time]
 
         summed = 0
 
         for t in relevant_event_times:
-            first_part = np.square(params.K) * np.exp(params.K * z[u]) / \
-                         np.exp(params.K * z[params.Rt[t]]).sum()
+            denominator = Lz.bottom(z, params, t)
 
-            second_part = np.square(params.K) * np.square(np.exp(params.K * z[u])) / \
-                          np.square(np.exp(params.K * z[params.Rt[t]]).sum())
+            print(f'Denominator: {denominator}')
+
+            print(f'np.exp(params.K * z[u]: {np.exp(params.K * z[u])}')
+            first_part = np.square(params.K) * np.exp(params.K * z[u]) / denominator
+
+            second_part = np.square(params.K) * np.square(np.exp(params.K * z[u])) / np.square(denominator)
 
             summed += dt * (first_part - second_part)
 
