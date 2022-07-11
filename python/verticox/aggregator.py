@@ -331,12 +331,8 @@ class Lz:
     @staticmethod
     def derivative_2_diagonal(z: ArrayLike, params: Parameters, u):
         dt = len(params.Rt)
-
-        print(f'Dt: {dt}')
-
         u_event_time = params.event_times[u]
 
-        print(f'u event time: {u_event_time}')
         relevant_event_times = [t for t in params.Rt.keys() if t <= u_event_time]
 
         summed = 0
@@ -344,9 +340,6 @@ class Lz:
         for t in relevant_event_times:
             denominator = Lz.bottom(z, params, t)
 
-            print(f'Denominator: {denominator}')
-
-            print(f'np.exp(params.K * z[u]: {np.exp(params.K * z[u])}')
             first_part = np.square(params.K) * np.exp(params.K * z[u]) / denominator
 
             second_part = np.square(params.K) * np.square(np.exp(params.K * z[u])) / np.square(denominator)
@@ -368,4 +361,4 @@ class Lz:
             summed += dt * np.square(params.K) * np.exp(params.K * z[u]) * np.exp(params.K * z[v]) / \
                       np.square(np.exp(params.K * z[params.Rt[t]]).sum())
 
-        return summed
+        return -1 * summed
