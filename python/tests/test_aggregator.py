@@ -35,6 +35,6 @@ def test_group_samples_at_risk():
 def test_lz_derivative_1_output_scalar():
     u_index = 2
 
-    result = Lz.derivative_1_parametrized(Z, K, GAMMA, SIGMA, RHO, RT, u_index, EVENT_TIMES)
+    result = Lz.derivative_1(Z, K, GAMMA, SIGMA, RHO, RT, u_index, EVENT_TIMES)
 
     assert np.isscalar(result)

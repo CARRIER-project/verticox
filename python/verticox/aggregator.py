@@ -263,7 +263,7 @@ class Lz:
         return minimum.x
 
     @staticmethod
-    def derivative_1_parametrized(z: np.array, params: Parameters, sample_idx: int):
+    def derivative_1(z: np.array, params: Parameters, sample_idx: int):
         """
 
         Args:
@@ -281,19 +281,15 @@ class Lz:
         relevant_event_times = [t for t in params.Rt.keys() if t <= u_event_time]
 
         # First part
-        # Numerator
         enumerator = params.K * np.exp(params.K * z[sample_idx])
 
-        # Denominator
-        denominator = 0
+        first_part = 0
         for t in relevant_event_times:
-            samples_at_risk = params.Rt[t]
-            z_samples_at_risk = z[samples_at_risk]
+            denominator = 0
+            for j in params.Rt[t]:
+                denominator += np.exp(params.K * z[j])
 
-            denominator += dt * (params.K * np.exp(params.K * z[sample_idx])) / np.sum(
-                np.exp(params.K * z_samples_at_risk))
-
-        first_part = enumerator / denominator
+            first_part += dt * (enumerator/denominator)
 
         # Second part
         second_part = params.K * params.rho * (z[sample_idx] - params.sigma[sample_idx] - (
@@ -306,7 +302,7 @@ class Lz:
         result = np.zeros(z.shape)
 
         for i in range(z.shape[0]):
-            result[i] = Lz.derivative_1_parametrized(z, params, sample_idx=i)
+            result[i] = Lz.derivative_1(z, params, sample_idx=i)
 
         return result
 
