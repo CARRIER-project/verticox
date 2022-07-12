@@ -11,13 +11,13 @@ from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 
 logger = logging.getLogger(__name__)
 
-RHO = 0.5
-E = 0.001
+RHO = 0.25
+E = .1
 BETA = 0
 Z = 0
 GAMMA = 0
 
-OPTIMIZATION_METHOD = 'BFGS'
+OPTIMIZATION_METHOD = 'Newton-CG'
 ARRAY_LOG_LIMIT = 5
 
 
@@ -76,11 +76,11 @@ class Aggregator:
         self.right_censored = right_censored
         self.Rt = group_samples_at_risk(event_times, right_censored)
         # Initializing parameters
-        self.z = np.zeros(self.num_samples)
+        self.z = np.zeros(self.num_samples, dtype=np.float128)
         self.z_old = self.z
-        self.gamma = np.ones(self.num_samples)
-        self.sigma = np.zeros(self.num_samples)
-        self.gamma_per_institution = np.ones((self.num_institutions, self.num_samples,))
+        self.gamma = np.ones(self.num_samples,dtype=np.float128)
+        self.sigma = np.zeros(self.num_samples,dtype=np.float128)
+        self.gamma_per_institution = np.ones((self.num_institutions, self.num_samples,),dtype=np.float128)
         self.num_iterations = 0
 
         self.prepare_datanodes(GAMMA, Z, BETA, RHO)
@@ -112,19 +112,16 @@ class Aggregator:
 
     def fit_one(self):
         # TODO: Parallelize
-        sigma_per_institution = np.zeros((self.num_institutions, self.num_samples,))
+        sigma_per_institution = np.zeros((self.num_institutions, self.num_samples,),
+                                         dtype=np.float128)
 
         for idx, institution in enumerate(self.institutions):
             updated = institution.fit(Empty())
-            logger.debug(f'Updated values: {updated}')
-            sigma_per_institution[idx] = np.array(updated.sigma)
-            self.gamma_per_institution[idx] = np.array(updated.gamma)
+            sigma_per_institution[idx] = np.array(updated.sigma, dtype=np.float128)
+            self.gamma_per_institution[idx] = np.array(updated.gamma, dtype=np.float128)
 
         self.sigma = self.aggregate_sigmas(sigma_per_institution)
         self.gamma = self.aggregate_gammas(self.gamma_per_institution)
-
-        logger.info(f'Aggregated sigma: {self.sigma}')
-        logger.info(f'Aggregated gamma: {self.gamma}')
 
         self.z_old = self.z
         self.z = Lz.find_z(self.gamma, self.sigma, self.rho, self.Rt, self.z,
@@ -156,7 +153,7 @@ class Aggregator:
         Returns:
 
         """
-        z_per_institution = np.zeros((self.num_institutions, self.num_samples))
+        z_per_institution = np.zeros((self.num_institutions, self.num_samples), dtype=np.float128)
         sigma_gamma_all_institutions = sigma_per_institution + gamma_per_institution / self.rho
         sigma_gamma_all_institutions = sigma_gamma_all_institutions.sum(axis=0)
 
@@ -200,7 +197,7 @@ class Aggregator:
         for institution in self.institutions:
             betas.append(institution.getBeta())
 
-        return np.array(betas)
+        return np.array(betas, dtype=np.float128)
 
 
 class Lz:
@@ -220,12 +217,15 @@ class Lz:
         Returns:
 
         """
+        print('Lz')
         dt = len(params.Rt)
 
         component1 = Lz.component1(z, params.K, params.Rt, dt)
         component2 = Lz.component2(z, params.K, params.sigma, params.gamma, params.rho)
 
-        return component1 + component2
+        result = component1 + component2
+        print(result)
+        return result
 
     @staticmethod
     def component1(z, K, Rt, dt):
@@ -254,8 +254,10 @@ class Lz:
         logger.debug(f'Finding minimum z starting at {z_start[:5]}...')
 
         jac = lambda z: Lz.jacobian(z, params)
+        hessian = lambda z: Lz.hessian(z, params)
 
-        minimum = minimize(L_z, z_start, jac=jac, method=OPTIMIZATION_METHOD)
+        minimum = minimize(L_z, z_start, jac=jac, hess=hessian, method=OPTIMIZATION_METHOD,
+                           options={'xtol': 0.1})
 
         if not minimum.success:
             raise Exception('Could not find minimum z')
@@ -298,13 +300,14 @@ class Lz:
 
     @staticmethod
     def bottom(z, params, t):
-        denominator = 0
+        denominator = 0.
         for j in params.Rt[t]:
             denominator += np.exp(params.K * z[j])
         return denominator
 
     @staticmethod
     def jacobian(z: ArrayLike, params: Parameters) -> ArrayLike:
+        print('Jacobian')
         result = np.zeros(z.shape)
 
         for i in range(z.shape[0]):
@@ -314,6 +317,7 @@ class Lz:
 
     @staticmethod
     def hessian(z: ArrayLike, params: Parameters):
+        print('Hessian')
         # The hessian is a N x N matrix where N is the number of elements in z
         N = z.shape[0]
         mat = np.zeros((N, N))
@@ -327,6 +331,8 @@ class Lz:
                 else:
                     # Formula for off-diagonals
                     mat[u, v] = Lz.derivative_2_off_diagonal(z, params, u, v)
+
+        return mat
 
     @staticmethod
     def derivative_2_diagonal(z: ArrayLike, params: Parameters, u):
@@ -342,7 +348,8 @@ class Lz:
 
             first_part = np.square(params.K) * np.exp(params.K * z[u]) / denominator
 
-            second_part = np.square(params.K) * np.square(np.exp(params.K * z[u])) / np.square(denominator)
+            second_part = np.square(params.K) * np.square(np.exp(params.K * z[u])) / np.square(
+                denominator)
 
             summed += dt * (first_part - second_part)
 

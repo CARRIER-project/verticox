@@ -64,3 +64,173 @@ Starting datanode on port 7779
 Starting aggregator
 Starting datanode on port 7777
 Starting datanode on port 7779
+Target result: [ 0.08606279  0.05133476 -0.00086865 -0.00757499  0.23629018 -0.02483533]
+Starting aggregator
+Starting datanode on port 7779
+Starting datanode on port 7777
+Target result: [ 0.08606279  0.05133476 -0.00086865 -0.00757499  0.23629018 -0.02483533]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.08606279  0.05133476 -0.00086865 -0.00757499  0.23629018 -0.02483533]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.08606279  0.05133476 -0.00086865 -0.00757499  0.23629018 -0.02483533]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.08606279  0.05133476 -0.00086865 -0.00757499  0.23629018 -0.02483533]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.08606279  0.05133476 -0.00086865 -0.00757499  0.23629018 -0.02483533]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.08606279  0.05133476 -0.00086865 -0.00757499  0.23629018 -0.02483533]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.06187913  0.13970385 -0.013633   -0.05131373 -0.2217451  -0.02980095]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.06187913  0.13970385 -0.013633   -0.05131373 -0.2217451  -0.02980095]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.06187913  0.13970385 -0.013633   -0.05131373 -0.2217451  -0.02980095]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.06187913  0.13970385 -0.013633   -0.05131373 -0.2217451  -0.02980095]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.06187913  0.13970385 -0.013633   -0.05131373 -0.2217451  -0.02980095]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.06187913  0.13970385 -0.013633   -0.05131373 -0.2217451  -0.02980095]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.06187913  0.13970385 -0.013633   -0.05131373 -0.2217451  -0.02980095]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.06187913  0.13970385 -0.013633   -0.05131373 -0.2217451  -0.02980095]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.05793093 -0.09503283  0.00669816  0.00807689  0.00961448 -0.00991984]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.05793093 -0.09503283  0.00669816  0.00807689  0.00961448 -0.00991984]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.05793093 -0.09503283  0.00669816  0.00807689  0.00961448 -0.00991984]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.05793093 -0.09503283  0.00669816  0.00807689  0.00961448 -0.00991984]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.05793093 -0.09503283  0.00669816  0.00807689  0.00961448 -0.00991984]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.05793093 -0.09503283  0.00669816  0.00807689  0.00961448 -0.00991984]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.05793093 -0.09503283  0.00669816  0.00807689  0.00961448 -0.00991984]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.05793093 -0.09503283  0.00669816  0.00807689  0.00961448 -0.00991984]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.05793093 -0.09503283  0.00669816  0.00807689  0.00961448 -0.00991984]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.05793093 -0.09503283  0.00669816  0.00807689  0.00961448 -0.00991984]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.05371567 -0.0395255  -0.01292874  0.01394995  0.00890477  0.00132848]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.05371567 -0.0395255  -0.01292874  0.01394995  0.00890477  0.00132848]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.05371567 -0.0395255  -0.01292874  0.01394995  0.00890477  0.00132848]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.05793093 -0.09503283  0.00669816  0.00807689  0.00961448 -0.00991984]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.04979188 -0.04538401 -0.00560405  0.01486641 -0.00919243 -0.00399437]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.04979188 -0.04538401 -0.00560405  0.01486641 -0.00919243 -0.00399437]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.04979188 -0.04538401 -0.00560405  0.01486641 -0.00919243 -0.00399437]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.04979188 -0.04538401 -0.00560405  0.01486641 -0.00919243 -0.00399437]
+Starting aggregator
+Target result: [ 0.04979188 -0.04538401 -0.00560405  0.01486641 -0.00919243 -0.00399437]
+Starting aggregator
+Target result: [ 0.04979188 -0.04538401 -0.00560405  0.01486641 -0.00919243 -0.00399437]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.05793093 -0.09503283  0.00669816  0.00807689  0.00961448 -0.00991984]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.00814087 -0.06075829 -0.01144522  0.0043988  -0.01838871  0.00242362]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.00814087 -0.06075829 -0.01144522  0.0043988  -0.01838871  0.00242362]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.00814087 -0.06075829 -0.01144522  0.0043988  -0.01838871  0.00242362]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.00814087 -0.06075829 -0.01144522  0.0043988  -0.01838871  0.00242362]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.00814087 -0.06075829 -0.01144522  0.0043988  -0.01838871  0.00242362]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.00814087 -0.06075829 -0.01144522  0.0043988  -0.01838871  0.00242362]
+Starting aggregator
+Starting datanode on port 7777
+Starting datanode on port 7779
+Target result: [ 0.00814087 -0.06075829 -0.01144522  0.0043988  -0.01838871  0.00242362]
+Starting aggregator
+Starting datanode on port 7777
+Target result: [ 0.00814087 -0.06075829 -0.01144522  0.0043988  -0.01838871  0.00242362]
+Starting aggregator
+Starting datanode on port 7777

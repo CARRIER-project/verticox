@@ -12,9 +12,10 @@ GAMMA = Z
 SIGMA = Z
 RHO = 2
 
+PARAMS = Lz.Parameters(GAMMA, SIGMA, RHO, RT, K, EVENT_TIMES)
 
 def test_lz_outputs_scalar():
-    result = Lz.parametrized(Z, K, GAMMA, SIGMA, RHO, RT)
+    result = Lz.parametrized(Z, PARAMS)
 
     assert np.isscalar(result)
 
@@ -35,6 +36,6 @@ def test_group_samples_at_risk():
 def test_lz_derivative_1_output_scalar():
     u_index = 2
 
-    result = Lz.derivative_1(Z, K, GAMMA, SIGMA, RHO, RT, u_index, EVENT_TIMES)
+    result = Lz.derivative_1(Z, PARAMS)
 
     assert np.isscalar(result)

@@ -11,8 +11,6 @@ from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServic
 
 logger = logging.getLogger(__name__)
 DEFAULT_PORT = 7777
-RHO = 0.01
-
 
 class DataNode(DataNodeServicer):
     def __init__(self, features: np.array = None, event_times: Optional[np.array] = None,
@@ -39,7 +37,8 @@ class DataNode(DataNodeServicer):
         # Squaring all covariates with themselves comes down to the same thing since x_nk is
         # supposed to be one-dimensional
         self.features_multiplied = DataNode._multiply_covariates(features)
-        self.features_sum = features.sum(axis=0)
+        # TODO: maybe it's #features[include(event_times)].sum(axis=0)
+        self.features_sum_Dt = features.sum(axis=0)
         self.num_samples = self.features.shape[0]
 
         self.rho = None
@@ -50,6 +49,11 @@ class DataNode(DataNodeServicer):
         self.aggregated_gamma = None
 
         self.prepared = False
+
+    @staticmethod
+    @np.vectorize
+    def include(event):
+        return event[0]
 
     def prepare(self, request, context=None):
         self.gamma = np.full((self.num_samples,), request.gamma)
@@ -67,7 +71,7 @@ class DataNode(DataNodeServicer):
 
         self._logger.info('Performing local update...')
         sigma, beta = DataNode._local_update(self.features, self.z, self.gamma, self.rho,
-                                             self.features_multiplied, self.features_sum)
+                                             self.features_multiplied, self.features_sum_Dt)
 
         self.sigma = sigma
         self.beta = beta
@@ -146,7 +150,7 @@ class DataNode(DataNodeServicer):
         second_component = \
             DataNode._elementwise_multiply_sum(pz - gamma, features) + covariates_sum
 
-        return second_component / first_component
+        return second_component * first_component
 
     @staticmethod
     def _compute_sigma(beta, covariates):

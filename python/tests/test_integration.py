@@ -1,30 +1,35 @@
 import logging
+import traceback
+from concurrent.futures import ThreadPoolExecutor
 from logging.handlers import RotatingFileHandler
 from multiprocessing import Process
 
-logging.basicConfig(level=logging.DEBUG)
-import pandas as pd
-from concurrent.futures import ThreadPoolExecutor
-import traceback
-
 import grpc
+import numpy as np
+import pandas as pd
 from sksurv.datasets import load_whas500
 from sksurv.linear_model import CoxPHSurvivalAnalysis
+
 from verticox.aggregator import Aggregator
 from verticox.datanode import DataNode
 from verticox.grpc.datanode_pb2_grpc import add_DataNodeServicer_to_server, DataNodeStub
 
+logging.basicConfig(level=logging.DEBUG)
 _logger = logging.getLogger(__name__)
 
 MAX_WORKERS = 5
 PORT1 = 7777
 PORT2 = 7779
 GRPC_OPTIONS = [('wait_for_ready', True)]
-DATA_LIMIT = 10
+DATA_LIMIT = 100
 
 
-def get_test_dataset(limit=None):
+def get_test_dataset(limit=None, censored=True):
     features, events = load_whas500()
+
+    if not censored:
+        features = features[include(events)]
+        events = events[include(events)]
 
     numerical_columns = features.columns[features.dtypes == float]
 
@@ -66,10 +71,50 @@ def get_target_result(features, events):
     return model.coef_
 
 
+@np.vectorize
+def include(event):
+    return event[0]
+
+def test_integration_one_institution():
+    _logger.addHandler(RotatingFileHandler('log.txt'))
+
+    features, events = get_test_dataset(limit=DATA_LIMIT, censored=False)
+
+    features = features.astype(np.float128)
+
+    target_result = get_target_result(features, events)
+
+    _logger.info(f'Target result: {target_result}')
+
+    num_features = features.shape[1]
+
+    event_times, right_censored = split_events(events)
+
+    p1 = Process(target=run_datanode,
+                 args=(event_times, features, right_censored, PORT1, 'first'))
+    try:
+        p1.start()
+
+        aggregator_process = Process(target=run_aggregator,
+                                     args=([PORT1], event_times, right_censored))
+
+        _logger.info('Starting aggregator')
+        aggregator_process.start()
+        aggregator_process.join()
+
+    except Exception as e:
+        traceback.print_exc()
+    finally:
+        # Make sure all processes are always killed
+        p1.kill()
+        p1.join()
+
 def test_integration():
     _logger.addHandler(RotatingFileHandler('log.txt'))
 
-    features, events = get_test_dataset(limit=DATA_LIMIT)
+    features, events = get_test_dataset(limit=DATA_LIMIT, censored=False)
+
+    features = features.astype(np.float128)
 
     target_result = get_target_result(features, events)
 
@@ -130,4 +175,4 @@ def get_datanode_client(port):
 
 
 if __name__ == '__main__':
-    test_integration()
+    test_integration_one_institution()
