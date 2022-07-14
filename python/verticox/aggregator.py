@@ -18,6 +18,7 @@ Z = 0
 GAMMA = 0
 
 OPTIMIZATION_METHOD = 'Newton-CG'
+OPTIMIZATION_OPTIONS = {'xtol': 0.1, 'eps':0.01}
 ARRAY_LOG_LIMIT = 5
 
 
@@ -78,9 +79,10 @@ class Aggregator:
         # Initializing parameters
         self.z = np.zeros(self.num_samples, dtype=np.float128)
         self.z_old = self.z
-        self.gamma = np.ones(self.num_samples,dtype=np.float128)
-        self.sigma = np.zeros(self.num_samples,dtype=np.float128)
-        self.gamma_per_institution = np.ones((self.num_institutions, self.num_samples,),dtype=np.float128)
+        self.gamma = np.ones(self.num_samples, dtype=np.float128)
+        self.sigma = np.zeros(self.num_samples, dtype=np.float128)
+        self.gamma_per_institution = np.ones((self.num_institutions, self.num_samples,),
+                                             dtype=np.float128)
         self.num_iterations = 0
 
         self.prepare_datanodes(GAMMA, Z, BETA, RHO)
@@ -103,9 +105,13 @@ class Aggregator:
 
             # Turning the while in the paper into a do-until type thing. This means I have to
             # flip the > sign
-            if np.linalg.norm(self.z - self.z_old) <= self.e and \
-                    np.linalg.norm(self.z - self.sigma) <= \
-                    self.e:
+            z_diff = np.linalg.norm(self.z - self.z_old)
+            z_sigma_diff = np.linalg.norm(self.z - self.sigma)
+
+            logger.debug(f'z_diff: {z_diff}')
+            logger.debug(f'sigma_diff: {z_sigma_diff}')
+
+            if z_diff<= self.e and z_sigma_diff <= self.e:
                 break
 
         logger.info(f'Finished training after {self.num_iterations} iterations')
@@ -217,14 +223,13 @@ class Lz:
         Returns:
 
         """
-        print('Lz')
         dt = len(params.Rt)
 
         component1 = Lz.component1(z, params.K, params.Rt, dt)
         component2 = Lz.component2(z, params.K, params.sigma, params.gamma, params.rho)
 
         result = component1 + component2
-        print(result)
+        logger.debug(f'Lz: {result}')
         return result
 
     @staticmethod
@@ -257,7 +262,7 @@ class Lz:
         hessian = lambda z: Lz.hessian(z, params)
 
         minimum = minimize(L_z, z_start, jac=jac, hess=hessian, method=OPTIMIZATION_METHOD,
-                           options={'xtol': 0.1})
+                           options=OPTIMIZATION_OPTIONS)
 
         if not minimum.success:
             raise Exception('Could not find minimum z')
@@ -307,7 +312,6 @@ class Lz:
 
     @staticmethod
     def jacobian(z: ArrayLike, params: Parameters) -> ArrayLike:
-        print('Jacobian')
         result = np.zeros(z.shape)
 
         for i in range(z.shape[0]):
@@ -317,7 +321,6 @@ class Lz:
 
     @staticmethod
     def hessian(z: ArrayLike, params: Parameters):
-        print('Hessian')
         # The hessian is a N x N matrix where N is the number of elements in z
         N = z.shape[0]
         mat = np.zeros((N, N))
