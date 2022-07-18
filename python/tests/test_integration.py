@@ -76,66 +76,38 @@ def include(event):
     return event[0]
 
 
-# def test_integration_one_institution():
-#     _logger.addHandler(RotatingFileHandler('log.txt'))
-#
-#     features, events = get_test_dataset(limit=DATA_LIMIT, censored=False)
-#
-#     features = features.astype(np.float128)
-#
-#     target_result = get_target_result(features, events)
-#
-#     _logger.info(f'Target result: {target_result}')
-#
-#     num_features = features.shape[1]
-#
-#     event_times, right_censored = split_events(events)
-#
-#     p1 = Process(target=run_datanode,
-#                  args=(event_times, features, right_censored, PORT1, 'first'))
-#     try:
-#         p1.start()
-#
-#         aggregator_process = Process(target=run_aggregator,
-#                                      args=([PORT1], event_times, right_censored))
-#
-#         _logger.info('Starting aggregator')
-#         aggregator_process.start()
-#         aggregator_process.join()
-#
-#     except Exception as e:
-#         traceback.print_exc()
-#     finally:
-#         # Make sure all processes are always killed
-#         p1.kill()
-#         p1.join()
-
-
-def test_integration():
+def test_integration(ports=(PORT1,)):
+    num_institutions = len(ports)
     features, events = get_test_dataset(limit=DATA_LIMIT, censored=False)
 
-    features = features.astype(np.float128)
+    scaler = StandardScaler()
+    features = scaler.fit_transform(X=features)
 
     target_result = get_target_result(features, events)
 
     _logger.info(f'Target result: {target_result}')
 
     num_features = features.shape[1]
-    feature_split = num_features // 2
-    features1 = features[:, :feature_split]
-    features2 = features[:, feature_split:]
+    feature_split = num_features // num_institutions
+
+    features_per_institution = []
+
+    for i in range(num_institutions):
+        start = i * feature_split
+        end = start + feature_split
+        features_per_institution.append(features[:, i * feature_split: end])
+
     event_times, right_censored = split_events(events)
 
-    p1 = Process(target=run_datanode,
-                 args=(event_times, features1, right_censored, PORT1, 'first'))
-    p2 = Process(target=run_datanode, args=(event_times, features2, right_censored, PORT2,
-                                            'second'))
+    processes = create_processes(event_times, features_per_institution, right_censored, ports)
+    processes = list(processes)
+
     try:
-        p1.start()
-        p2.start()
+        for p in processes:
+            p.start()
 
         aggregator_process = Process(target=run_aggregator,
-                                     args=([PORT1, PORT2], event_times, right_censored))
+                                     args=(ports, event_times, right_censored))
 
         _logger.info('Starting aggregator')
         aggregator_process.start()
@@ -145,10 +117,17 @@ def test_integration():
         traceback.print_exc()
     finally:
         # Make sure all processes are always killed
-        p1.kill()
-        p2.kill()
-        p1.join()
-        p2.join()
+        for p in processes:
+            p.join()
+            p.kill()
+
+
+def create_processes(event_times, features_per_institution, right_censored, ports):
+    for idx, f in enumerate(features_per_institution):
+        p = Process(target=run_datanode,
+                    args=(event_times, f, right_censored, ports[idx], f'institution no. {idx}'))
+
+        yield p
 
 
 def run_aggregator(ports, event_times, right_censored):
