@@ -11,14 +11,14 @@ from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 
 logger = logging.getLogger(__name__)
 
-RHO = 0.25
+RHO = 1
 E = .1
 BETA = 0
 Z = 0
 GAMMA = 0
 
 OPTIMIZATION_METHOD = 'Newton-CG'
-OPTIMIZATION_OPTIONS = {'xtol': 0.1, 'eps':0.01}
+OPTIMIZATION_OPTIONS = {'xtol': 0.1, 'eps':0.001}
 ARRAY_LOG_LIMIT = 5
 
 

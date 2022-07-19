@@ -1,3 +1,4 @@
+import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
@@ -11,6 +12,7 @@ from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServic
 
 logger = logging.getLogger(__name__)
 DEFAULT_PORT = 7777
+
 
 class DataNode(DataNodeServicer):
     def __init__(self, features: np.array = None, event_times: Optional[np.array] = None,
@@ -76,7 +78,7 @@ class DataNode(DataNodeServicer):
         self.sigma = sigma
         self.beta = beta
 
-        logging.debug(f'Updated sigma to {self.sigma[:5]}..., beta to {self.beta[:5]}...')
+        self._logger.debug(f'Beta: {json.dumps(self.beta.tolist())}')
 
         response = LocalParameters(gamma=self.gamma.tolist(), sigma=sigma.tolist())
         self._logger.info('Finished local update, returning results.')
@@ -153,8 +155,12 @@ class DataNode(DataNodeServicer):
         return second_component * first_component
 
     @staticmethod
-    def _compute_sigma(beta, covariates):
-        return np.matmul(covariates, beta)
+    def _compute_sigma(beta, features):
+        sigma = np.zeros((features.shape[0]))
+        for n in range(features.shape[0]):
+            sigma[n] = np.dot(beta, features[n])
+
+        return sigma
 
     @staticmethod
     def _local_update(covariates: np.array, z: np.array, gamma: np.array, rho,

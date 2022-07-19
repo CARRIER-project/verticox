@@ -6,3 +6,4 @@
 /java/verticox/src/main/resources/application.properties
 __pycache__/
 test.log
+log.txt

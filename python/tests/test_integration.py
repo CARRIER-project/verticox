@@ -1,10 +1,10 @@
+import json
 import logging
 import sys
-logging.basicConfig(level=logging.DEBUG, handlers=[logging.FileHandler('log.txt', mode='w'),
-                                                   logging.StreamHandler(sys.stdout)])
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import Process
+
 import grpc
 import numpy as np
 import pandas as pd
@@ -15,6 +15,8 @@ from verticox.aggregator import Aggregator
 from verticox.datanode import DataNode
 from verticox.grpc.datanode_pb2_grpc import add_DataNodeServicer_to_server, DataNodeStub
 
+logging.basicConfig(level=logging.DEBUG, handlers=[logging.FileHandler('log.txt', mode='w'),
+                                                   logging.StreamHandler(sys.stdout)])
 _logger = logging.getLogger(__name__)
 
 MAX_WORKERS = 5
@@ -76,26 +78,23 @@ def include(event):
     return event[0]
 
 
-def test_integration(ports=(PORT1,)):
+def test_integration(ports=(PORT1, PORT2)):
     num_institutions = len(ports)
     features, events = get_test_dataset(limit=DATA_LIMIT, censored=False)
 
-    scaler = StandardScaler()
-    features = scaler.fit_transform(X=features)
+    # scaler = StandardScaler()
+    # features = scaler.fit_transform(X=features)
 
     target_result = get_target_result(features, events)
-
-    _logger.info(f'Target result: {target_result}')
 
     num_features = features.shape[1]
     feature_split = num_features // num_institutions
 
-    features_per_institution = []
+    splitted_target = list(chunk_list(feature_split, target_result))
 
-    for i in range(num_institutions):
-        start = i * feature_split
-        end = start + feature_split
-        features_per_institution.append(features[:, i * feature_split: end])
+    _logger.info(f'Target result: {json.dumps(splitted_target)}')
+
+    features_per_institution = list(chunk_features(feature_split, features))
 
     event_times, right_censored = split_events(events)
 
@@ -120,6 +119,16 @@ def test_integration(ports=(PORT1,)):
         for p in processes:
             p.join()
             p.kill()
+
+
+def chunk_list(feature_split, target_result):
+    for i in range(0, len(target_result), feature_split):
+        yield target_result[i:i + feature_split].tolist()
+
+
+def chunk_features(feature_split, features):
+    for i in range(0, features.shape[1], feature_split):
+        yield features[:, i:i + feature_split]
 
 
 def create_processes(event_times, features_per_institution, right_censored, ports):
