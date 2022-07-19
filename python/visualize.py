@@ -23,6 +23,9 @@ TARGET_BETA_START = 'INFO:__main__:Target result: '
 TARGET_BETA_POSITION = len(TARGET_BETA_START)
 MAX_INSTITUTIONS = 5
 
+BETA_BAR = 'betabar'
+TARGET_BAR = 'targetbar'
+
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 _log_file = None
@@ -31,11 +34,13 @@ lz = []
 z_diff = []
 sigma_diff = []
 beta = {}
-mse = []
+beta_df = pd.DataFrame(columns=['name', 'value', 'target'])
+mae = []
 target_beta = {}
 
-fig = make_subplots(rows=4, cols=1, row_heights=[20] * 4,
-                    subplot_titles=['Lz', 'z diff', 'sigma diff', 'Mean squared error'])
+fig = make_subplots(rows=5, cols=1, row_heights=[20] * 5,
+                    subplot_titles=['Lz', 'z diff', 'sigma diff', 'Mean absolute error',
+                                    'coefficients'])
 
 fig.add_trace({'y': lz, 'name': 'Lz', 'mode': 'lines+markers', 'type': 'scatter'}, row=1, col=1)
 fig.add_trace({'y': z_diff, 'name': 'z diff', 'mode': 'lines+markers', 'type': 'scatter'},
@@ -46,7 +51,9 @@ fig.add_trace({'y': sigma_diff,
                'mode': 'lines+markers',
                'type': 'scatter'}, row=3, col=1)
 
-fig.add_trace({'y': [], 'name': 'Mean Squared Error', 'mode': 'lines+markers'}, row=4, col=1)
+fig.add_trace({'y': [], 'name': 'Mean Absolute Error', 'mode': 'lines+markers'}, row=4, col=1)
+fig.add_bar(x=[], y=[], name=BETA_BAR, row=5, col=1)
+fig.add_bar(x=[], y=[], name=TARGET_BAR, row=5, col=1)
 
 fig.update_layout(height=1000, width=1500)
 
@@ -73,7 +80,16 @@ def update_graph_live(n):
     fig.update_traces({'y': lz}, row=1, col=1)
     fig.update_traces({'y': z_diff}, row=2, col=1)
     fig.update_traces({'y': sigma_diff}, row=3, col=1)
-    fig.update_traces({'y': mse}, row=4, col=1)
+    fig.update_traces({'y': mae}, row=4, col=1)
+
+    new_df = beta_df[~(beta_df['target'])]
+    target_df = beta_df[beta_df['target']]
+
+    print(beta_df)
+
+    fig.update_traces({'x': new_df['name'], 'y': new_df['value']}, selector={'name': BETA_BAR})
+    fig.update_traces({'x': target_df['name'], 'y': target_df['value']},
+                      selector={'name': TARGET_BAR})
 
     return fig
 
@@ -109,13 +125,40 @@ def filter_lines():
 
                 if institution_number not in beta.keys():
                     beta[institution_number] = []
-                beta[institution_number].append(new_beta)
+                beta[institution_number] = new_beta
 
-                new_mse = compute_mse()
+                global beta_df
+                beta_df = create_beta_df(beta, target_beta)
 
-                print(f'New mse: {new_mse}')
+                print(beta_df)
 
-                mse.append(new_mse)
+                new_mae = compute_mae()
+
+                print(f'New mae: {new_mae}')
+                mae.append(new_mae)
+
+
+def create_beta_df(beta: dict, target):
+    institute_index = []
+    all_values = []
+    all_targets = []
+
+    # First handle the targets
+    for i in range(target.shape[0]):
+        values = target[i]
+        for idx, v in enumerate(values):
+            institute_index.append(f'{i}_{idx}')
+            all_targets.append(True)
+            all_values.append(v)
+
+    # Handle current beta
+    for institute, values in beta.items():
+        for idx, v in enumerate(values):
+            institute_index.append(f'{institute}_{idx}')
+            all_targets.append(False)
+            all_values.append(v)
+
+    return pd.DataFrame({'name': institute_index, 'value': all_values, 'target': all_targets})
 
 
 def compute_mse():
@@ -124,6 +167,17 @@ def compute_mse():
     for institution, values in beta.items():
         last_value = values[-1]
         sum_of_squares += np.square(target_beta[institution] - last_value).sum()
+        num_items += len(values)
+
+    return sum_of_squares / num_items
+
+
+def compute_mae():
+    sum_of_squares = 0
+    num_items = 0
+    for institution, values in beta.items():
+        last_value = values[-1]
+        sum_of_squares += np.abs(target_beta[institution] - last_value).sum()
         num_items += len(values)
 
     return sum_of_squares / num_items
