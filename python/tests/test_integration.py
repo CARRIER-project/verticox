@@ -170,4 +170,4 @@ class LzFilter(logging.Filter):
 
 
 if __name__ == '__main__':
-    test_integration()
+    test_integration(ports=[7777])

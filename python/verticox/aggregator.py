@@ -1,3 +1,4 @@
+import json
 import logging
 from collections import namedtuple
 from typing import List, Dict, Union
@@ -18,7 +19,7 @@ Z = 0
 GAMMA = 0
 
 OPTIMIZATION_METHOD = 'Newton-CG'
-OPTIMIZATION_OPTIONS = {'xtol': 0.1, 'eps': 0.0001}
+OPTIMIZATION_OPTIONS = {'maxiter': 10}
 ARRAY_LOG_LIMIT = 5
 
 
@@ -76,6 +77,7 @@ class Aggregator:
         self.event_times = event_times
         self.right_censored = right_censored
         self.Rt = group_samples_at_risk(event_times, right_censored)
+
         # Initializing parameters
         self.z = np.zeros(self.num_samples, dtype=np.float128)
         self.z_old = self.z
@@ -206,6 +208,26 @@ class Aggregator:
         return np.array(betas, dtype=np.float128)
 
 
+def minimize_newton_raphson(x_0, jacobian, hessian, eps=1e-5):
+    x = x_0
+    old_x = None
+    stopping_condition = None
+    while old_x is None or stopping_condition > eps:
+        logger.debug(f'Stopping condition: {stopping_condition}')
+        logger.debug(f'Old x: {old_x}')
+        logger.debug(f'new x: {x}')
+
+        old_x = x
+
+        current_hess = hessian(x)
+
+        x = x - np.matmul(np.linalg.inv(current_hess), jacobian(x))
+        stopping_condition = np.linalg.norm(old_x - x)
+        diff = old_x - x
+        logger.debug(f'new norm: {np.sqrt(np.dot(diff, diff))}')
+    return x
+
+
 class Lz:
     # TODO: Vectorizing might make things easier
     # TODO: Move to its own module
@@ -229,7 +251,6 @@ class Lz:
         component2 = Lz.component2(z, params.K, params.sigma, params.gamma, params.rho)
 
         result = component1 + component2
-        logger.debug(f'Lz: {result}')
         return result
 
     @staticmethod
@@ -252,6 +273,8 @@ class Lz:
 
         params = Lz.Parameters(gamma, sigma, rho, Rt, K, event_times)
 
+        logger.debug(f'Rt: {params.Rt}')
+
         def L_z(z):
             return Lz.parametrized(z=z, params=params)
 
@@ -263,17 +286,16 @@ class Lz:
         def hessian(z):
             return Lz.hessian(z, params)
 
-        minimum = minimize(L_z, z_start, jac=jac, hess=hessian, method=OPTIMIZATION_METHOD,
-                           options=OPTIMIZATION_OPTIONS)
-
-        if not minimum.success:
-            raise Exception('Could not find minimum z')
+        # minimum = minimize(L_z, z_start, jac=jac, hess=hessian, method=OPTIMIZATION_METHOD,
+        #                    options=OPTIMIZATION_OPTIONS)
+        minimum = minimize_newton_raphson(z_start, jac, hessian)
 
         logger.debug(f'Found minimum z at {minimum.x}')
-        return minimum.x
+        logger.debug(f'Lz: {minimum}')
+        return minimum
 
     @staticmethod
-    def derivative_1(z: np.array, params: Parameters, sample_idx: int):
+    def derivative_1(z, params: Parameters, sample_idx: int):
         """
 
         Args:
@@ -364,7 +386,7 @@ class Lz:
     def derivative_2_off_diagonal(z: ArrayLike, params: Parameters, u, v):
         dt = len(params.Rt)
 
-        min_event_time = min(params.event_times[u], params.event_times[u])
+        min_event_time = min(params.event_times[u], params.event_times[v])
         relevant_event_times = [t for t in params.Rt.keys() if t <= min_event_time]
 
         summed = 0

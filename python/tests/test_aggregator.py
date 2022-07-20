@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.testing import assert_array_equal
 from verticox.aggregator import Lz, group_samples_at_risk
+from verticox.aggregator import minimize_newton_raphson
 
 NUM_PATIENTS = 3
 NUM_FEATURES = 2
@@ -13,6 +14,7 @@ SIGMA = Z
 RHO = 2
 
 PARAMS = Lz.Parameters(GAMMA, SIGMA, RHO, RT, K, EVENT_TIMES)
+
 
 def test_lz_outputs_scalar():
     result = Lz.parametrized(Z, PARAMS)
@@ -39,3 +41,21 @@ def test_lz_derivative_1_output_scalar():
     result = Lz.derivative_1(Z, PARAMS)
 
     assert np.isscalar(result)
+
+
+def test_one_dim_newton_rhapson():
+    def f(x):
+        return np.square(x).sum()
+
+    def jac(x):
+        return np.array([2 * x[0], 2 * x[1]])
+
+    def hess(x):
+        return np.array([
+            [2, 0],
+            [0, 2]
+        ])
+
+    result = minimize_newton_raphson(np.array([1, 1]), jac, hess)
+
+    np.testing.assert_almost_equal(result, 0)
