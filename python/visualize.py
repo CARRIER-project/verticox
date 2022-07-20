@@ -156,7 +156,7 @@ def create_beta_df(beta: dict, target):
 
     # targets
     for i in range(target.shape[0]):
-        all_values.append(target[0])
+        all_values.append(target[i])
         all_names.append(i)
         all_targets.append(True)
 
