@@ -18,7 +18,7 @@ Z = 0
 GAMMA = 0
 
 OPTIMIZATION_METHOD = 'Newton-CG'
-OPTIMIZATION_OPTIONS = {'xtol': 0.1, 'eps':0.001}
+OPTIMIZATION_OPTIONS = {'xtol': 0.1, 'eps': 0.0001}
 ARRAY_LOG_LIMIT = 5
 
 
@@ -111,7 +111,7 @@ class Aggregator:
             logger.debug(f'z_diff: {z_diff}')
             logger.debug(f'sigma_diff: {z_sigma_diff}')
 
-            if z_diff<= self.e and z_sigma_diff <= self.e:
+            if z_diff <= self.e and z_sigma_diff <= self.e:
                 break
 
         logger.info(f'Finished training after {self.num_iterations} iterations')
@@ -252,14 +252,16 @@ class Lz:
 
         params = Lz.Parameters(gamma, sigma, rho, Rt, K, event_times)
 
-        logger.debug('Creating L(z) with parameters:')
-        logger.debug(params)
-        L_z = lambda z: Lz.parametrized(z=z, params=params)
+        def L_z(z):
+            return Lz.parametrized(z=z, params=params)
 
         logger.debug(f'Finding minimum z starting at {z_start[:5]}...')
 
-        jac = lambda z: Lz.jacobian(z, params)
-        hessian = lambda z: Lz.hessian(z, params)
+        def jac(z):
+            return Lz.jacobian(z, params)
+
+        def hessian(z):
+            return Lz.hessian(z, params)
 
         minimum = minimize(L_z, z_start, jac=jac, hess=hessian, method=OPTIMIZATION_METHOD,
                            options=OPTIMIZATION_OPTIONS)

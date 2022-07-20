@@ -3,8 +3,10 @@ import re
 
 import dash
 import numpy as np
+import pandas as pd
 from dash import dcc, html
 from dash.dependencies import Input, Output
+import plotly.express as px
 from plotly.subplots import make_subplots
 
 BRACKETS = re.compile(r'[\[\]]')
@@ -36,11 +38,12 @@ sigma_diff = []
 beta = {}
 beta_df = pd.DataFrame(columns=['name', 'value', 'target'])
 mae = []
-target_beta = {}
+target_beta = np.array([])
+coefs_are_plotted = False
 
-fig = make_subplots(rows=5, cols=1, row_heights=[20] * 5,
+fig = make_subplots(rows=5, cols=1,
                     subplot_titles=['Lz', 'z diff', 'sigma diff', 'Mean absolute error',
-                                    'coefficients'])
+                                    'Current coefficients'])
 
 fig.add_trace({'y': lz, 'name': 'Lz', 'mode': 'lines+markers', 'type': 'scatter'}, row=1, col=1)
 fig.add_trace({'y': z_diff, 'name': 'z diff', 'mode': 'lines+markers', 'type': 'scatter'},
@@ -52,8 +55,11 @@ fig.add_trace({'y': sigma_diff,
                'type': 'scatter'}, row=3, col=1)
 
 fig.add_trace({'y': [], 'name': 'Mean Absolute Error', 'mode': 'lines+markers'}, row=4, col=1)
-fig.add_bar(x=[], y=[], name=BETA_BAR, row=5, col=1)
-fig.add_bar(x=[], y=[], name=TARGET_BAR, row=5, col=1)
+
+fig.add_bar(x=beta_df['name'], y=beta_df['value'],  name=BETA_BAR, row=5,
+            col=1)
+fig.add_bar(x=beta_df['name'], y=beta_df['value'],  name=TARGET_BAR, row=5,
+            col=1)
 
 fig.update_layout(height=1000, width=1500)
 
@@ -85,8 +91,6 @@ def update_graph_live(n):
     new_df = beta_df[~(beta_df['target'])]
     target_df = beta_df[beta_df['target']]
 
-    print(beta_df)
-
     fig.update_traces({'x': new_df['name'], 'y': new_df['value']}, selector={'name': BETA_BAR})
     fig.update_traces({'x': target_df['name'], 'y': target_df['value']},
                       selector={'name': TARGET_BAR})
@@ -114,23 +118,29 @@ def filter_lines():
             sigma_diff.append(float(line[SIGMA_DIFF_VALUE_POSITION:]))
         elif line.startswith(TARGET_BETA_START):
             global target_beta
-            print(line[TARGET_BETA_POSITION:])
+            print(f'Target beta: {line[TARGET_BETA_POSITION:]}')
             target_beta = np.array(json.loads(line[TARGET_BETA_POSITION:]))
         else:
             m = BETA_PATTERN.match(line)
             if m:
                 variables = m.groupdict()
-                new_beta = np.array(json.loads(variables['array']))
+                new_beta = json.loads(variables['array'])
+
                 institution_number = int(variables['institution_number'])
 
-                if institution_number not in beta.keys():
-                    beta[institution_number] = []
-                beta[institution_number] = new_beta
+                for idx, b in enumerate(new_beta):
+                    key = f'{institution_number}_{idx}'
 
+                    if key not in beta.keys():
+                        beta[key] = []
+
+                    beta[key].append(b)
+
+                print(f'Beta:\n{json.dumps(beta)}')
                 global beta_df
                 beta_df = create_beta_df(beta, target_beta)
-
-                print(beta_df)
+                #
+                print(f'Beta df:\n{beta_df.to_json()}')
 
                 new_mae = compute_mae()
 
@@ -138,55 +148,56 @@ def filter_lines():
                 mae.append(new_mae)
 
 
+#
 def create_beta_df(beta: dict, target):
-    institute_index = []
     all_values = []
     all_targets = []
+    all_names = []
 
-    # First handle the targets
+    # targets
     for i in range(target.shape[0]):
-        values = target[i]
-        for idx, v in enumerate(values):
-            institute_index.append(f'{i}_{idx}')
-            all_targets.append(True)
-            all_values.append(v)
+        all_values.append(target[0])
+        all_names.append(i)
+        all_targets.append(True)
 
-    # Handle current beta
-    for institute, values in beta.items():
-        for idx, v in enumerate(values):
-            institute_index.append(f'{institute}_{idx}')
-            all_targets.append(False)
-            all_values.append(v)
+    # New values
+    for idx, (k, v) in enumerate(sorted(beta.items())):
+        all_values.append(v[-1])
+        all_targets.append(False)
+        all_names.append(idx)
 
-    return pd.DataFrame({'name': institute_index, 'value': all_values, 'target': all_targets})
-
-
-def compute_mse():
-    sum_of_squares = 0
-    num_items = 0
-    for institution, values in beta.items():
-        last_value = values[-1]
-        sum_of_squares += np.square(target_beta[institution] - last_value).sum()
-        num_items += len(values)
-
-    return sum_of_squares / num_items
-
-
-def compute_mae():
-    sum_of_squares = 0
-    num_items = 0
-    for institution, values in beta.items():
-        last_value = values[-1]
-        sum_of_squares += np.abs(target_beta[institution] - last_value).sum()
-        num_items += len(values)
-
-    return sum_of_squares / num_items
+    return pd.DataFrame({'name': all_names, 'value': all_values, 'target': all_targets})
 
 
 #
-# def compute_mse(beta):
-#     if target_beta is not None:
-#         return np.square(beta - target_beta).mean()
+#
+# def compute_mse():
+#     sum_of_errors = 0
+#     num_items = 0
+#     for institution, values in beta.items():
+#         last_value = values[-1]
+#         sum_of_errors += np.square(target_beta[institution] - last_value).sum()
+#         num_items += len(values)
+#
+#     return sum_of_errors / num_items
+
+
+def compute_mae():
+    num_items = 0
+
+    sum_of_errors = 0
+    for beta_key, target_index in zip(sorted(beta.keys()), range(target_beta.shape[0])):
+        last_value = beta[beta_key][-1]
+        sum_of_errors += np.abs(last_value - target_beta[target_index])
+        num_items += 1
+
+    #
+    # for institution, values in beta.items():
+    #     last_value = values[-1]
+    #     sum_of_errors += np.abs(target_beta[institution] - last_value).sum()
+    #     num_items += len(values)
+
+    return sum_of_errors / num_items
 
 
 if __name__ == '__main__':

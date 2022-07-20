@@ -26,10 +26,10 @@ GRPC_OPTIONS = [('wait_for_ready', True)]
 DATA_LIMIT = 100
 
 
-def get_test_dataset(limit=None, censored=True):
+def get_test_dataset(limit=None, right_censored=True):
     features, events = load_whas500()
 
-    if not censored:
+    if not right_censored:
         features = features[include(events)]
         events = events[include(events)]
 
@@ -80,19 +80,14 @@ def include(event):
 
 def test_integration(ports=(PORT1, PORT2)):
     num_institutions = len(ports)
-    features, events = get_test_dataset(limit=DATA_LIMIT, censored=False)
-
-    # scaler = StandardScaler()
-    # features = scaler.fit_transform(X=features)
+    features, events = get_test_dataset(limit=DATA_LIMIT, right_censored=False)
 
     target_result = get_target_result(features, events)
 
     num_features = features.shape[1]
     feature_split = num_features // num_institutions
 
-    splitted_target = list(chunk_list(feature_split, target_result))
-
-    _logger.info(f'Target result: {json.dumps(splitted_target)}')
+    _logger.info(f'Target result: {json.dumps(target_result.tolist())}')
 
     features_per_institution = list(chunk_features(feature_split, features))
 
