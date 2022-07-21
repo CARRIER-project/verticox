@@ -31,7 +31,6 @@ FINISHED = 'Finished!'
 BETA_BAR = 'betabar'
 TARGET_BAR = 'targetbar'
 
-
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 _log_file = None
@@ -61,9 +60,9 @@ fig.add_trace({'y': sigma_diff,
 
 fig.add_trace({'y': [], 'name': 'Mean Absolute Error', 'mode': 'lines+markers'}, row=4, col=1)
 
-fig.add_bar(x=beta_df['name'], y=beta_df['value'],  name=BETA_BAR, row=5,
+fig.add_bar(x=beta_df['name'], y=beta_df['value'], name=BETA_BAR, row=5,
             col=1)
-fig.add_bar(x=beta_df['name'], y=beta_df['value'],  name=TARGET_BAR, row=5,
+fig.add_bar(x=beta_df['name'], y=beta_df['value'], name=TARGET_BAR, row=5,
             col=1)
 
 fig.update_layout(height=1000, width=1500)
@@ -103,8 +102,9 @@ def update_graph_live(n):
 
     return fig
 
+
 @app.callback(Output('converged', 'children'),
-    Input('interval-component', 'n_intervals'))
+              Input('interval-component', 'n_intervals'))
 def show_status(input_value):
     if done:
         return FINISHED
@@ -153,11 +153,11 @@ def filter_lines():
 
                     beta[key].append(b)
 
-                #print(f'Beta:\n{json.dumps(beta)}')
+                # print(f'Beta:\n{json.dumps(beta)}')
                 global beta_df
                 beta_df = create_beta_df(beta, target_beta)
                 #
-               # print(f'Beta df:\n{beta_df.to_json()}')
+                # print(f'Beta df:\n{beta_df.to_json()}')
 
                 new_mae = compute_mae()
 
