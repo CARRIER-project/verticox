@@ -70,7 +70,7 @@ app.layout = html.Div(
         dcc.Graph(id='live-update-graph'),
         dcc.Interval(
             id='interval-component',
-            interval=5 * 1000,  # in milliseconds
+            interval=10 * 1000,  # in milliseconds
             n_intervals=0
         )
     ])
@@ -136,11 +136,11 @@ def filter_lines():
 
                     beta[key].append(b)
 
-                print(f'Beta:\n{json.dumps(beta)}')
+                #print(f'Beta:\n{json.dumps(beta)}')
                 global beta_df
                 beta_df = create_beta_df(beta, target_beta)
                 #
-                print(f'Beta df:\n{beta_df.to_json()}')
+               # print(f'Beta df:\n{beta_df.to_json()}')
 
                 new_mae = compute_mae()
 

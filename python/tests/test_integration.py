@@ -23,10 +23,12 @@ MAX_WORKERS = 5
 PORT1 = 7777
 PORT2 = 7779
 GRPC_OPTIONS = [('wait_for_ready', True)]
-DATA_LIMIT = 100
+ROW_LIMIT = 20
+FEATURE_LIMIT = 1
+RIGHT_CENSORED = False
 
 
-def get_test_dataset(limit=None, right_censored=True):
+def get_test_dataset(limit=None, feature_limit=None, right_censored=True):
     features, events = load_whas500()
 
     if not right_censored:
@@ -41,8 +43,11 @@ def get_test_dataset(limit=None, right_censored=True):
         features = features.head(limit)
         events = events[:limit]
 
-    features = features.values.astype(float)
 
+
+    features = features.values.astype(float)
+    if feature_limit:
+        features = features[:, :feature_limit]
     return features, events
 
 
@@ -78,9 +83,12 @@ def include(event):
     return event[0]
 
 
-def test_integration(ports=(PORT1, PORT2)):
+def integration_test(ports=(PORT1, PORT2), row_limit=ROW_LIMIT, feature_limit=FEATURE_LIMIT,
+                     right_censored=True):
     num_institutions = len(ports)
-    features, events = get_test_dataset(limit=DATA_LIMIT, right_censored=False)
+    features, events = get_test_dataset(limit=row_limit,
+                                        feature_limit=feature_limit,
+                                        right_censored=False)
 
     target_result = get_target_result(features, events)
 
@@ -170,4 +178,7 @@ class LzFilter(logging.Filter):
 
 
 if __name__ == '__main__':
-    test_integration(ports=[7777])
+    row_limit = ROW_LIMIT
+    feature_limit = FEATURE_LIMIT
+    right_censored = RIGHT_CENSORED
+    integration_test([7777], row_limit, feature_limit, right_censored)

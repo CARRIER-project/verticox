@@ -145,14 +145,17 @@ class DataNode(DataNodeServicer):
     @staticmethod
     def _compute_beta(features: np.array, z: np.array, gamma: np.array, rho,
                       multiplied_covariates, covariates_sum):
-        first_component = 1 / (rho * multiplied_covariates)
+        first_component =(rho * multiplied_covariates)
 
         pz = rho * z
 
-        second_component = \
-            DataNode._elementwise_multiply_sum(pz - gamma, features) + covariates_sum
+        # second_component = \
+        #     DataNode._elementwise_multiply_sum(pz - gamma, features) + covariates_sum
 
-        return second_component * first_component
+        second_component = \
+            DataNode._elementwise_multiply_sum(pz - gamma, features)
+
+        return second_component / first_component
 
     @staticmethod
     def _compute_sigma(beta, features):
