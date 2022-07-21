@@ -232,7 +232,6 @@ class Lz:
         Returns:
 
         """
-
         component1 = Lz.component1(z, params.K, params.Rt, params.Dt)
         component2 = Lz.component2(z, params.K, params.sigma, params.gamma, params.rho)
 
@@ -250,13 +249,8 @@ class Lz:
 
     @staticmethod
     def component2(z, K, sigma, gamma, rho):
-        second = 0
-
-        for sample_idx in range(z.shape[0]):
-            second += np.square(z[sample_idx]) / 2 - \
-                      (sigma[sample_idx] + (gamma[sample_idx] / rho)) * z[sample_idx]
-
-        return K * rho * second
+        element_wise = np.square(z) / 2 - sigma + (gamma / rho) * z
+        return K * rho * element_wise.sum()
 
     @staticmethod
     def find_z(gamma: ArrayLike, sigma: ArrayLike, rho: float,

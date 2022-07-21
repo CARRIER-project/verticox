@@ -23,8 +23,8 @@ MAX_WORKERS = 5
 PORT1 = 7777
 PORT2 = 7779
 GRPC_OPTIONS = [('wait_for_ready', True)]
-ROW_LIMIT = 10
-FEATURE_LIMIT = 2
+ROW_LIMIT = 5
+FEATURE_LIMIT = 1
 RIGHT_CENSORED = False
 
 
@@ -42,8 +42,6 @@ def get_test_dataset(limit=None, feature_limit=None, right_censored=True):
     if limit:
         features = features.head(limit)
         events = events[:limit]
-
-
 
     features = features.values.astype(float)
     if feature_limit:
