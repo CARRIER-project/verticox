@@ -141,25 +141,20 @@ class DataNode(DataNodeServicer):
 
     @staticmethod
     def _multiply_covariates(features: np.array):
-        result = 0
-        for sample_idx in range(features.shape[0]):
-            x = features[sample_idx]
-            result += np.dot(x, x)
-
-        return result
+        return np.square(features).sum()
 
     @staticmethod
     def _compute_beta(features: np.array, z: np.array, gamma: np.array, rho,
                       multiplied_covariates, sum_Dt):
         first_component = (rho * multiplied_covariates)
 
-        second_component = np.zeros((features.shape[1]))
+        second_component = np.zeros((features.shape[1],))
 
         for sample_idx in range(features.shape[0]):
             second_component = second_component + \
                                (rho * z[sample_idx] - gamma[sample_idx]) * features[sample_idx]
 
-            second_component = second_component + sum_Dt
+        second_component = second_component + sum_Dt
 
         return second_component / first_component
 
