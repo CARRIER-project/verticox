@@ -25,8 +25,12 @@ TARGET_BETA_START = 'INFO:__main__:Target result: '
 TARGET_BETA_POSITION = len(TARGET_BETA_START)
 MAX_INSTITUTIONS = 5
 
+RUNNING = 'Running...'
+FINISHED = 'Finished!'
+
 BETA_BAR = 'betabar'
 TARGET_BAR = 'targetbar'
+
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -40,6 +44,7 @@ beta_df = pd.DataFrame(columns=['name', 'value', 'target'])
 mae = []
 target_beta = np.array([])
 coefs_are_plotted = False
+done = False
 
 fig = make_subplots(rows=5, cols=1,
                     subplot_titles=['Lz', 'z diff', 'sigma diff', 'Mean absolute error',
@@ -66,11 +71,12 @@ fig.update_layout(height=1000, width=1500)
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.layout = html.Div(
     html.Div([
-        html.H4('Convergence live feed'),
+        html.H3('Convergence live feed'),
+        html.H4('Running...', id='converged'),
         dcc.Graph(id='live-update-graph'),
         dcc.Interval(
             id='interval-component',
-            interval=10 * 1000,  # in milliseconds
+            interval=5 * 1000,  # in milliseconds
             n_intervals=0
         )
     ])
@@ -97,6 +103,14 @@ def update_graph_live(n):
 
     return fig
 
+@app.callback(Output('converged', 'children'),
+    Input('interval-component', 'n_intervals'))
+def show_status(input_value):
+    if done:
+        return FINISHED
+
+    return RUNNING
+
 
 def get_log_file():
     global _log_file
@@ -116,6 +130,9 @@ def filter_lines():
             z_diff.append(float(line[Z_DIFF_VALUE_POSITION:]))
         elif line.startswith(SIGMA_DIFF_LINE_START):
             sigma_diff.append(float(line[SIGMA_DIFF_VALUE_POSITION:]))
+        elif line.startswith('INFO:__main__:Resulting betas:'):
+            global done
+            done = True
         elif line.startswith(TARGET_BETA_START):
             global target_beta
             print(f'Target beta: {line[TARGET_BETA_POSITION:]}')
