@@ -153,7 +153,7 @@ class DataNode(DataNodeServicer):
         #     DataNode._elementwise_multiply_sum(pz - gamma, features) + covariates_sum
 
         second_component = \
-            DataNode._elementwise_multiply_sum(pz - gamma, features)
+            DataNode._elementwise_multiply_sum(pz - gamma, features) + covariates_sum
 
         return second_component / first_component
 
