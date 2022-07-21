@@ -6,6 +6,7 @@ from typing import Optional
 import grpc
 import numpy as np
 
+from verticox.common import group_samples_on_event_time
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
     NumSamples, Empty, Beta
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
@@ -16,7 +17,7 @@ DEFAULT_PORT = 7777
 
 class DataNode(DataNodeServicer):
     def __init__(self, features: np.array = None, event_times: Optional[np.array] = None,
-                 right_censored: Optional[np.array] = None, name=None):
+                 include: Optional[np.array] = None, name=None):
         """
 
         Args:
@@ -31,7 +32,7 @@ class DataNode(DataNodeServicer):
         self.features = features
         self.num_features = self.features.shape[1]
         self.event_times = event_times
-        self.right_censored = right_censored
+        self.include = include
 
         # Parts that stay constant over iterations
         # Square all covariates and sum them together
@@ -39,8 +40,7 @@ class DataNode(DataNodeServicer):
         # Squaring all covariates with themselves comes down to the same thing since x_nk is
         # supposed to be one-dimensional
         self.features_multiplied = DataNode._multiply_covariates(features)
-        # TODO: maybe it's #features[include(event_times)].sum(axis=0)
-        self.features_sum_Dt = features.sum(axis=0)
+
         self.num_samples = self.features.shape[0]
 
         self.rho = None
@@ -49,7 +49,8 @@ class DataNode(DataNodeServicer):
         self.z = None
         self.gamma = None
         self.aggregated_gamma = None
-
+        self.Dt = None
+        self.sum_Dt = None
         self.prepared = False
 
     @staticmethod
@@ -62,10 +63,23 @@ class DataNode(DataNodeServicer):
         self.z = np.full((self.num_samples,), request.z)
         self.beta = np.full((self.num_features,), request.beta)
         self.rho = request.rho
+        self.Dt = group_samples_on_event_time(self.event_times, self.include)
+        self.sum_Dt = self.compute_sum_Dt(self.Dt, self.features)
 
         self.prepared = True
 
         return Empty()
+
+    @staticmethod
+    def compute_sum_Dt(Dt, features):
+        # TODO: I think this can be simpler but for debugging's sake I will follow the paper
+        result = np.zeros((features.shape[1]))
+
+        for t, indices in Dt.items():
+            for i in indices:
+                result = result + features[i]
+
+        return result
 
     def fit(self, request, context=None):
         if not self.prepared:
@@ -73,7 +87,7 @@ class DataNode(DataNodeServicer):
 
         self._logger.info('Performing local update...')
         sigma, beta = DataNode._local_update(self.features, self.z, self.gamma, self.rho,
-                                             self.features_multiplied, self.features_sum_Dt)
+                                             self.features_multiplied, self.sum_Dt)
 
         self.sigma = sigma
         self.beta = beta
@@ -127,33 +141,25 @@ class DataNode(DataNodeServicer):
 
     @staticmethod
     def _multiply_covariates(features: np.array):
-        return np.square(features).sum()
+        result = 0
+        for sample_idx in range(features.shape[0]):
+            x = features[sample_idx]
+            result += np.dot(x, x)
 
-    @staticmethod
-    def _elementwise_multiply_sum(one_dim: np.array, two_dim: np.array):
-        """
-        Every element in one_dim does elementwise multiplication with its corresponding row in two_dim.
-
-        All rows of the result will be summed together vertically.
-        """
-        multiplied = np.zeros(two_dim.shape)
-        for i in range(one_dim.shape[0]):
-            multiplied[i] = one_dim[i] * two_dim[i]
-
-        return multiplied.sum(axis=0)
+        return result
 
     @staticmethod
     def _compute_beta(features: np.array, z: np.array, gamma: np.array, rho,
-                      multiplied_covariates, covariates_sum):
-        first_component =(rho * multiplied_covariates)
+                      multiplied_covariates, sum_Dt):
+        first_component = (rho * multiplied_covariates)
 
-        pz = rho * z
+        second_component = np.zeros((features.shape[1]))
 
-        # second_component = \
-        #     DataNode._elementwise_multiply_sum(pz - gamma, features) + covariates_sum
+        for sample_idx in range(features.shape[0]):
+            second_component = second_component + \
+                               (rho * z[sample_idx] - gamma[sample_idx]) * features[sample_idx]
 
-        second_component = \
-            DataNode._elementwise_multiply_sum(pz - gamma, features) + covariates_sum
+            second_component = second_component + sum_Dt
 
         return second_component / first_component
 
@@ -167,9 +173,8 @@ class DataNode(DataNodeServicer):
 
     @staticmethod
     def _local_update(covariates: np.array, z: np.array, gamma: np.array, rho,
-                      covariates_multiplied, covariates_sum):
-        beta = DataNode._compute_beta(covariates, z, gamma, rho, covariates_multiplied,
-                                      covariates_sum)
+                      covariates_multiplied, sum_Dt):
+        beta = DataNode._compute_beta(covariates, z, gamma, rho, covariates_multiplied, sum_Dt)
 
         return DataNode._compute_sigma(beta, covariates), beta
 
@@ -177,7 +182,7 @@ class DataNode(DataNodeServicer):
 async def serve(features=None, event_times=None, right_censored=None, port=DEFAULT_PORT):
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
     add_DataNodeServicer_to_server(DataNode(features=features, event_times=event_times,
-                                            right_censored=right_censored), server)
+                                            include=right_censored), server)
     server.add_insecure_port(f'[::]:{port}')
     print(f'Starting datanode on port {port}')
     server.start()

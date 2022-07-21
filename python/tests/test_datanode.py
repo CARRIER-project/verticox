@@ -24,16 +24,6 @@ def test_multiply_covariates_returns_scalar():
     assert np.isscalar(result), f'Result is not scalar but shape {result.shape}'
 
 
-def test_elementwise_multiply_sum():
-    two_dim = np.array([[1, 2], [3, 4], [5, 6]])
-    one_dim = np.array([1, 2, 3])
-
-    result = DataNode._elementwise_multiply_sum(one_dim, two_dim)
-
-    assert result.shape == (two_dim.shape[
-                                1],), f'Result shape is not same as number of columns in two_dim ({two_dim.shape[1]}) but {result.shape}'
-
-    np.testing.assert_array_equal(result, np.array([22, 28]))
 
 
 def test_local_update_sigma_shape_is_num_patients():

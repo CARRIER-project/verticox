@@ -23,8 +23,8 @@ MAX_WORKERS = 5
 PORT1 = 7777
 PORT2 = 7779
 GRPC_OPTIONS = [('wait_for_ready', True)]
-ROW_LIMIT = 20
-FEATURE_LIMIT = 1
+ROW_LIMIT = 10
+FEATURE_LIMIT = 2
 RIGHT_CENSORED = False
 
 
@@ -55,7 +55,7 @@ def run_datanode_grpc_server(features, event_times, right_censored, port, name):
     server = grpc.server(ThreadPoolExecutor(),
                          options=GRPC_OPTIONS)
     add_DataNodeServicer_to_server(DataNode(features=features, event_times=event_times,
-                                            right_censored=right_censored, name=name), server)
+                                            include=right_censored, name=name), server)
     server.add_insecure_port(f'[::]:{port}')
     _logger.info(f'Starting datanode on port {port}')
     server.start()

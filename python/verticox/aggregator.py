@@ -5,6 +5,7 @@ from typing import List, Dict, Union
 import numpy as np
 from numpy.typing import ArrayLike
 
+from verticox.common import group_samples_at_risk, group_samples_on_event_time
 from verticox.grpc.datanode_pb2 import Empty, AggregatedParameters, InitialValues
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 
@@ -19,50 +20,6 @@ GAMMA = 0
 # OPTIMIZATION_METHOD = 'Newton-CG'
 # OPTIMIZATION_OPTIONS = {'maxiter': 10}
 ARRAY_LOG_LIMIT = 5
-
-
-def group_samples_at_risk(event_times: ArrayLike,
-                          right_censored: ArrayLike) -> Dict[Union[float, int], List[int]]:
-    """
-    Groups the indices of samples on whether they are at risk at a certain time.
-
-    A sample is at risk at a certain time when its event time is greater or equal that time.
-
-    TODO: Figure out what to do with right-censored samples
-    Args:
-        event_times:
-        right_censored:
-
-    Returns:
-
-    """
-    unique_times = np.unique(event_times)
-
-    grouped = {}
-
-    for t in unique_times:
-        grouped[t] = np.argwhere(event_times >= t).flatten()
-
-    return grouped
-
-
-def group_samples_on_event_time(event_times, include):
-    """
-
-    Args:
-        event_times:
-        include: Include means the samples is NOT right censored
-
-    Returns:
-
-    """
-    Dt = {}
-
-    for idx, (t, i) in enumerate(zip(event_times, include)):
-        if i:
-            Dt[t] = Dt.get(t, []) + [idx]
-
-    return Dt
 
 
 class Aggregator:
@@ -287,14 +244,19 @@ class Lz:
         result = 0
         for t, group in Rt.items():
             z_at_risk = z[group]
-            result += len(Dt[t]) * np.log((K * np.exp(z_at_risk)).sum())
+            result += len(Dt[t]) * np.log((np.exp(K * z_at_risk)).sum())
 
         return result
 
     @staticmethod
     def component2(z, K, sigma, gamma, rho):
-        element_wise = np.square(z) / 2 - sigma + (gamma / rho) * z
-        return K * rho * element_wise.sum()
+        second = 0
+
+        for sample_idx in range(z.shape[0]):
+            second += np.square(z[sample_idx]) / 2 - \
+                      (sigma[sample_idx] + (gamma[sample_idx] / rho)) * z[sample_idx]
+
+        return K * rho * second
 
     @staticmethod
     def find_z(gamma: ArrayLike, sigma: ArrayLike, rho: float,
