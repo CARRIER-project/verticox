@@ -1,10 +1,10 @@
 import logging
-from collections import namedtuple
-from typing import List, Dict, Union
+from typing import List
 
 import numpy as np
 from numpy.typing import ArrayLike
 
+from verticox.likelihood import find_z
 from verticox.common import group_samples_at_risk, group_samples_on_event_time
 from verticox.grpc.datanode_pb2 import Empty, AggregatedParameters, InitialValues
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
@@ -106,8 +106,8 @@ class Aggregator:
         self.gamma = self.aggregate_gammas(gamma_per_institution)
 
         self.z_old = self.z
-        self.z = Lz.find_z(self.gamma, self.sigma, self.rho, self.Rt, self.z,
-                           self.num_institutions, self.event_times, self.Dt)
+        self.z = find_z(self.gamma, self.sigma, self.rho, self.Rt, self.z,
+                        self.num_institutions, self.event_times, self.Dt)
 
         z_per_institution = self.compute_z_per_institution(gamma_per_institution,
                                                            sigma_per_institution, self.z)
@@ -183,207 +183,3 @@ class Aggregator:
             betas.append(institution.getBeta(Empty()).beta)
 
         return np.array(betas, dtype=np.float128)
-
-
-def minimize_newton_raphson(x_0, func, jacobian, hessian, eps=1e-5) -> ArrayLike:
-    """
-    The terminology is a little confusing here. We are trying to find the minimum,
-    but newton-raphson is a root-finding algorithm. Therefore we are looking for the x where the
-    norm of the first-order derivative (jacobian) is 0. In the context of newton-rhapson this
-    would be function F(x), while our hessian matrix would be F'(x).
-    Args:
-        x_0:
-        jacobian:
-        hessian:
-        eps:
-
-    Returns:
-
-    """
-    x = x_0
-    current_jac = jacobian(x)
-    while np.linalg.norm(current_jac) > eps:
-        # logger.debug(f'Old x: {old_x}')
-        # logger.debug(f'new x: {x}')
-
-        current_hess = hessian(x)
-        current_jac = jacobian(x)
-
-        x = x - np.matmul(np.linalg.inv(current_hess), current_jac)
-
-        logger.debug(f'Jacobian: {current_jac}')
-        logger.debug(f'Norm of jacobian: {np.linalg.norm(current_jac)}')
-        logger.debug(f'Lz_inner: {func(x)}')
-    return x
-
-
-class Lz:
-    # TODO: Vectorizing might make things easier
-    # TODO: Move to its own module
-
-    Parameters = namedtuple('Parameters', ['gamma', 'sigma', 'rho', 'Rt', 'K', 'event_times', 'Dt'])
-
-    @staticmethod
-    def parametrized(z: ArrayLike, params: Parameters):
-        """
-        Equation 12
-        Args:
-            z:
-            params:
-
-        Returns:
-
-        """
-        component1 = Lz.component1(z, params.K, params.Rt, params.Dt)
-        component2 = Lz.component2(z, params.K, params.sigma, params.gamma, params.rho)
-
-        result = component1 + component2
-        return result
-
-    @staticmethod
-    def component1(z, K, Rt, Dt):
-        result = 0
-        for t, group in Rt.items():
-            z_at_risk = z[group]
-            result += len(Dt[t]) * np.log((np.exp(K * z_at_risk)).sum())
-
-        return result
-
-    @staticmethod
-    def component2(z, K, sigma, gamma, rho):
-        element_wise = np.square(z) / 2 - sigma + (gamma / rho) * z
-        return K * rho * element_wise.sum()
-
-    @staticmethod
-    def find_z(gamma: ArrayLike, sigma: ArrayLike, rho: float,
-               Rt: Dict[int, List[int]], z_start: ArrayLike, K: int, event_times: ArrayLike,
-               Dt: Dict[int, List[int]]):
-
-        params = Lz.Parameters(gamma, sigma, rho, Rt, K, event_times, Dt)
-
-        logger.debug(f'Rt: {params.Rt}')
-
-        def L_z(z):
-            return Lz.parametrized(z=z, params=params)
-
-        logger.debug(
-            f'Finding minimum z starting at\n{z_start.tolist()}\nwith parameters\n{params}')
-
-        def jac(z):
-            return Lz.jacobian(z, params)
-
-        def hessian(z):
-            return Lz.hessian(z, params)
-
-        # minimum = minimize(L_z, z_start, jac=jac, hess=hessian, method=OPTIMIZATION_METHOD,
-        #                    options=OPTIMIZATION_OPTIONS)
-        minimum = minimize_newton_raphson(z_start, L_z, jac, hessian)
-
-        logger.debug(f'Found minimum z at {minimum}')
-        logger.debug(f'Lz_outer: {L_z(minimum)}')
-        return minimum
-
-    @staticmethod
-    def derivative_1(z, params: Parameters, sample_idx: int):
-        """
-
-        Args:
-            z:
-            params:
-            sample_idx:
-
-
-        Returns:
-
-        """
-        u_event_time = params.event_times[sample_idx]
-
-        relevant_event_times = [t for t in params.Rt.keys() if t <= u_event_time]
-
-        # First part
-        enumerator = params.K * np.exp(params.K * z[sample_idx])
-
-        first_part = 0
-        for t in relevant_event_times:
-            denominator = Lz.bottom(z, params, t)
-
-            first_part += Lz._get_dt(t, params) * (enumerator / denominator)
-
-        # Second part
-        second_part = params.K * params.rho * (z[sample_idx] - params.sigma[sample_idx] - (
-                params.gamma[sample_idx] / params.rho))
-
-        return first_part + second_part
-
-    @staticmethod
-    def bottom(z, params, t):
-        denominator = 0.
-        for j in params.Rt[t]:
-            denominator += np.exp(params.K * z[j])
-        return denominator
-
-    @staticmethod
-    def jacobian(z: ArrayLike, params: Parameters) -> ArrayLike:
-        result = np.zeros(z.shape)
-
-        for i in range(z.shape[0]):
-            result[i] = Lz.derivative_1(z, params, sample_idx=i)
-
-        return result
-
-    @staticmethod
-    def hessian(z: ArrayLike, params: Parameters):
-        # The hessian is a N x N matrix where N is the number of elements in z
-        N = z.shape[0]
-        mat = np.zeros((N, N))
-
-        for u in range(N):
-            for v in range(N):
-
-                if u == v:
-                    # Formula for diagonals
-                    mat[u, v] = Lz.derivative_2_diagonal(z, params, u)
-                else:
-                    # Formula for off-diagonals
-                    mat[u, v] = Lz.derivative_2_off_diagonal(z, params, u, v)
-
-        return mat
-
-    @staticmethod
-    def derivative_2_diagonal(z: ArrayLike, params: Parameters, u):
-        u_event_time = params.event_times[u]
-
-        relevant_event_times = [t for t in params.Rt.keys() if t <= u_event_time]
-
-        summed = 0
-
-        for t in relevant_event_times:
-            denominator = Lz.bottom(z, params, t)
-
-            first_part = np.square(params.K) * np.exp(params.K * z[u]) / denominator
-
-            second_part = np.square(params.K) * np.square(np.exp(params.K * z[u])) / np.square(
-                denominator)
-
-            summed += Lz._get_dt(t, params) * (first_part - second_part)
-
-        return summed + params.K * params.rho
-
-    @staticmethod
-    def derivative_2_off_diagonal(z: ArrayLike, params: Parameters, u, v):
-        min_event_time = min(params.event_times[u], params.event_times[v])
-        relevant_event_times = [t for t in params.Rt.keys() if t <= min_event_time]
-
-        summed = 0
-
-        for t in relevant_event_times:
-            summed += Lz._get_dt(t, params) * np.square(params.K) * np.exp(params.K * z[u]) * \
-                      np.exp(params.K * z[
-                          v]) / \
-                      np.square(np.exp(params.K * z[params.Rt[t]]).sum())
-
-        return -1 * summed
-
-    @staticmethod
-    def _get_dt(t, params: Parameters):
-        return len(params.Dt[t])

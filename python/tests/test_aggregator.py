@@ -1,7 +1,8 @@
 import numpy as np
 from numpy import array
 from numpy.testing import assert_array_equal
-from verticox.aggregator import Lz, group_samples_at_risk, group_samples_on_event_time
+from verticox.aggregator import group_samples_at_risk, group_samples_on_event_time
+from verticox.likelihood import Lz
 from verticox.aggregator import minimize_newton_raphson
 from unittest import TestCase
 from pytest import mark

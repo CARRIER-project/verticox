@@ -14,7 +14,7 @@ BETA_PATTERN = re.compile(
     r'DEBUG:verticox.datanode :: institution no. (?P<institution_number>\d+):Beta: (?P<array>.*)')
 
 LZ_PATTERN = re.compile(
-    r'DEBUG:verticox.aggregator:Lz_(?P<loop>(inner|outer)): (?P<value>.*)'
+    r'DEBUG:verticox.likelihood:Lz_(?P<loop>(inner|outer)): (?P<value>.*)'
 )
 
 LOG_FILE = 'log.txt'
