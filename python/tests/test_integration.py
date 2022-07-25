@@ -24,7 +24,7 @@ PORT1 = 7777
 PORT2 = 7779
 GRPC_OPTIONS = [('wait_for_ready', True)]
 ROW_LIMIT = 20
-FEATURE_LIMIT = None
+FEATURE_LIMIT = 1
 RIGHT_CENSORED = False
 
 

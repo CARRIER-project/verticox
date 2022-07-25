@@ -58,8 +58,7 @@ class Aggregator:
         self.z_old = self.z
         self.gamma = np.ones(self.num_samples, dtype=np.float128)
         self.sigma = np.zeros(self.num_samples, dtype=np.float128)
-        self.gamma_per_institution = np.ones((self.num_institutions, self.num_samples,),
-                                             dtype=np.float128)
+
         self.num_iterations = 0
 
         self.prepare_datanodes(GAMMA, Z, BETA, RHO)
@@ -95,22 +94,22 @@ class Aggregator:
 
     def fit_one(self):
         # TODO: Parallelize
-        sigma_per_institution = np.zeros((self.num_institutions, self.num_samples,),
-                                         dtype=np.float128)
+        sigma_per_institution = np.zeros((self.num_institutions, self.num_samples,))
+        gamma_per_institution = np.zeros((self.num_institutions, self.num_samples,))
 
         for idx, institution in enumerate(self.institutions):
             updated = institution.fit(Empty())
-            sigma_per_institution[idx] = np.array(updated.sigma, dtype=np.float128)
-            self.gamma_per_institution[idx] = np.array(updated.gamma, dtype=np.float128)
+            sigma_per_institution[idx] = np.array(updated.sigma)
+            gamma_per_institution[idx] = np.array(updated.gamma)
 
         self.sigma = self.aggregate_sigmas(sigma_per_institution)
-        self.gamma = self.aggregate_gammas(self.gamma_per_institution)
+        self.gamma = self.aggregate_gammas(gamma_per_institution)
 
         self.z_old = self.z
         self.z = Lz.find_z(self.gamma, self.sigma, self.rho, self.Rt, self.z,
                            self.num_institutions, self.event_times, self.Dt)
 
-        z_per_institution = self.compute_z_per_institution(self.gamma_per_institution,
+        z_per_institution = self.compute_z_per_institution(gamma_per_institution,
                                                            sigma_per_institution, self.z)
 
         logger.debug(f'z per institution: {z_per_institution}')
@@ -136,17 +135,20 @@ class Aggregator:
         Returns:
 
         """
-        z_per_institution = np.zeros((self.num_institutions, self.num_samples), dtype=np.float128)
-        sigma_gamma_all_institutions = sigma_per_institution + gamma_per_institution / self.rho
-        sigma_gamma_all_institutions = sigma_gamma_all_institutions.sum(axis=0)
+        z_per_institution = np.zeros((self.num_institutions, self.num_samples))
 
-        logger.debug(f'Sigma per institution: \n{sigma_per_institution}')
-        logger.debug(f'Gamma per institution: \n{gamma_per_institution}')
-        # TODO: vectorize
-        for i in range(self.num_institutions):
-            z_per_institution[i] = z + sigma_per_institution[i] + gamma_per_institution[i] / \
-                                   self.rho \
-                                   - 1 / self.num_institutions * sigma_gamma_all_institutions
+        for institution in range(self.num_institutions):
+            for sample_idx in range(self.num_samples):
+                first_part = z[sample_idx] + sigma_per_institution[institution, sample_idx]
+                second_part = gamma_per_institution[institution, sample_idx] / self.rho
+
+                # TODO: This only needs to be computed once per sample
+                third_part = sigma_per_institution[:, sample_idx] + \
+                             gamma_per_institution[:, sample_idx] / self.rho
+                third_part = third_part.sum()
+                third_part = third_part / self.num_institutions
+
+                z_per_institution[institution, sample_idx] = first_part + second_part - third_part
 
         return z_per_institution
 

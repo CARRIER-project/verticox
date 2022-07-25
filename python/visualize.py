@@ -110,13 +110,13 @@ def update_graph_live(n):
     return fig
 
 
-@app.callback(Output('converged', 'children'),
+@app.callback((Output('converged', 'children'), Output('interval-component', 'disabled')),
               Input('interval-component', 'n_intervals'))
 def show_status(input_value):
     if done:
-        return FINISHED
+        return FINISHED, True
 
-    return RUNNING
+    return RUNNING, False
 
 
 def get_log_file():
