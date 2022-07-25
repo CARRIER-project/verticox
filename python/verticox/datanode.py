@@ -116,7 +116,7 @@ class DataNode(DataNodeServicer):
         Returns:
 
         """
-        self.gamma = self.aggregated_gamma + self.rho * self.sigma - self.z
+        self.gamma = self.aggregated_gamma + self.rho * (self.sigma - self.z)
 
         return Empty()
 
