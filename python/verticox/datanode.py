@@ -39,7 +39,7 @@ class DataNode(DataNodeServicer):
         # The formula says for every patient, x needs to be multiplied by itself.
         # Squaring all covariates with themselves comes down to the same thing since x_nk is
         # supposed to be one-dimensional
-        self.features_multiplied = DataNode._multiply_covariates(features)
+        self.features_multiplied = DataNode._multiply_features(features)
 
         self.num_samples = self.features.shape[0]
 
@@ -140,13 +140,13 @@ class DataNode(DataNodeServicer):
         return np.sum(covariates, axis=0)
 
     @staticmethod
-    def _multiply_covariates(features: np.array):
+    def _multiply_features(features: np.array):
         return np.square(features).sum()
 
     @staticmethod
     def _compute_beta(features: np.array, z: np.array, gamma: np.array, rho,
-                      multiplied_covariates, sum_Dt):
-        first_component = (rho * multiplied_covariates)
+                      features_multiplied, sum_Dt):
+        first_component = (rho * features_multiplied)
 
         second_component = np.zeros((features.shape[1],))
 
@@ -167,11 +167,11 @@ class DataNode(DataNodeServicer):
         return sigma
 
     @staticmethod
-    def _local_update(covariates: np.array, z: np.array, gamma: np.array, rho,
-                      covariates_multiplied, sum_Dt):
-        beta = DataNode._compute_beta(covariates, z, gamma, rho, covariates_multiplied, sum_Dt)
+    def _local_update(features: np.array, z: np.array, gamma: np.array, rho,
+                      features_multiplied, sum_Dt):
+        beta = DataNode._compute_beta(features, z, gamma, rho, features_multiplied, sum_Dt)
 
-        return DataNode._compute_sigma(beta, covariates), beta
+        return DataNode._compute_sigma(beta, features), beta
 
 
 async def serve(features=None, event_times=None, right_censored=None, port=DEFAULT_PORT):
