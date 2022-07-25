@@ -11,8 +11,8 @@ from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 
 logger = logging.getLogger(__name__)
 
-RHO = 1
-E = .1
+RHO = 0.5
+E = 1e-5
 BETA = 0
 Z = 0
 GAMMA = 0
@@ -182,4 +182,4 @@ class Aggregator:
         for institution in self.institutions:
             betas.append(institution.getBeta(Empty()).beta)
 
-        return np.array(betas, dtype=np.float128)
+        return np.array(betas)

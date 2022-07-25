@@ -141,12 +141,13 @@ class DataNode(DataNodeServicer):
 
     @staticmethod
     def _multiply_features(features: np.array):
-        return np.square(features).sum()
+        return np.matmul(features.T, features)
+        #return np.square(features).sum()
 
     @staticmethod
     def _compute_beta(features: np.array, z: np.array, gamma: np.array, rho,
                       features_multiplied, sum_Dt):
-        first_component = (rho * features_multiplied)
+        first_component = np.linalg.inv(rho * features_multiplied)
 
         second_component = np.zeros((features.shape[1],))
 
@@ -156,7 +157,7 @@ class DataNode(DataNodeServicer):
 
         second_component = second_component + sum_Dt
 
-        return second_component / first_component
+        return np.matmul(first_component, second_component)
 
     @staticmethod
     def _compute_sigma(beta, features):

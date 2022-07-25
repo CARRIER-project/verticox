@@ -24,8 +24,11 @@ PORT1 = 7777
 PORT2 = 7779
 GRPC_OPTIONS = [('wait_for_ready', True)]
 ROW_LIMIT = 20
-FEATURE_LIMIT = 3
+FEATURE_LIMIT = 2
 RIGHT_CENSORED = False
+NUM_INSTITUTIONS = 1
+FIRST_PORT = 7777
+PORTS = list(range(FIRST_PORT, FIRST_PORT + NUM_INSTITUTIONS))
 
 
 def get_test_dataset(limit=None, feature_limit=None, right_censored=True):
@@ -179,4 +182,4 @@ if __name__ == '__main__':
     row_limit = ROW_LIMIT
     feature_limit = FEATURE_LIMIT
     right_censored = RIGHT_CENSORED
-    integration_test([7777], row_limit, feature_limit, right_censored)
+    integration_test(PORTS, row_limit, feature_limit, right_censored)

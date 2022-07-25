@@ -40,7 +40,8 @@ def group_samples_on_event_time(event_times, event_happened):
     """
     Dt = {}
 
-    for idx, (t, i) in enumerate(zip(event_times, event_happened)):
+    for idx, events in enumerate(zip(event_times, event_happened)):
+        t, i = events
         if i:
             Dt[t] = Dt.get(t, []) + [idx]
 
