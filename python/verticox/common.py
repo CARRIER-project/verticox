@@ -4,17 +4,16 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 
-def group_samples_at_risk(event_times: ArrayLike,
-                          include: ArrayLike) -> Dict[Union[float, int], List[int]]:
+def group_samples_at_risk(event_times: ArrayLike) -> Dict[Union[float, int], List[int]]:
     """
     Groups the indices of samples on whether they are at risk at a certain time.
 
     A sample is at risk at a certain time when its event time is greater or equal that time.
 
-    TODO: Figure out what to do with right-censored samples
+    Ri is the set of indices of samples with death or censor times occurring
+    after ti.
     Args:
         event_times:
-        right_censored:
 
     Returns:
 
@@ -28,19 +27,20 @@ def group_samples_at_risk(event_times: ArrayLike,
 
     return grouped
 
-def group_samples_on_event_time(event_times, include):
+
+def group_samples_on_event_time(event_times, event_happened):
     """
 
     Args:
         event_times:
-        include: Include means the samples is NOT right censored
+        event_happened: Include means the samples is NOT right censored
 
     Returns:
 
     """
     Dt = {}
 
-    for idx, (t, i) in enumerate(zip(event_times, include)):
+    for idx, (t, i) in enumerate(zip(event_times, event_happened)):
         if i:
             Dt[t] = Dt.get(t, []) + [idx]
 

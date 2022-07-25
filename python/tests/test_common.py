@@ -7,7 +7,7 @@ def test_group_samples_at_risk_numbers_descend():
     # Testing if the resulting list descends in numbers
     previous_length = len(event_times) + 1
 
-    Rt = common.group_samples_at_risk(event_times, None)
+    Rt = common.group_samples_at_risk(event_times)
     for t in sorted(Rt.keys()):
         length = len(Rt[t])
 

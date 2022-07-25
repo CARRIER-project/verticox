@@ -31,7 +31,7 @@ class Aggregator:
     """
 
     def __init__(self, institutions: List[DataNodeStub], event_times: ArrayLike,
-                 right_censored: ArrayLike, e: float = E):
+                 event_happened: ArrayLike, e: float = E):
         """
         Initialize regular verticox aggregator. Note that this type of aggregator needs access to the
         event times of the samples.
@@ -39,7 +39,7 @@ class Aggregator:
         Args:
             institutions:
             event_times:
-            right_censored:
+            event_happened:
             e: threshold value
         """
         self.e = e
@@ -49,9 +49,9 @@ class Aggregator:
         self.num_samples = self.get_num_samples()
         self.rho = RHO  # TODO: Make dynamic
         self.event_times = event_times
-        self.right_censored = right_censored
-        self.Rt = group_samples_at_risk(event_times, right_censored)
-        self.Dt = group_samples_on_event_time(event_times, right_censored)
+        self.event_happened = event_happened
+        self.Rt = group_samples_at_risk(event_times)
+        self.Dt = group_samples_on_event_time(event_times, event_happened)
 
         # Initializing parameters
         self.z = np.zeros(self.num_samples, dtype=np.float128)

@@ -28,7 +28,7 @@ def test_lz_outputs_scalar():
 
 def test_group_samples_at_risk():
     event_times = [1, 2, 2, 3]
-    result = group_samples_at_risk(event_times, [])
+    result = group_samples_at_risk(event_times)
 
     target = {1: [0, 1, 2, 3], 2: [1, 2, 3], 3: [3]}
 
