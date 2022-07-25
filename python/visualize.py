@@ -6,16 +6,19 @@ import numpy as np
 import pandas as pd
 from dash import dcc, html
 from dash.dependencies import Input, Output
-import plotly.express as px
+import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 BRACKETS = re.compile(r'[\[\]]')
 BETA_PATTERN = re.compile(
     r'DEBUG:verticox.datanode :: institution no. (?P<institution_number>\d+):Beta: (?P<array>.*)')
 
+LZ_PATTERN = re.compile(
+    r'DEBUG:verticox.aggregator:Lz_(?P<loop>(inner|outer)): (?P<value>.*)'
+)
+
 LOG_FILE = 'log.txt'
-LZ_LINE_START = 'DEBUG:verticox.aggregator:Lz: '
-LZ_VALUE_POSITION = len(LZ_LINE_START)
+LZ_LINE_START = 'DEBUG:verticox.aggregator:Lz_: '
 Z_DIFF_LINE_START = 'DEBUG:verticox.aggregator:z_diff: '
 Z_DIFF_VALUE_POSITION = len(Z_DIFF_LINE_START)
 SIGMA_DIFF_LINE_START = 'DEBUG:verticox.aggregator:sigma_diff: '
@@ -36,6 +39,7 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 _log_file = None
 
 lz = []
+lz_loop = []
 z_diff = []
 sigma_diff = []
 beta = {}
@@ -49,7 +53,10 @@ fig = make_subplots(rows=5, cols=1,
                     subplot_titles=['Lz', 'z diff', 'sigma diff', 'Mean absolute error',
                                     'Current coefficients'])
 
-fig.add_trace({'y': lz, 'name': 'Lz', 'mode': 'lines+markers', 'type': 'scatter'}, row=1, col=1)
+fig.add_trace(go.Scatter(y=lz, name='Lz', mode='lines+markers', marker={'color': lz_loop,
+                                                                        'cmin': 0,
+                                                                        'cmax': 1}),
+              row=1, col=1)
 fig.add_trace({'y': z_diff, 'name': 'z diff', 'mode': 'lines+markers', 'type': 'scatter'},
               row=2, col=1)
 
@@ -88,7 +95,7 @@ app.layout = html.Div(
 def update_graph_live(n):
     filter_lines()
 
-    fig.update_traces({'y': lz}, row=1, col=1)
+    fig.update_traces({'y': lz, 'marker': {'color': lz_loop}}, row=1, col=1)
     fig.update_traces({'y': z_diff}, row=2, col=1)
     fig.update_traces({'y': sigma_diff}, row=3, col=1)
     fig.update_traces({'y': mae}, row=4, col=1)
@@ -124,8 +131,9 @@ def filter_lines():
     lines = get_log_file().readlines()
 
     for line in lines:
-        if line.startswith(LZ_LINE_START):
-            lz.append(float(line[LZ_VALUE_POSITION:]))
+        if m := LZ_PATTERN.match(line):
+            lz.append(float(m['value']))
+            lz_loop.append(int(m['loop'] == 'inner'))
         elif line.startswith(Z_DIFF_LINE_START):
             z_diff.append(float(line[Z_DIFF_VALUE_POSITION:]))
         elif line.startswith(SIGMA_DIFF_LINE_START):

@@ -211,7 +211,7 @@ def minimize_newton_raphson(x_0, func, jacobian, hessian, eps=1e-5) -> ArrayLike
 
         logger.debug(f'Jacobian: {current_jac}')
         logger.debug(f'Norm of jacobian: {np.linalg.norm(current_jac)}')
-        logger.debug(f'Lz: {func(x)}')
+        logger.debug(f'Lz_inner: {func(x)}')
     return x
 
 
@@ -278,7 +278,7 @@ class Lz:
         minimum = minimize_newton_raphson(z_start, L_z, jac, hessian)
 
         logger.debug(f'Found minimum z at {minimum}')
-        logger.debug(f'Lz: {L_z(minimum)}')
+        logger.debug(f'Lz_outer: {L_z(minimum)}')
         return minimum
 
     @staticmethod
