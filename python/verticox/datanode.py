@@ -1,7 +1,7 @@
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
+from typing import Optional, Union
 
 import grpc
 import numpy as np
@@ -32,7 +32,7 @@ class DataNode(DataNodeServicer):
         self.features = features
         self.num_features = self.features.shape[1]
         self.event_times = event_times
-        self.include = include
+        self.event_happened = event_happened
 
         # Parts that stay constant over iterations
         # Square all covariates and sum them together
@@ -63,7 +63,7 @@ class DataNode(DataNodeServicer):
         self.z = np.full((self.num_samples,), request.z)
         self.beta = np.full((self.num_features,), request.beta)
         self.rho = request.rho
-        self.Dt = group_samples_on_event_time(self.event_times, self.include)
+        self.Dt = group_samples_on_event_time(self.event_times, self.event_happened)
         self.sum_Dt = self.compute_sum_Dt(self.Dt, self.features)
 
         self.prepared = True

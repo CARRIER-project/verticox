@@ -30,7 +30,7 @@ def component1(z, K, Rt, Dt):
     result = 0
     for t, group in Rt.items():
         z_at_risk = z[group]
-        result += len(Dt[t]) * np.log((np.exp(K * z_at_risk)).sum())
+        result += _get_dt(t, Dt) * np.log((np.exp(K * z_at_risk)).sum())
 
     return result
 
@@ -91,7 +91,7 @@ def derivative_1(z, params: Parameters, sample_idx: int):
     for t in relevant_event_times:
         denominator = bottom(z, params, t)
 
-        first_part += _get_dt(t, params) * (enumerator / denominator)
+        first_part += _get_dt(t, params.Dt) * (enumerator / denominator)
 
     # Second part
     second_part = params.K * params.rho * (z[sample_idx] - params.sigma[sample_idx] - (
@@ -149,7 +149,7 @@ def derivative_2_diagonal(z: ArrayLike, params: Parameters, u):
         second_part = np.square(params.K) * np.square(np.exp(params.K * z[u])) / np.square(
             denominator)
 
-        summed += _get_dt(t, params) * (first_part - second_part)
+        summed += _get_dt(t, params.Dt) * (first_part - second_part)
 
     return summed + params.K * params.rho
 
@@ -161,7 +161,7 @@ def derivative_2_off_diagonal(z: ArrayLike, params: Parameters, u, v):
     summed = 0
 
     for t in relevant_event_times:
-        summed += _get_dt(t, params) * np.square(params.K) * np.exp(params.K * z[u]) * \
+        summed += _get_dt(t, params.Dt) * np.square(params.K) * np.exp(params.K * z[u]) * \
                   np.exp(params.K * z[
                       v]) / \
                   np.square(np.exp(params.K * z[params.Rt[t]]).sum())
@@ -169,8 +169,11 @@ def derivative_2_off_diagonal(z: ArrayLike, params: Parameters, u, v):
     return -1 * summed
 
 
-def _get_dt(t, params: Parameters):
-    return len(params.Dt[t])
+def _get_dt(t, Dt):
+    # If there is no entry for time t it means that it was from a right-censored sample
+    # I'm making it an empty list so I can call len on it but it's semantically sound
+    d = Dt.get(t, [])
+    return len(d)
 
 
 def minimize_newton_raphson(x_0, func, jacobian, hessian, eps=1e-5) -> ArrayLike:
