@@ -4,7 +4,7 @@ import re
 import dash
 import numpy as np
 import pandas as pd
-from dash import dcc, html
+from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -29,7 +29,6 @@ TARGET_BETA_POSITION = len(TARGET_BETA_START)
 MAX_INSTITUTIONS = 5
 
 RUNNING = 'Running...'
-FINISHED = 'Finished!'
 
 BETA_BAR = 'betabar'
 TARGET_BAR = 'targetbar'
@@ -38,6 +37,7 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 _log_file = None
 
+e = 1e-5
 lz = []
 lz_loop = []
 z_diff = []
@@ -79,6 +79,7 @@ app.layout = html.Div(
     html.Div([
         html.H3('Convergence live feed'),
         html.H4('Running...', id='converged'),
+        html.Progress(id='progress', max=1),
         dcc.Graph(id='live-update-graph'),
         dcc.Interval(
             id='interval-component',
@@ -110,11 +111,42 @@ def update_graph_live(n):
     return fig
 
 
+@app.callback(Output('progress', 'value'), Input('interval-component', 'n_intervals'))
+def update_progress(n_intervals):
+    """
+    Updating progress based on how close z_diff and sigma_diff are to the value e
+    Args:
+        n_intervals:
+
+    Returns:
+
+    """
+    if (z_diff[-1] != 0) and (sigma_diff != 0):
+        minimum = max(np.max(sigma_diff), np.max(z_diff))
+        minimum = np.log(e / minimum)
+
+        sigma_progress = e / sigma_diff[-1]
+        z_progress = e / z_diff[-1]
+
+        progress = np.log(min(sigma_progress, z_progress))
+        range = 1 - minimum
+
+        remapped = (progress - minimum) / range
+
+        return str(remapped)
+    else:
+        return '0'
+
+
 @app.callback((Output('converged', 'children'), Output('interval-component', 'disabled')),
               Input('interval-component', 'n_intervals'))
 def show_status(input_value):
     if done:
-        return FINISHED, True
+        df = beta_df[["name", "value"]]
+        text = 'Finished! Final betas:'
+        datatable = dash_table.DataTable(df.to_dict('records'),
+                                         [{'name': i, 'id': i} for i in df.columns])
+        return [text, datatable], True
 
     return RUNNING, False
 
@@ -169,7 +201,6 @@ def filter_lines():
 
                 new_mae = compute_mae()
 
-                print(f'New mae: {new_mae}')
                 mae.append(new_mae)
 
 

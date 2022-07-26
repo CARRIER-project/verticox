@@ -23,10 +23,10 @@ MAX_WORKERS = 5
 PORT1 = 7777
 PORT2 = 7779
 GRPC_OPTIONS = [('wait_for_ready', True)]
-ROW_LIMIT = 20
-FEATURE_LIMIT = None
+ROW_LIMIT = 10
+FEATURE_LIMIT = 2
 RIGHT_CENSORED = True
-NUM_INSTITUTIONS = 3
+NUM_INSTITUTIONS = 1
 FIRST_PORT = 7777
 PORTS = list(range(FIRST_PORT, FIRST_PORT + NUM_INSTITUTIONS))
 
@@ -150,7 +150,7 @@ def run_aggregator(ports, event_times, right_censored):
 
     aggregator.fit()
 
-    _logger.info(f'Resulting betas: {aggregator.get_betas()}')
+    _logger.info(f'Resulting betas: {json.dumps(aggregator.get_betas().tolist())}')
 
 
 def run_datanode(event_times, features, right_censored, port, name):
