@@ -8,6 +8,7 @@ service DataNode{
   rpc computeGamma(Empty) returns (Empty){}
   rpc getBeta(Empty) returns (Beta){};
   rpc prepare(InitialValues) returns (Empty){};
+  rpc kill(Empty) returns (Empty){};
 }
 
 message InitialValues{

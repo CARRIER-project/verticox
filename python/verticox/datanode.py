@@ -13,11 +13,12 @@ from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServic
 
 logger = logging.getLogger(__name__)
 DEFAULT_PORT = 7777
+GRACE = 30
 
 
 class DataNode(DataNodeServicer):
     def __init__(self, features: np.array = None, event_times: Optional[np.array] = None,
-                 include: Optional[np.array] = None, name=None):
+                 event_happened: Optional[np.array] = None, name=None, server=None):
         """
 
         Args:
@@ -33,6 +34,7 @@ class DataNode(DataNodeServicer):
         self.num_features = self.features.shape[1]
         self.event_times = event_times
         self.event_happened = event_happened
+        self.server = server
 
         # Parts that stay constant over iterations
         # Square all covariates and sum them together
@@ -135,6 +137,11 @@ class DataNode(DataNodeServicer):
         self._logger.debug('Converted beta to list')
         return Beta(beta=result)
 
+    def kill(self, request, context=None):
+        self.server.stop(GRACE)
+
+        return Empty()
+
     @staticmethod
     def _sum_covariates(covariates: np.array):
         return np.sum(covariates, axis=0)
@@ -175,10 +182,10 @@ class DataNode(DataNodeServicer):
         return DataNode._compute_sigma(beta, features), beta
 
 
-async def serve(features=None, event_times=None, right_censored=None, port=DEFAULT_PORT):
+def serve(features=None, event_times=None, event_happened=None, port=DEFAULT_PORT):
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
     add_DataNodeServicer_to_server(DataNode(features=features, event_times=event_times,
-                                            include=right_censored), server)
+                                            event_happened=event_happened), server)
     server.add_insecure_port(f'[::]:{port}')
     print(f'Starting datanode on port {port}')
     server.start()
