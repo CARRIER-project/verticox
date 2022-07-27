@@ -92,6 +92,10 @@ class Aggregator:
 
         logger.info(f'Finished training after {self.num_iterations} iterations')
 
+    def kill_all_datanodes(self):
+        for institution in self.institutions:
+            institution.kill(Empty())
+
     def fit_one(self):
         # TODO: Parallelize
         sigma_per_institution = np.zeros((self.num_institutions, self.num_samples,))

@@ -3,7 +3,7 @@ import logging
 import sys
 import traceback
 from concurrent.futures import ThreadPoolExecutor
-from multiprocessing import Process
+from multiprocessing import Process, Array
 
 import grpc
 import numpy as np
@@ -13,6 +13,7 @@ from sksurv.linear_model import CoxPHSurvivalAnalysis
 
 from verticox.aggregator import Aggregator
 from verticox.datanode import DataNode
+from verticox.grpc.datanode_pb2 import Empty
 from verticox.grpc.datanode_pb2_grpc import add_DataNodeServicer_to_server, DataNodeStub
 
 logging.basicConfig(level=logging.DEBUG, handlers=[logging.FileHandler('log.txt', mode='w'),
@@ -23,20 +24,38 @@ MAX_WORKERS = 5
 PORT1 = 7777
 PORT2 = 7779
 GRPC_OPTIONS = [('wait_for_ready', True)]
-ROW_LIMIT = 10
+ROW_LIMIT = 5
 FEATURE_LIMIT = 2
 RIGHT_CENSORED = True
-NUM_INSTITUTIONS = 1
+NUM_INSTITUTIONS = 2
 FIRST_PORT = 7777
 PORTS = list(range(FIRST_PORT, FIRST_PORT + NUM_INSTITUTIONS))
+DECIMALS = 3
 
 
-def get_test_dataset(limit=None, feature_limit=None, right_censored=True):
+def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True):
     features, events = load_whas500()
 
-    if not right_censored:
-        features = features[include(events)]
-        events = events[include(events)]
+    if not include_right_censored:
+        features = features[uncensored(events)]
+        events = events[uncensored(events)]
+    if include_right_censored and limit:
+        # Make sure there's both right censored and non-right censored data
+        # Since the behavior should be deterministic we will still just take the first samples we
+        # that meets the requirements.
+        non_censored = uncensored(events)
+        non_censored_idx = np.argwhere(non_censored).flatten()
+        right_censored_idx = np.argwhere(~non_censored).flatten()
+
+        limit_per_type = limit // 2
+
+        non_censored_idx = non_censored_idx[:limit_per_type]
+        right_censored_idx = right_censored_idx[:(limit - limit_per_type)]
+
+        all_idx = np.concatenate([non_censored_idx, right_censored_idx])
+
+        events = events[all_idx]
+        features = features.iloc[all_idx]
 
     numerical_columns = features.columns[features.dtypes == float]
 
@@ -56,7 +75,8 @@ def run_datanode_grpc_server(features, event_times, right_censored, port, name):
     server = grpc.server(ThreadPoolExecutor(),
                          options=GRPC_OPTIONS)
     add_DataNodeServicer_to_server(DataNode(features=features, event_times=event_times,
-                                            include=right_censored, name=name), server)
+                                            event_happened=right_censored, name=name,
+                                            server=server), server)
     server.add_insecure_port(f'[::]:{port}')
     _logger.info(f'Starting datanode on port {port}')
     server.start()
@@ -80,7 +100,7 @@ def get_target_result(features, events):
 
 
 @np.vectorize
-def include(event):
+def uncensored(event):
     return event[0]
 
 
@@ -89,7 +109,7 @@ def integration_test(ports=(PORT1, PORT2), row_limit=ROW_LIMIT, feature_limit=FE
     num_institutions = len(ports)
     features, events = get_test_dataset(limit=row_limit,
                                         feature_limit=feature_limit,
-                                        right_censored=False)
+                                        include_right_censored=right_censored)
 
     target_result = get_target_result(features, events)
 
@@ -109,12 +129,16 @@ def integration_test(ports=(PORT1, PORT2), row_limit=ROW_LIMIT, feature_limit=FE
         for p in processes:
             p.start()
 
+        result = Array('d', features.shape[1])
         aggregator_process = Process(target=run_aggregator,
-                                     args=(ports, event_times, right_censored))
+                                     args=(ports, event_times, right_censored, result))
 
         _logger.info('Starting aggregator')
         aggregator_process.start()
         aggregator_process.join()
+
+        np.testing.assert_array_almost_equal(np.array(result), target_result, decimal=DECIMALS)
+
 
     except Exception as e:
         traceback.print_exc()
@@ -143,14 +167,25 @@ def create_processes(event_times, features_per_institution, right_censored, port
         yield p
 
 
-def run_aggregator(ports, event_times, right_censored):
+def run_aggregator(ports, event_times, right_censored, result: Array):
     stubs = [get_datanode_client(port) for port in ports]
 
     aggregator = Aggregator(stubs, event_times, right_censored)
 
     aggregator.fit()
 
+    betas = aggregator.get_betas().tolist()
+
+    # I need to flatten the array
+    betas = [el for sublist in betas for el in sublist]
+
+    for i in range(len(betas)):
+        result[i] = betas[i]
+
     _logger.info(f'Resulting betas: {json.dumps(aggregator.get_betas().tolist())}')
+
+    for stub in stubs:
+        stub.kill(Empty())
 
 
 def run_datanode(event_times, features, right_censored, port, name):
@@ -182,4 +217,4 @@ if __name__ == '__main__':
     row_limit = ROW_LIMIT
     feature_limit = FEATURE_LIMIT
     right_censored = RIGHT_CENSORED
-    integration_test(PORTS, row_limit, feature_limit, right_censored)
+    integration_test(PORTS, ROW_LIMIT, FEATURE_LIMIT, RIGHT_CENSORED)
