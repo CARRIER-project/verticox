@@ -49,6 +49,11 @@ class DataNodeStub(object):
                 request_serializer=verticox_dot_grpc_dot_datanode__pb2.InitialValues.SerializeToString,
                 response_deserializer=verticox_dot_grpc_dot_datanode__pb2.Empty.FromString,
                 )
+        self.kill = channel.unary_unary(
+                '/DataNode/kill',
+                request_serializer=verticox_dot_grpc_dot_datanode__pb2.Empty.SerializeToString,
+                response_deserializer=verticox_dot_grpc_dot_datanode__pb2.Empty.FromString,
+                )
 
 
 class DataNodeServicer(object):
@@ -96,6 +101,12 @@ class DataNodeServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def kill(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_DataNodeServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -132,6 +143,11 @@ def add_DataNodeServicer_to_server(servicer, server):
             'prepare': grpc.unary_unary_rpc_method_handler(
                     servicer.prepare,
                     request_deserializer=verticox_dot_grpc_dot_datanode__pb2.InitialValues.FromString,
+                    response_serializer=verticox_dot_grpc_dot_datanode__pb2.Empty.SerializeToString,
+            ),
+            'kill': grpc.unary_unary_rpc_method_handler(
+                    servicer.kill,
+                    request_deserializer=verticox_dot_grpc_dot_datanode__pb2.Empty.FromString,
                     response_serializer=verticox_dot_grpc_dot_datanode__pb2.Empty.SerializeToString,
             ),
     }
@@ -259,6 +275,23 @@ class DataNode(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/DataNode/prepare',
             verticox_dot_grpc_dot_datanode__pb2.InitialValues.SerializeToString,
+            verticox_dot_grpc_dot_datanode__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def kill(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/DataNode/kill',
+            verticox_dot_grpc_dot_datanode__pb2.Empty.SerializeToString,
             verticox_dot_grpc_dot_datanode__pb2.Empty.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
