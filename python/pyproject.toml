@@ -4,9 +4,6 @@ version = "0.1.0"
 description = "Python implementation of the Verticox algorithm."
 authors = ["Djura Smits <djura.smits@gmail.com>"]
 license = "Apache 2.0"
-packages = [
-    {include = "verticox", from = "./python"}
-]
 
 [tool.poetry.dependencies]
 python = "^3.8,<3.11"
@@ -23,16 +20,15 @@ Flask-RESTful = "^0.3.9"
 grpcio = "^1.46.3"
 jupyterlab = "^3.4.2"
 vantage6-client = "^3.2.0"
+flake8 = "^4.0.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
 grpcio-tools = "^1.46.3"
 
 [tool.pytest.ini_options]
+pythonpath = "."
 addopts = "-v --log-level=DEBUG --log-file=test.log"
-testpaths = [
-    "python/tests"
-]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

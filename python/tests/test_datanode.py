@@ -14,14 +14,14 @@ def test_sum_covariates_returns_one_dim_array():
         NUM_FEATURES,), f'Result is not one dimensional but shape {result.shape}'
 
 
-def test_multiply_covariates_returns_scalar():
+def test_multiply_covariates_returns_matrix():
     num_patients = 2
-    num_features = 2
+    num_features = 3
 
     covariates = np.arange(num_patients * num_features).reshape((num_patients, num_features))
 
     result = DataNode._multiply_features(covariates)
-    assert np.isscalar(result), f'Result is not scalar but shape {result.shape}'
+    assert result.shape == (num_features, num_features)
 
 
 def test_local_update_sigma_shape_is_num_patients():
