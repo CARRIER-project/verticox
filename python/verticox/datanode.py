@@ -149,7 +149,7 @@ class DataNode(DataNodeServicer):
     @staticmethod
     def _multiply_features(features: np.array):
         return np.matmul(features.T, features)
-        #return np.square(features).sum()
+        # return np.square(features).sum()
 
     @staticmethod
     def _compute_beta(features: np.array, z: np.array, gamma: np.array, rho,

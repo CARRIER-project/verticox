@@ -24,8 +24,6 @@ def test_multiply_covariates_returns_scalar():
     assert np.isscalar(result), f'Result is not scalar but shape {result.shape}'
 
 
-
-
 def test_local_update_sigma_shape_is_num_patients():
     rho = 1
     covariates = np.arange(NUM_PATIENTS * NUM_FEATURES).reshape((NUM_PATIENTS, NUM_FEATURES))
