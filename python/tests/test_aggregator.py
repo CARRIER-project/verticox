@@ -19,6 +19,7 @@ GAMMA = Z
 SIGMA = Z
 RHO = 2
 DT = {t: [t] for t in EVENT_TIMES}
+EPSILON = 1e-5
 
 PARAMS = Parameters(GAMMA, SIGMA, RHO, RT, K, EVENT_TIMES, DT)
 
@@ -63,7 +64,7 @@ def test_one_dim_newton_rhapson():
             [0, 2]
         ])
 
-    result = minimize_newton_raphson(np.array([1, 1]), f, jac, hess)
+    result = minimize_newton_raphson(np.array([1, 1]), f, jac, hess, eps=EPSILON)
 
     np.testing.assert_array_almost_equal(result, np.array([0, 0]))
 
@@ -81,7 +82,7 @@ def test_newton_rhapson_finds_root_when_starting_at_root():
             [0, 2]
         ])
 
-    result = minimize_newton_raphson(np.array([1, 1]), f, jac, hess)
+    result = minimize_newton_raphson(np.array([1, 1]), f, jac, hess, EPSILON)
 
     np.testing.assert_array_almost_equal(result, np.array([0, 0]))
 
@@ -113,7 +114,7 @@ def test_newton_rhaphson_problematic_start_z():
     def hessian(x):
         return hessian_parametrized(x, params)
 
-    minimum = minimize_newton_raphson(start_x, f, jacobian, hessian)
+    minimum = minimize_newton_raphson(start_x, f, jacobian, hessian, EPSILON)
 
     assert not np.isnan(minimum).any()
 
@@ -128,6 +129,6 @@ def test_problematic_jacobian_not_nan():
                            Dt={2.970e+02: [0], 1.000e+00: [1], 1.496e+03: [2]})
     x = np.array([-7253.769531488418579, -7253.7695274353027344, -5699.390626907348633])
 
-    jac = jacobian(x, params)
+    jac = jacobian_parametrized(x, params)
 
     assert not np.isnan(jac).any()
