@@ -43,9 +43,6 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     Returns:
 
     """
-    # TODO: Remove after debug
-    data = _limit_data(data)
-
     event_times = data[event_times_column].values
     event_happened = data[event_happened_column]
 
@@ -133,7 +130,6 @@ def RPC_run_datanode(data: pd.DataFrame, feature_columns: List[str], event_time_
     Returns: None
 
     """
-    data = _limit_data(data)
     info(f'Feature columns: {feature_columns}')
     info(f'Event time column: {event_time_column}')
     info(f'Event happened column: {event_happened_column}')
