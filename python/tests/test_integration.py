@@ -4,10 +4,12 @@ import sys
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import Process, Array
+from typing import List
 
 import grpc
 import numpy as np
 import pandas as pd
+from numpy._typing import ArrayLike
 from sksurv.datasets import load_whas500
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 
@@ -31,7 +33,8 @@ NUM_INSTITUTIONS = 2
 FIRST_PORT = 7777
 PORTS = list(range(FIRST_PORT, FIRST_PORT + NUM_INSTITUTIONS))
 DECIMALS = 3
-PRECISION = 1e-4
+CONVERGENCE_PRECISION = 1e-4
+NEWTON_RAPHSON_PRECISION = 1e-4
 
 
 def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True):
@@ -106,7 +109,8 @@ def uncensored(event):
 
 
 def integration_test(ports=(PORT1, PORT2), row_limit=ROW_LIMIT, feature_limit=FEATURE_LIMIT,
-                     right_censored=True):
+                     right_censored=True, convergence_precision=CONVERGENCE_PRECISION,
+                     newton_raphson_precision=NEWTON_RAPHSON_PRECISION):
     num_institutions = len(ports)
     features, events = get_test_dataset(limit=row_limit,
                                         feature_limit=feature_limit,
@@ -132,7 +136,9 @@ def integration_test(ports=(PORT1, PORT2), row_limit=ROW_LIMIT, feature_limit=FE
 
         result = Array('d', features.shape[1])
         aggregator_process = Process(target=run_aggregator,
-                                     args=(ports, event_times, right_censored, result))
+                                     args=(ports, event_times, right_censored,
+                                           convergence_precision, newton_raphson_precision,
+                                           result))
 
         _logger.info('Starting aggregator')
         aggregator_process.start()
@@ -168,10 +174,12 @@ def create_processes(event_times, features_per_institution, right_censored, port
         yield p
 
 
-def run_aggregator(ports, event_times, right_censored, result: Array, precision=PRECISION):
+def run_aggregator(ports: List[int], event_times: List[any], right_censored: ArrayLike,
+                   convergence_precision: float, newton_raphson_precision: float,
+                   result: Array):
     stubs = [get_datanode_client(port) for port in ports]
 
-    aggregator = Aggregator(stubs, event_times, right_censored, precision=precision)
+    aggregator = Aggregator(stubs, event_times, right_censored, convergence_precision=convergence_precision)
 
     aggregator.fit()
 

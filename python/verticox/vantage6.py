@@ -73,7 +73,7 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     for a in addresses:
         stubs.append(_get_stub(a))
 
-    aggregator = Aggregator(stubs, event_times, event_happened, precision=precision)
+    aggregator = Aggregator(stubs, event_times, event_happened, convergence_precision=precision)
     aggregator.fit()
 
     info('Verticox algorithm complete')
