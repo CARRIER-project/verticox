@@ -35,7 +35,7 @@ jobs:
           context: ./python
           # Note: tags has to be all lower-case
           tags: |
-            $HARBOR_HOST/verticox:latest
+            ${{ env.HARBOR_HOST }}/verticox:latest
           # build on feature branches, push only on main branch
           push: True #${{ github.ref == 'refs/heads/main' }}
 
