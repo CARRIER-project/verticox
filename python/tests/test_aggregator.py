@@ -63,7 +63,7 @@ def test_one_dim_newton_rhapson():
             [0, 2]
         ])
 
-    result = minimize_newton_raphson(np.array([1, 1]), f, jac, hess)
+    result = minimize_newton_raphson(np.array([1, 1]), f, jac, hess, 1e-4)
 
     np.testing.assert_array_almost_equal(result, np.array([0, 0]))
 
@@ -81,7 +81,7 @@ def test_newton_rhapson_finds_root_when_starting_at_root():
             [0, 2]
         ])
 
-    result = minimize_newton_raphson(np.array([1, 1]), f, jac, hess)
+    result = minimize_newton_raphson(np.array([1, 1]), f, jac, hess, 1e-4)
 
     np.testing.assert_array_almost_equal(result, np.array([0, 0]))
 
@@ -113,7 +113,7 @@ def test_newton_rhaphson_problematic_start_z():
     def hessian(x):
         return hessian_parametrized(x, params)
 
-    minimum = minimize_newton_raphson(start_x, f, jacobian, hessian)
+    minimum = minimize_newton_raphson(start_x, f, jacobian, hessian, 1e-4)
 
     assert not np.isnan(minimum).any()
 
