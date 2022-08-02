@@ -17,6 +17,7 @@ SLEEP = 5
 DATANODE_TIMEOUT = 60 * 60
 DATA_LIMIT = 10
 DEFAULT_PRECISION = 1e-5
+DEFAULT_RHO = 0.5
 
 
 def _limit_data(data):
@@ -25,7 +26,7 @@ def _limit_data(data):
 
 def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[str],
              event_times_column: str, event_happened_column: str, datanode_ids: List[int] = None,
-             precision: float = DEFAULT_PRECISION,
+             precision: float = DEFAULT_PRECISION, rho=DEFAULT_RHO,
              *_args, **_kwargs):
     """
     TODO: Describe precision parameter
@@ -37,6 +38,7 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
         event_happened_column:
         datanode_ids:
         precision: determines precision in multiple places in the optimization process
+        rho:
         *_args:
         **_kwargs:
 
@@ -73,7 +75,8 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     for a in addresses:
         stubs.append(_get_stub(a))
 
-    aggregator = Aggregator(stubs, event_times, event_happened, convergence_precision=precision)
+    aggregator = Aggregator(stubs, event_times, event_happened, convergence_precision=precision,
+                            rho=rho)
     aggregator.fit()
 
     info('Verticox algorithm complete')

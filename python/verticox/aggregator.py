@@ -33,7 +33,7 @@ class Aggregator:
 
     def __init__(self, institutions: List[DataNodeStub], event_times: ArrayLike,
                  event_happened: ArrayLike, convergence_precision: float = DEFAULT_PRECISION,
-                 newton_raphson_precision: float = DEFAULT_PRECISION):
+                 newton_raphson_precision: float = DEFAULT_PRECISION, rho=RHO):
         """
         Initialize regular verticox aggregator. Note that this type of aggregator needs access to the
         event times of the samples.
@@ -50,7 +50,7 @@ class Aggregator:
         self.num_institutions = len(institutions)
         self.features_per_institution = self.get_features_per_institution()
         self.num_samples = self.get_num_samples()
-        self.rho = RHO  # TODO: Make dynamic
+        self.rho = rho  # TODO: Make dynamic
         self.event_times = event_times
         self.event_happened = event_happened
         self.Rt = group_samples_at_risk(event_times)
@@ -64,7 +64,7 @@ class Aggregator:
 
         self.num_iterations = 0
 
-        self.prepare_datanodes(GAMMA, Z, BETA, RHO)
+        self.prepare_datanodes(GAMMA, Z, BETA, self.rho)
 
     def prepare_datanodes(self, gamma, z, beta, rho):
         initial_values = InitialValues(gamma=gamma, z=z, beta=beta, rho=rho)
