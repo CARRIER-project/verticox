@@ -1,10 +1,12 @@
 import json
 import logging
+import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, Union
+from typing import Optional
 
 import grpc
 import numpy as np
+from vantage6.tools.util import info
 
 from verticox.common import group_samples_on_event_time
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
@@ -14,6 +16,7 @@ from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServic
 logger = logging.getLogger(__name__)
 DEFAULT_PORT = 7777
 GRACE = 30
+TIMEOUT = 3600
 
 
 class DataNode(DataNodeServicer):
@@ -182,14 +185,17 @@ class DataNode(DataNodeServicer):
         return DataNode._compute_sigma(beta, features), beta
 
 
-def serve(features=None, event_times=None, event_happened=None, port=DEFAULT_PORT):
+def serve(features=None, event_times=None, event_happened=None, port=DEFAULT_PORT, timeout=TIMEOUT):
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
     add_DataNodeServicer_to_server(DataNode(features=features, event_times=event_times,
-                                            event_happened=event_happened), server)
+                                            event_happened=event_happened, server=server), server)
     server.add_insecure_port(f'[::]:{port}')
-    print(f'Starting datanode on port {port}')
+    info(f'Starting datanode on port {port} with timeout {timeout}')
+    before = time.time()
     server.start()
-    server.wait_for_termination()
+    server.wait_for_termination(timeout=timeout)
+    total_time = time.time() - before
+    info(f'Stopped datanode after {total_time} seconds')
 
 
 if __name__ == '__main__':

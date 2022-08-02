@@ -31,6 +31,7 @@ NUM_INSTITUTIONS = 2
 FIRST_PORT = 7777
 PORTS = list(range(FIRST_PORT, FIRST_PORT + NUM_INSTITUTIONS))
 DECIMALS = 3
+PRECISION = 1e-4
 
 
 def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True):
@@ -167,10 +168,10 @@ def create_processes(event_times, features_per_institution, right_censored, port
         yield p
 
 
-def run_aggregator(ports, event_times, right_censored, result: Array):
+def run_aggregator(ports, event_times, right_censored, result: Array, precision=PRECISION):
     stubs = [get_datanode_client(port) for port in ports]
 
-    aggregator = Aggregator(stubs, event_times, right_censored)
+    aggregator = Aggregator(stubs, event_times, right_censored, precision=precision)
 
     aggregator.fit()
 

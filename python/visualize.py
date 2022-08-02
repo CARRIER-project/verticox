@@ -121,7 +121,7 @@ def update_progress(n_intervals):
     Returns:
 
     """
-    if (z_diff[-1] != 0) and (sigma_diff != 0):
+    if z_diff and sigma_diff and (z_diff[-1] != 0) and (sigma_diff != 0):
         minimum = max(np.max(sigma_diff), np.max(z_diff))
         minimum = np.log(e / minimum)
 
@@ -142,7 +142,8 @@ def update_progress(n_intervals):
               Input('interval-component', 'n_intervals'))
 def show_status(input_value):
     if done:
-        df = beta_df[["name", "value"]]
+        df = beta_df[beta_df['target'] == False]
+        df = df[["name", "value"]]
         text = 'Finished! Final betas:'
         datatable = dash_table.DataTable(df.to_dict('records'),
                                          [{'name': i, 'id': i} for i in df.columns])

@@ -10,13 +10,42 @@ from verticox import datanode
 from verticox.aggregator import Aggregator
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 
-PORT = 7777
-MAX_RETRIES = 10
+PORT = 8888
+MAX_RETRIES = 20
 GRPC_OPTIONS = [('wait_for_ready', True)]
+SLEEP = 5
+DATANODE_TIMEOUT = 60 * 60
+DATA_LIMIT = 10
+DEFAULT_PRECISION = 1e-5
 
 
-def master(client: ContainerClient, data, event_times_column, event_happened_column,
-           datanode_ids=None, *_args, **_kwargs):
+def _limit_data(data):
+    return data.iloc[:5]
+
+
+def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[str],
+             event_times_column: str, event_happened_column: str, datanode_ids: List[int] = None,
+             precision: float = DEFAULT_PRECISION,
+             *_args, **_kwargs):
+    """
+    TODO: Describe precision parameter
+    Args:
+        client:
+        data:
+        feature_columns:
+        event_times_column:
+        event_happened_column:
+        datanode_ids:
+        precision: determines precision in multiple places in the optimization process
+        *_args:
+        **_kwargs:
+
+    Returns:
+
+    """
+    # TODO: Remove after debug
+    data = _limit_data(data)
+
     event_times = data[event_times_column].values
     event_happened = data[event_happened_column]
 
@@ -26,6 +55,11 @@ def master(client: ContainerClient, data, event_times_column, event_happened_col
 
     datanode_input = {
         "method": "run_datanode",
+        "kwargs": {
+            'feature_columns': feature_columns,
+            'event_time_column': event_times_column,
+            'event_happened_column': event_happened_column
+        }
     }
 
     # create a new task for all organizations in the collaboration.
@@ -42,8 +76,7 @@ def master(client: ContainerClient, data, event_times_column, event_happened_col
     for a in addresses:
         stubs.append(_get_stub(a))
 
-    info('Starting aggregator')
-    aggregator = Aggregator(stubs, event_times, event_happened)
+    aggregator = Aggregator(stubs, event_times, event_happened, precision=precision)
     aggregator.fit()
 
     info('Verticox algorithm complete')
@@ -57,21 +90,27 @@ def master(client: ContainerClient, data, event_times_column, event_happened_col
 
 def _get_stub(a):
     port = a['port']
-    info(f'Connecting to datanode at port {port}')
-    channel = grpc.insecure_channel(f'localhost:{port}', options=GRPC_OPTIONS)
+    ip = a['ip']
+    info(f'Connecting to datanode at {ip}:{port}')
+    channel = grpc.insecure_channel(f'{ip}:{port}', options=GRPC_OPTIONS)
     # ready = grpc.channel_ready_future(channel)
     # ready.result(timeout=300)
-    stub = DataNodeStub(channel)
+    return DataNodeStub(channel)
 
 
-def _get_algorithm_addresses(client: ContainerClient, datanode_ids, task):
-    addresses = client.get_algorithm_addresses(task_id=task['id'])
+def _get_algorithm_addresses(client: ContainerClient, datanode_ids, task_id):
+    addresses = client.get_algorithm_addresses(task_id=task_id)
 
     retries = 0
     # Wait for nodes to get ready
-    while (len(addresses) < len(datanode_ids)) and retries < MAX_RETRIES:
-        time.sleep(1)
+    while (len(addresses) < len(datanode_ids)):
+        if retries >= MAX_RETRIES:
+            raise Exception(f'Could not connect to all {len(datanode_ids)} datanodes. There are '
+                            f'only {len(addresses)} nodes available')
+        time.sleep(SLEEP)
         retries += 1
+
+        addresses = client.get_algorithm_addresses(task_id=task_id)
 
     return addresses
 
@@ -94,6 +133,10 @@ def RPC_run_datanode(data: pd.DataFrame, feature_columns: List[str], event_time_
     Returns: None
 
     """
+    data = _limit_data(data)
+    info(f'Feature columns: {feature_columns}')
+    info(f'Event time column: {event_time_column}')
+    info(f'Event happened column: {event_happened_column}')
     # The current datanode might not have all the features
     feature_columns = [f for f in feature_columns if f in data.columns]
 
@@ -101,6 +144,6 @@ def RPC_run_datanode(data: pd.DataFrame, feature_columns: List[str], event_time_
     event_times = data[event_time_column].values
     event_happened = data[event_happened_column].values
 
-    datanode.serve(features, event_times, event_happened, PORT)
+    datanode.serve(features, event_times, event_happened, PORT, timeout=DATANODE_TIMEOUT)
 
     return None

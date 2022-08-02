@@ -1,1 +1,1 @@
-from vantage6 import *
+from verticox.vantage6 import *
