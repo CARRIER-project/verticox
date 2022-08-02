@@ -37,7 +37,7 @@ jobs:
           tags: |
             ${{ env.HARBOR_HOST }}/carrier/verticox:latest
           # build on feature branches, push only on main branch
-          push: True #${{ github.ref == 'refs/heads/main' }}
+          push: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
