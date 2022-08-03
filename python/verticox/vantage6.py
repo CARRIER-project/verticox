@@ -93,7 +93,6 @@ def _get_stub(a):
     ip = a['ip']
     info(f'Connecting to datanode at {ip}:{port}')
     channel = grpc.insecure_channel(f'{ip}:{port}', options=GRPC_OPTIONS)
-    # ready.result(timeout=300)
     return DataNodeStub(channel)
 
 
