@@ -73,7 +73,7 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     stubs = []
     # Create gRPC stubs
     for a in addresses:
-        stubs.append(_get_stub(a))
+        stubs.append(_get_stub(a['ip'], a['port']))
 
     aggregator = Aggregator(stubs, event_times, event_happened, convergence_precision=precision,
                             rho=rho)
@@ -88,9 +88,17 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     return betas
 
 
-def _get_stub(a):
-    port = a['port']
-    ip = a['ip']
+def _get_stub(ip: str, port: int):
+    """
+    Get gRPC client for the datanode.
+
+    Args:
+        ip:
+        port:
+
+    Returns:
+
+    """
     info(f'Connecting to datanode at {ip}:{port}')
     channel = grpc.insecure_channel(f'{ip}:{port}', options=GRPC_OPTIONS)
     return DataNodeStub(channel)
