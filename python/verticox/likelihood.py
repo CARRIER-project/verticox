@@ -5,6 +5,8 @@ from typing import Dict, List
 import numpy as np
 from numpy.typing import ArrayLike
 
+EPSILON = 1e-4
+
 Parameters = namedtuple('Parameters', ['gamma', 'sigma', 'rho', 'Rt', 'K', 'event_times', 'Dt'])
 _logger = logging.getLogger(__name__)
 
@@ -42,7 +44,7 @@ def component2(z, K, sigma, gamma, rho):
 
 def find_z(gamma: ArrayLike, sigma: ArrayLike, rho: float,
            Rt: Dict[int, List[int]], z_start: ArrayLike, K: int, event_times: ArrayLike,
-           Dt: Dict[int, List[int]]):
+           Dt: Dict[int, List[int]], eps: float = EPSILON):
     params = Parameters(gamma, sigma, rho, Rt, K, event_times, Dt)
 
     _logger.debug(f'Rt: {params.Rt}')
@@ -61,7 +63,7 @@ def find_z(gamma: ArrayLike, sigma: ArrayLike, rho: float,
 
     # minimum = minimize(L_z, z_start, jac=jac, hess=hessian, method=OPTIMIZATION_METHOD,
     #                    options=OPTIMIZATION_OPTIONS)
-    minimum = minimize_newton_raphson(z_start, L_z, jac, hessian)
+    minimum = minimize_newton_raphson(z_start, L_z, jac, hessian, eps=eps)
 
     _logger.debug(f'Found minimum z at {minimum}')
     _logger.debug(f'Lz_outer: {L_z(minimum)}')
@@ -176,7 +178,7 @@ def _get_dt(t, Dt):
     return len(d)
 
 
-def minimize_newton_raphson(x_0, func, jacobian, hessian, eps=1e-5) -> ArrayLike:
+def minimize_newton_raphson(x_0, func, jacobian, hessian, eps) -> ArrayLike:
     """
     The terminology is a little confusing here. We are trying to find the minimum,
     but newton-raphson is a root-finding algorithm. Therefore we are looking for the x where the

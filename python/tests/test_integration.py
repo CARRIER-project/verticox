@@ -4,10 +4,12 @@ import sys
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import Process, Array
+from typing import List
 
 import grpc
 import numpy as np
 import pandas as pd
+from numpy._typing import ArrayLike
 from sksurv.datasets import load_whas500
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 
@@ -21,16 +23,15 @@ logging.basicConfig(level=logging.DEBUG, handlers=[logging.FileHandler('log.txt'
 _logger = logging.getLogger(__name__)
 
 MAX_WORKERS = 5
-PORT1 = 7777
-PORT2 = 7779
-GRPC_OPTIONS = [('wait_for_ready', True)]
-ROW_LIMIT = 5
-FEATURE_LIMIT = 2
-RIGHT_CENSORED = True
-NUM_INSTITUTIONS = 2
+ROW_LIMIT = 5  # Number of samples to use
+FEATURE_LIMIT = 2 # Number of features to use
+RIGHT_CENSORED = True   # Whether to include right censored data
+NUM_INSTITUTIONS = 2 # Number of institutions to split the data over
 FIRST_PORT = 7777
-PORTS = list(range(FIRST_PORT, FIRST_PORT + NUM_INSTITUTIONS))
-DECIMALS = 3
+PORTS = tuple(range(FIRST_PORT, FIRST_PORT + NUM_INSTITUTIONS))
+DECIMAL_PRECISION = 3 # The precision to use when comparing results to target results
+CONVERGENCE_PRECISION = 1e-4 # When difference between outer iterations falls below this, stop
+NEWTON_RAPHSON_PRECISION = 1e-4 # Stopping condition for Newton-Raphson (epsilon)
 
 
 def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True):
@@ -73,7 +74,7 @@ def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True
 
 def run_datanode_grpc_server(features, event_times, right_censored, port, name):
     server = grpc.server(ThreadPoolExecutor(),
-                         options=GRPC_OPTIONS)
+                         )
     add_DataNodeServicer_to_server(DataNode(features=features, event_times=event_times,
                                             event_happened=right_censored, name=name,
                                             server=server), server)
@@ -104,8 +105,9 @@ def uncensored(event):
     return event[0]
 
 
-def integration_test(ports=(PORT1, PORT2), row_limit=ROW_LIMIT, feature_limit=FEATURE_LIMIT,
-                     right_censored=True):
+def integration_test(ports=PORTS, row_limit=ROW_LIMIT, feature_limit=FEATURE_LIMIT,
+                     right_censored=True, convergence_precision=CONVERGENCE_PRECISION,
+                     newton_raphson_precision=NEWTON_RAPHSON_PRECISION):
     num_institutions = len(ports)
     features, events = get_test_dataset(limit=row_limit,
                                         feature_limit=feature_limit,
@@ -131,13 +133,15 @@ def integration_test(ports=(PORT1, PORT2), row_limit=ROW_LIMIT, feature_limit=FE
 
         result = Array('d', features.shape[1])
         aggregator_process = Process(target=run_aggregator,
-                                     args=(ports, event_times, right_censored, result))
+                                     args=(ports, event_times, right_censored,
+                                           convergence_precision, newton_raphson_precision,
+                                           result))
 
         _logger.info('Starting aggregator')
         aggregator_process.start()
         aggregator_process.join()
 
-        np.testing.assert_array_almost_equal(np.array(result), target_result, decimal=DECIMALS)
+        np.testing.assert_array_almost_equal(np.array(result), target_result, decimal=DECIMAL_PRECISION)
 
 
     except Exception as e:
@@ -167,10 +171,13 @@ def create_processes(event_times, features_per_institution, right_censored, port
         yield p
 
 
-def run_aggregator(ports, event_times, right_censored, result: Array):
+def run_aggregator(ports: List[int], event_times: List[any], right_censored: ArrayLike,
+                   convergence_precision: float, newton_raphson_precision: float,
+                   result: Array):
     stubs = [get_datanode_client(port) for port in ports]
 
-    aggregator = Aggregator(stubs, event_times, right_censored)
+    aggregator = Aggregator(stubs, event_times, right_censored,
+                            convergence_precision=convergence_precision)
 
     aggregator.fit()
 
@@ -194,7 +201,7 @@ def run_datanode(event_times, features, right_censored, port, name):
 
 def get_datanode_client(port):
     logging.info(f'Connecting to datanode at port {port}')
-    channel = grpc.insecure_channel(f'localhost:{port}', options=GRPC_OPTIONS)
+    channel = grpc.insecure_channel(f'localhost:{port}')
     # ready = grpc.channel_ready_future(channel)
     # ready.result(timeout=300)
     stub = DataNodeStub(channel)

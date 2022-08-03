@@ -3,6 +3,7 @@ from typing import List
 
 import numpy as np
 from numpy.typing import ArrayLike
+from vantage6.common import info
 
 from verticox.likelihood import find_z
 from verticox.common import group_samples_at_risk, group_samples_on_event_time
@@ -12,7 +13,7 @@ from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 logger = logging.getLogger(__name__)
 
 RHO = 0.5
-E = 1e-5
+DEFAULT_PRECISION = 1e-5
 BETA = 0
 Z = 0
 GAMMA = 0
@@ -31,7 +32,8 @@ class Aggregator:
     """
 
     def __init__(self, institutions: List[DataNodeStub], event_times: ArrayLike,
-                 event_happened: ArrayLike, e: float = E):
+                 event_happened: ArrayLike, convergence_precision: float = DEFAULT_PRECISION,
+                 newton_raphson_precision: float = DEFAULT_PRECISION, rho=RHO):
         """
         Initialize regular verticox aggregator. Note that this type of aggregator needs access to the
         event times of the samples.
@@ -40,14 +42,15 @@ class Aggregator:
             institutions:
             event_times:
             event_happened:
-            e: threshold value
+            convergence_precision: threshold value
         """
-        self.e = e
+        self.convergence_precision = convergence_precision
+        self.newton_raphson_precision = newton_raphson_precision
         self.institutions = tuple(institutions)
         self.num_institutions = len(institutions)
         self.features_per_institution = self.get_features_per_institution()
         self.num_samples = self.get_num_samples()
-        self.rho = RHO  # TODO: Make dynamic
+        self.rho = rho  # TODO: Make dynamic
         self.event_times = event_times
         self.event_happened = event_happened
         self.Rt = group_samples_at_risk(event_times)
@@ -61,7 +64,7 @@ class Aggregator:
 
         self.num_iterations = 0
 
-        self.prepare_datanodes(GAMMA, Z, BETA, RHO)
+        self.prepare_datanodes(GAMMA, Z, BETA, self.rho)
 
     def prepare_datanodes(self, gamma, z, beta, rho):
         initial_values = InitialValues(gamma=gamma, z=z, beta=beta, rho=rho)
@@ -77,6 +80,8 @@ class Aggregator:
             logger.info('\n\n----------------------------------------\n'
                         '          Starting new iteration...'
                         '\n----------------------------------------')
+            info(f'Starting iteration num {self.num_iterations}')
+
             self.fit_one()
 
             # Turning the while in the paper into a do-until type thing. This means I have to
@@ -86,8 +91,10 @@ class Aggregator:
 
             logger.debug(f'z_diff: {z_diff}')
             logger.debug(f'sigma_diff: {z_sigma_diff}')
+            info(f'z_diff: {z_diff}')
+            info(f'sigma_diff: {z_sigma_diff}')
 
-            if z_diff <= self.e and z_sigma_diff <= self.e:
+            if z_diff <= self.convergence_precision and z_sigma_diff <= self.convergence_precision:
                 break
 
         logger.info(f'Finished training after {self.num_iterations} iterations')
@@ -111,7 +118,8 @@ class Aggregator:
 
         self.z_old = self.z
         self.z = find_z(self.gamma, self.sigma, self.rho, self.Rt, self.z,
-                        self.num_institutions, self.event_times, self.Dt)
+                        self.num_institutions, self.event_times, self.Dt,
+                        self.newton_raphson_precision)
 
         z_per_institution = self.compute_z_per_institution(gamma_per_institution,
                                                            sigma_per_institution, self.z)
