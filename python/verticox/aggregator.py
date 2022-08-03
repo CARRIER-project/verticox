@@ -1,9 +1,10 @@
 import logging
-from typing import List
+from typing import List, Any, Dict, Union
 
 import numpy as np
 from numpy.typing import ArrayLike
 from vantage6.common import info
+from viztracer import log_sparse
 
 from verticox.likelihood import find_z
 from verticox.common import group_samples_at_risk, group_samples_on_event_time
@@ -55,7 +56,7 @@ class Aggregator:
         self.event_happened = event_happened
         self.Rt = group_samples_at_risk(event_times)
         self.Dt = group_samples_on_event_time(event_times, event_happened)
-
+        self.deaths_per_t = Aggregator._compute_deaths_per_t(event_times, event_happened)
         # Initializing parameters
         self.z = np.zeros(self.num_samples, dtype=np.float128)
         self.z_old = self.z
@@ -65,6 +66,21 @@ class Aggregator:
         self.num_iterations = 0
 
         self.prepare_datanodes(GAMMA, Z, BETA, self.rho)
+
+    @staticmethod
+    def _compute_deaths_per_t(event_times: ArrayLike, event_happened: ArrayLike) -> \
+            Dict[Union[float, int], int]:
+
+        deaths_per_t = {}
+
+        for t, event in zip(event_times, event_happened):
+            if t not in deaths_per_t.keys():
+                deaths_per_t[t] = 0
+
+            if event:
+                deaths_per_t[t] += 1
+
+        return deaths_per_t
 
     def prepare_datanodes(self, gamma, z, beta, rho):
         initial_values = InitialValues(gamma=gamma, z=z, beta=beta, rho=rho)
@@ -136,6 +152,7 @@ class Aggregator:
         self.num_iterations += 1
         logger.debug(f'Num iterations: {self.num_iterations}')
 
+    @log_sparse
     def compute_z_per_institution(self, gamma_per_institution, sigma_per_institution, z):
         """
         Equation 11
@@ -164,12 +181,15 @@ class Aggregator:
 
         return z_per_institution
 
+    @log_sparse
     def aggregate_sigmas(self, sigmas: ArrayLike):
         return sigmas.sum(axis=0) / self.num_institutions
 
+    @log_sparse
     def aggregate_gammas(self, gammas: ArrayLike):
         return gammas.sum(axis=0) / self.num_institutions
 
+    @log_sparse
     def get_features_per_institution(self):
         num_features = []
         for institution in self.institutions:
@@ -178,6 +198,7 @@ class Aggregator:
 
         return num_features
 
+    @log_sparse
     def get_num_samples(self):
         """
         Get the number of samples in the dataset.
