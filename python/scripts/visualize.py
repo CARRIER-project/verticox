@@ -17,7 +17,7 @@ LZ_PATTERN = re.compile(
     r'DEBUG:verticox.likelihood:Lz_(?P<loop>(inner|outer)): (?P<value>.*)'
 )
 
-LOG_FILE = 'log.txt'
+LOG_FILE = '../log.txt'
 LZ_LINE_START = 'DEBUG:verticox.aggregator:Lz_: '
 Z_DIFF_LINE_START = 'DEBUG:verticox.aggregator:z_diff: '
 Z_DIFF_VALUE_POSITION = len(Z_DIFF_LINE_START)

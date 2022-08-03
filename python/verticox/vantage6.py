@@ -109,15 +109,14 @@ def _get_algorithm_addresses(client: ContainerClient, datanode_ids, task_id):
 
     retries = 0
     # Wait for nodes to get ready
-    while (len(addresses) < len(datanode_ids)):
+    while len(addresses) < len(datanode_ids):
+        addresses = client.get_algorithm_addresses(task_id=task_id)
+
         if retries >= MAX_RETRIES:
             raise Exception(f'Could not connect to all {len(datanode_ids)} datanodes. There are '
                             f'only {len(addresses)} nodes available')
         time.sleep(SLEEP)
         retries += 1
-
-        addresses = client.get_algorithm_addresses(task_id=task_id)
-
     return addresses
 
 
