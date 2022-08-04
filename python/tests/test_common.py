@@ -20,7 +20,6 @@ def test_group_samples_at_risk_numbers_descend():
         previous_length = length
 
 
-
 def test_group_samples_at_risk():
     event_times = [1, 2, 2, 3]
     result = common.group_samples_at_risk(event_times)

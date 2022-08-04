@@ -1,10 +1,11 @@
-from typing import Dict, Union, List
-
 import numpy as np
+from numba import typed, types
 from numpy.typing import ArrayLike
+from viztracer import log_sparse
 
 
-def group_samples_at_risk(event_times: ArrayLike) -> Dict[Union[float, int], List[int]]:
+@log_sparse
+def group_samples_at_risk(event_times: ArrayLike) -> types.DictType(types.float64, types.int64[:]):
     """
     Groups the indices of samples on whether they are at risk at a certain time.
 
@@ -20,7 +21,7 @@ def group_samples_at_risk(event_times: ArrayLike) -> Dict[Union[float, int], Lis
     """
     unique_times = np.unique(event_times)
 
-    grouped = {}
+    grouped = typed.Dict.empty(types.float64, types.int64[:])
 
     for t in unique_times:
         grouped[t] = np.argwhere(event_times >= t).flatten()
@@ -28,7 +29,9 @@ def group_samples_at_risk(event_times: ArrayLike) -> Dict[Union[float, int], Lis
     return grouped
 
 
-def group_samples_on_event_time(event_times, event_happened):
+@log_sparse
+def group_samples_on_event_time(event_times, event_happened) -> \
+        types.DictType(types.float64, types.int64[:]):
     """
 
     Args:
@@ -45,4 +48,8 @@ def group_samples_on_event_time(event_times, event_happened):
         if i:
             Dt[t] = Dt.get(t, []) + [idx]
 
-    return Dt
+    typed_Dt = typed.Dict.empty(types.float64, types.int64[:])
+    for key, value in Dt.items():
+        typed_Dt[key] = np.array(value)
+
+    return typed_Dt

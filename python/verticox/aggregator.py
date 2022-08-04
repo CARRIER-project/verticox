@@ -1,6 +1,6 @@
 import logging
-from typing import List, Any, Dict, Union
-
+from typing import List
+from numba import types, typed
 import numpy as np
 from numpy.typing import ArrayLike
 from vantage6.common import info
@@ -32,8 +32,8 @@ class Aggregator:
             state. This will have to be fixed later.
     """
 
-    def __init__(self, institutions: List[DataNodeStub], event_times: ArrayLike,
-                 event_happened: ArrayLike, convergence_precision: float = DEFAULT_PRECISION,
+    def __init__(self, institutions: List[DataNodeStub], event_times: types.float64[:],
+                 event_happened: types.boolean[:], convergence_precision: float = DEFAULT_PRECISION,
                  newton_raphson_precision: float = DEFAULT_PRECISION, rho=RHO):
         """
         Initialize regular verticox aggregator. Note that this type of aggregator needs access to the
@@ -58,10 +58,10 @@ class Aggregator:
         self.Dt = group_samples_on_event_time(event_times, event_happened)
         self.deaths_per_t = Aggregator._compute_deaths_per_t(event_times, event_happened)
         # Initializing parameters
-        self.z = np.zeros(self.num_samples, dtype=np.float128)
+        self.z = np.zeros(self.num_samples)
         self.z_old = self.z
-        self.gamma = np.ones(self.num_samples, dtype=np.float128)
-        self.sigma = np.zeros(self.num_samples, dtype=np.float128)
+        self.gamma = np.ones(self.num_samples)
+        self.sigma = np.zeros(self.num_samples)
 
         self.num_iterations = 0
 
@@ -69,9 +69,9 @@ class Aggregator:
 
     @staticmethod
     def _compute_deaths_per_t(event_times: ArrayLike, event_happened: ArrayLike) -> \
-            Dict[Union[float, int], int]:
+            types.DictType(types.float64, types.int64):
 
-        deaths_per_t = {}
+        deaths_per_t = typed.Dict.empty(types.float64, types.int64)
 
         for t, event in zip(event_times, event_happened):
             if t not in deaths_per_t.keys():
@@ -135,7 +135,7 @@ class Aggregator:
         self.z_old = self.z
         self.z = find_z(self.gamma, self.sigma, self.rho, self.Rt, self.z,
                         self.num_institutions, self.event_times, self.Dt,
-                        self.newton_raphson_precision)
+                        self.deaths_per_t, self.newton_raphson_precision)
 
         z_per_institution = self.compute_z_per_institution(gamma_per_institution,
                                                            sigma_per_institution, self.z)
