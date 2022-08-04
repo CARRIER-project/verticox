@@ -10,7 +10,7 @@ from typing import List
 import grpc
 import numpy as np
 import pandas as pd
-from numpy._typing import ArrayLike
+from numpy.typing import ArrayLike
 from sksurv.datasets import load_whas500
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 
