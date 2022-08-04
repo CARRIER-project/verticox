@@ -24,7 +24,7 @@ logging.basicConfig(level=logging.INFO, handlers=[logging.FileHandler('log.txt',
 _logger = logging.getLogger(__name__)
 
 MAX_WORKERS = 5
-ROW_LIMIT = 5  # Number of samples to use
+ROW_LIMIT = 30  # Number of samples to use
 FEATURE_LIMIT = 2  # Number of features to use
 RIGHT_CENSORED = True  # Whether to include right censored data
 NUM_INSTITUTIONS = 2  # Number of institutions to split the data over
