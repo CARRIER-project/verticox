@@ -87,6 +87,7 @@ class DataNode(DataNodeServicer):
 
         return result
 
+    @log_sparse
     def fit(self, request, context=None):
         if not self.prepared:
             raise Exception('Datanode has not been prepared!')
