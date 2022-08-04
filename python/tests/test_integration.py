@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import Process, Array
@@ -179,7 +180,10 @@ def run_aggregator(ports: List[int], event_times: List[any], right_censored: Arr
     aggregator = Aggregator(stubs, event_times, right_censored,
                             convergence_precision=convergence_precision)
 
+    start_time = time.time()
     aggregator.fit()
+
+    _logger.info(f'Converged after {time.time() - start_time} seconds')
 
     betas = aggregator.get_betas().tolist()
 
