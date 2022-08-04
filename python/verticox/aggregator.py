@@ -119,6 +119,7 @@ class Aggregator:
         for institution in self.institutions:
             institution.kill(Empty())
 
+    @log_sparse
     def fit_one(self):
         # TODO: Parallelize
         sigma_per_institution = np.zeros((self.num_institutions, self.num_samples,))
@@ -179,15 +180,12 @@ class Aggregator:
 
         return z_per_institution
 
-    @log_sparse
     def aggregate_sigmas(self, sigmas: ArrayLike):
         return sigmas.sum(axis=0) / self.num_institutions
 
-    @log_sparse
     def aggregate_gammas(self, gammas: ArrayLike):
         return gammas.sum(axis=0) / self.num_institutions
 
-    @log_sparse
     def get_features_per_institution(self):
         num_features = []
         for institution in self.institutions:

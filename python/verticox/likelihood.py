@@ -47,7 +47,8 @@ class NumbaParameters:
 
 
 @log_sparse
-def parametrized(z: ArrayLike, params: NumbaParameters):
+@numba.njit
+def parametrized(z: types.float64[:], params: NumbaParameters) -> types.float64:
     """
     Equation 12
     Args:
@@ -79,31 +80,22 @@ def component2(z, K, sigma, gamma, rho):
 
 
 @log_sparse
+@numba.njit()
 def find_z(gamma: ArrayLike, sigma: ArrayLike, rho: float,
            Rt: types.DictType(types.float64, types.int64[:]), z_start: np.ndarray, K: int,
            event_times: types.float64[:], Dt: types.DictType(types.float64, types.int64[:]),
            deaths_per_t: types.DictType(types.float64, types.int64), eps: float = EPSILON):
     params = NumbaParameters(gamma, sigma, rho, Rt, K, event_times, Dt, deaths_per_t)
 
-    _logger.debug(f'Rt: {params.Rt}')
-
-    def L_z(z):
-        return parametrized(z=z, params=params)
-
-    def jac(z):
-        return jacobian_parametrized(z, params)
-
-    def hessian(z):
-        return hessian_parametrized(z, params)
-
-    # minimum = minimize(L_z, z_start, jac=jac, hess=hessian, method=OPTIMIZATION_METHOD,
-    #                    options=OPTIMIZATION_OPTIONS)
-    minimum = minimize_newton_raphson(z_start, L_z, jac, hessian, eps=eps)
+    minimum = minimize_newton_raphson(z_start,
+                                      parametrized, jacobian_parametrized, hessian_parametrized,
+                                      params=params, eps=eps)
 
     return minimum
 
 
-def derivative_1(z, params: Parameters, sample_idx: int):
+@numba.njit()
+def derivative_1(z, params: NumbaParameters, sample_idx: int):
     """
 
     Args:
@@ -117,7 +109,7 @@ def derivative_1(z, params: Parameters, sample_idx: int):
     """
     u_event_time = params.event_times[sample_idx]
 
-    relevant_event_times = [t for t in params.Rt.keys() if t <= u_event_time]
+    relevant_event_times = _filter_relevant_event_times(params, u_event_time)
 
     # First part
     enumerator = params.K * np.exp(params.K * z[sample_idx])
@@ -135,6 +127,18 @@ def derivative_1(z, params: Parameters, sample_idx: int):
     return first_part + second_part
 
 
+@numba.njit()
+def _filter_relevant_event_times(params, u_event_time):
+    result = []
+
+    for t in params.Rt.keys():
+        if t <= u_event_time:
+            result.append(t)
+
+    return result
+
+
+@numba.njit()
 def bottom(z, params, t):
     denominator = 0.
     for j in params.Rt[t]:
@@ -143,7 +147,8 @@ def bottom(z, params, t):
 
 
 @log_sparse
-def jacobian_parametrized(z: ArrayLike, params: Parameters) -> ArrayLike:
+@numba.njit()
+def jacobian_parametrized(z: types.float64[:], params: Parameters) -> types.float64[:]:
     result = np.zeros(z.shape)
 
     for i in range(z.shape[0]):
@@ -161,7 +166,7 @@ def bottom(z, params, t):
 
 
 @numba.njit()
-def derivative_2_diagonal(z: ArrayLike, params: Parameters, u):
+def derivative_2_diagonal(z: types.float64, params: Parameters, u: int) -> types.float64[:, :]:
     u_event_time = params.event_times[u]
 
     relevant_event_times = [t for t in params.Rt.keys() if t <= u_event_time]
@@ -215,7 +220,8 @@ def hessian_parametrized(z: ArrayLike, params: NumbaParameters):
     return mat
 
 
-def minimize_newton_raphson(x_0, func, jacobian, hessian, eps) -> ArrayLike:
+@numba.njit()
+def minimize_newton_raphson(x_0, func, jacobian, hessian, params, eps) -> ArrayLike:
     """
     The terminology is a little confusing here. We are trying to find the minimum,
     but newton-raphson is a root-finding algorithm. Therefore we are looking for the x where the
@@ -231,13 +237,13 @@ def minimize_newton_raphson(x_0, func, jacobian, hessian, eps) -> ArrayLike:
 
     """
     x = x_0
-    current_jac = jacobian(x)
+    current_jac = jacobian(x, params)
     while np.linalg.norm(current_jac) > eps:
         # logger.debug(f'Old x: {old_x}')
         # logger.debug(f'new x: {x}')
 
-        current_hess = hessian(x)
-        current_jac = jacobian(x)
+        current_hess = hessian(x, params)
+        current_jac = jacobian(x, params)
 
-        x = x - np.matmul(np.linalg.inv(current_hess), current_jac)
+        x = x - np.linalg.inv(current_hess) @ current_jac
     return x
