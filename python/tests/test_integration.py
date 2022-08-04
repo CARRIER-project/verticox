@@ -11,7 +11,6 @@ import grpc
 import numpy as np
 import pandas as pd
 from numba import types
-from numpy.typing import ArrayLike
 from sksurv.datasets import load_whas500
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 
@@ -20,7 +19,7 @@ from verticox.datanode import DataNode
 from verticox.grpc.datanode_pb2 import Empty
 from verticox.grpc.datanode_pb2_grpc import add_DataNodeServicer_to_server, DataNodeStub
 
-logging.basicConfig(level=logging.DEBUG, handlers=[logging.FileHandler('log.txt', mode='w'),
+logging.basicConfig(level=logging.INFO, handlers=[logging.FileHandler('log.txt', mode='w'),
                                                    logging.StreamHandler(sys.stdout)])
 _logger = logging.getLogger(__name__)
 

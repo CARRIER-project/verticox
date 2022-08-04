@@ -240,8 +240,4 @@ def minimize_newton_raphson(x_0, func, jacobian, hessian, eps) -> ArrayLike:
         current_jac = jacobian(x)
 
         x = x - np.matmul(np.linalg.inv(current_hess), current_jac)
-
-        _logger.debug(f'Jacobian: {current_jac}')
-        _logger.debug(f'Norm of jacobian: {np.linalg.norm(current_jac)}')
-        _logger.debug(f'Lz_inner: {func(x)}')
     return x
