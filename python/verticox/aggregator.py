@@ -140,8 +140,6 @@ class Aggregator:
         z_per_institution = self.compute_z_per_institution(gamma_per_institution,
                                                            sigma_per_institution, self.z)
 
-        logger.debug(f'z per institution: {z_per_institution}')
-
         # Update parameters at datanodes
         for idx, node in enumerate(self.institutions):
             params = AggregatedParameters(gamma=self.gamma.tolist(), sigma=self.sigma.tolist(),
