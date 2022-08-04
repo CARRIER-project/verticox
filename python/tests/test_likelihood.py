@@ -1,26 +1,57 @@
 from unittest import TestCase
 
 import numpy as np
+from numba import typed, types
 from numpy import array
 from numpy.testing import assert_array_equal
 from pytest import mark
 
-from verticox.likelihood import Parameters, parametrized, derivative_1, minimize_newton_raphson, \
+from verticox.likelihood import NumbaParameters, parametrized, derivative_1, \
+    minimize_newton_raphson, \
     jacobian_parametrized, hessian_parametrized
 
 NUM_PATIENTS = 3
 NUM_FEATURES = 2
 K = 2
-RT = {1: [0], 2: [1]}
-EVENT_TIMES = np.arange(NUM_PATIENTS)
-Z = np.arange(NUM_PATIENTS)
+RT = {1: np.array([0]), 2: np.array([1])}
+EVENT_TIMES = np.arange(NUM_PATIENTS, dtype=float)
+Z = np.arange(NUM_PATIENTS, dtype=float)
 GAMMA = Z
 SIGMA = Z
-RHO = 2
-DT = {t: [t] for t in EVENT_TIMES}
+RHO = 2.
+DT = {t: np.array([t], dtype=float) for t in EVENT_TIMES}
 EPSILON = 1e-5
+DEATHS_PER_T = {t: len(l) for t, l in DT.items()}
 
-PARAMS = Parameters(GAMMA, SIGMA, RHO, RT, K, EVENT_TIMES, DT)
+
+def get_typed_Rt():
+    typed_Rt = typed.Dict.empty(types.float64, types.int64[:])
+
+    for key, value in RT.items():
+        typed_Rt[key] = value
+
+    return typed_Rt
+
+
+def get_typed_Dt():
+    typed_Dt = typed.Dict.empty(types.float64, types.int64[:])
+
+    for key, value in DT.items():
+        typed_Dt[key] = value
+    return typed_Dt
+
+
+def get_typed_deaths_per_t():
+    typed_deaths_per_t = typed.Dict.empty(types.float64, types.int64)
+
+    for key, value in DEATHS_PER_T.items():
+        typed_deaths_per_t[key] = value
+
+    return typed_deaths_per_t
+
+
+PARAMS = NumbaParameters(GAMMA, SIGMA, RHO, get_typed_Rt(), K, EVENT_TIMES, get_typed_Dt(),
+                         get_typed_deaths_per_t())
 
 
 def test_lz_outputs_scalar():

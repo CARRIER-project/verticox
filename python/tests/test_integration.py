@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import Process, Array
@@ -9,6 +10,7 @@ from typing import List
 import grpc
 import numpy as np
 import pandas as pd
+from numba import types
 from numpy.typing import ArrayLike
 from sksurv.datasets import load_whas500
 from sksurv.linear_model import CoxPHSurvivalAnalysis
@@ -24,14 +26,14 @@ _logger = logging.getLogger(__name__)
 
 MAX_WORKERS = 5
 ROW_LIMIT = 5  # Number of samples to use
-FEATURE_LIMIT = 2 # Number of features to use
-RIGHT_CENSORED = True   # Whether to include right censored data
-NUM_INSTITUTIONS = 2 # Number of institutions to split the data over
+FEATURE_LIMIT = 2  # Number of features to use
+RIGHT_CENSORED = True  # Whether to include right censored data
+NUM_INSTITUTIONS = 2  # Number of institutions to split the data over
 FIRST_PORT = 7777
 PORTS = tuple(range(FIRST_PORT, FIRST_PORT + NUM_INSTITUTIONS))
-DECIMAL_PRECISION = 3 # The precision to use when comparing results to target results
-CONVERGENCE_PRECISION = 1e-4 # When difference between outer iterations falls below this, stop
-NEWTON_RAPHSON_PRECISION = 1e-4 # Stopping condition for Newton-Raphson (epsilon)
+DECIMAL_PRECISION = 3  # The precision to use when comparing results to target results
+CONVERGENCE_PRECISION = 1e-4  # When difference between outer iterations falls below this, stop
+NEWTON_RAPHSON_PRECISION = 1e-4  # Stopping condition for Newton-Raphson (epsilon)
 
 
 def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True):
@@ -141,8 +143,8 @@ def integration_test(ports=PORTS, row_limit=ROW_LIMIT, feature_limit=FEATURE_LIM
         aggregator_process.start()
         aggregator_process.join()
 
-        np.testing.assert_array_almost_equal(np.array(result), target_result, decimal=DECIMAL_PRECISION)
-
+        np.testing.assert_array_almost_equal(np.array(result), target_result,
+                                             decimal=DECIMAL_PRECISION)
 
     except Exception as e:
         traceback.print_exc()
@@ -171,15 +173,19 @@ def create_processes(event_times, features_per_institution, right_censored, port
         yield p
 
 
-def run_aggregator(ports: List[int], event_times: List[any], right_censored: ArrayLike,
+def run_aggregator(ports: List[int], event_times: types.float64, right_censored: types.boolean[:],
                    convergence_precision: float, newton_raphson_precision: float,
                    result: Array):
     stubs = [get_datanode_client(port) for port in ports]
 
     aggregator = Aggregator(stubs, event_times, right_censored,
-                            convergence_precision=convergence_precision)
+                            convergence_precision=convergence_precision,
+                            newton_raphson_precision=newton_raphson_precision)
 
+    start_time = time.time()
     aggregator.fit()
+
+    _logger.info(f'Converged after {time.time() - start_time} seconds')
 
     betas = aggregator.get_betas().tolist()
 
