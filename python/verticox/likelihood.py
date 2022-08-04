@@ -1,6 +1,5 @@
 import logging
-from collections import namedtuple
-from typing import Dict, List, Any
+from typing import Dict
 
 import numba
 import numpy as np
@@ -10,8 +9,6 @@ from viztracer import log_sparse
 
 EPSILON = 1e-4
 
-Parameters = namedtuple('Parameters', ['gamma', 'sigma', 'rho', 'Rt', 'K', 'event_times', 'Dt',
-                                       'deaths_per_t'])
 _logger = logging.getLogger(__name__)
 
 spec = [
@@ -25,7 +22,7 @@ spec = [
 
 
 @numba.experimental.jitclass(spec)
-class NumbaParameters:
+class Parameters:
     gamma: np.ndarray
     sigma: np.ndarray
     rho: float
@@ -46,9 +43,8 @@ class NumbaParameters:
         self.deaths_per_t = deaths_per_t
 
 
-@log_sparse
 @numba.njit
-def parametrized(z: types.float64[:], params: NumbaParameters) -> types.float64:
+def parametrized(z: types.float64[:], params: Parameters) -> types.float64:
     """
     Equation 12
     Args:
@@ -65,7 +61,8 @@ def parametrized(z: types.float64[:], params: NumbaParameters) -> types.float64:
     return result
 
 
-def component1(z, params: NumbaParameters):
+@numba.njit
+def component1(z, params: Parameters):
     result = 0
     for t, group in params.Rt.items():
         z_at_risk = z[group]
@@ -74,6 +71,7 @@ def component1(z, params: NumbaParameters):
     return result
 
 
+@numba.njit
 def component2(z, K, sigma, gamma, rho):
     element_wise = np.square(z) / 2 - sigma + (gamma / rho) * z
     return K * rho * element_wise.sum()
@@ -82,20 +80,20 @@ def component2(z, K, sigma, gamma, rho):
 @log_sparse
 @numba.njit()
 def find_z(gamma: ArrayLike, sigma: ArrayLike, rho: float,
-           Rt: types.DictType(types.float64, types.int64[:]), z_start: np.ndarray, K: int,
+           Rt: types.DictType(types.float64, types.int64[:]), z_start: types.float64[:], K: int,
            event_times: types.float64[:], Dt: types.DictType(types.float64, types.int64[:]),
            deaths_per_t: types.DictType(types.float64, types.int64), eps: float = EPSILON):
-    params = NumbaParameters(gamma, sigma, rho, Rt, K, event_times, Dt, deaths_per_t)
+    params = Parameters(gamma, sigma, rho, Rt, K, event_times, Dt, deaths_per_t)
 
     minimum = minimize_newton_raphson(z_start,
-                                      parametrized, jacobian_parametrized, hessian_parametrized,
+                                      jacobian_parametrized, hessian_parametrized,
                                       params=params, eps=eps)
 
     return minimum
 
 
 @numba.njit()
-def derivative_1(z, params: NumbaParameters, sample_idx: int):
+def derivative_1(z, params: Parameters, sample_idx: int):
     """
 
     Args:
@@ -146,7 +144,6 @@ def bottom(z, params, t):
     return denominator
 
 
-@log_sparse
 @numba.njit()
 def jacobian_parametrized(z: types.float64[:], params: Parameters) -> types.float64[:]:
     result = np.zeros(z.shape)
@@ -202,7 +199,7 @@ def derivative_2_off_diagonal(z: ArrayLike, params, u, v):
 
 
 @numba.njit()
-def hessian_parametrized(z: ArrayLike, params: NumbaParameters):
+def hessian_parametrized(z: types.float64[:], params: Parameters):
     # The hessian is a N x N matrix where N is the number of elements in z
     N = z.shape[0]
     mat = np.zeros((N, N))
@@ -221,7 +218,9 @@ def hessian_parametrized(z: ArrayLike, params: NumbaParameters):
 
 
 @numba.njit()
-def minimize_newton_raphson(x_0, func, jacobian, hessian, params, eps) -> ArrayLike:
+def minimize_newton_raphson(x_0: types.float64[:], jacobian, hessian, params: Parameters,
+                            eps: float) -> \
+        types.float64[:]:
     """
     The terminology is a little confusing here. We are trying to find the minimum,
     but newton-raphson is a root-finding algorithm. Therefore we are looking for the x where the
@@ -231,6 +230,7 @@ def minimize_newton_raphson(x_0, func, jacobian, hessian, params, eps) -> ArrayL
         x_0:
         jacobian:
         hessian:
+        params:
         eps:
 
     Returns:

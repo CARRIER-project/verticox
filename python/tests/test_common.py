@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+import numba
 import numpy as np
 from numpy.testing import assert_array_equal
 
@@ -38,6 +39,9 @@ def test_group_deaths():
     event_times = [2, 2, 3, 4]
 
     result = common.group_samples_on_event_time(event_times, include)
+
+    result = {key: list(value) for key, value in result.items()}
+
     target = {2: [0, 1], 4: [3]}
 
     TestCase().assertDictEqual(result, target)
