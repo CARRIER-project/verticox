@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import List
 from numba import types, typed
 import numpy as np
@@ -90,7 +91,8 @@ class Aggregator:
             i.prepare(initial_values)
 
     def fit(self):
-
+        start_time = time.time()
+        current_time = start_time
         while True:
             logger.info('\n\n----------------------------------------\n'
                         '          Starting new iteration...'
@@ -112,13 +114,45 @@ class Aggregator:
             if z_diff <= self.convergence_precision and z_sigma_diff <= self.convergence_precision:
                 break
 
+            previous_time = current_time
+            current_time = time.time()
+            diff = current_time - previous_time
+            progress = Aggregator._compute_progress(z_diff, z_sigma_diff,
+                                                    self.convergence_precision)
+
+            info(f'Completed current iteration after {diff} seconds')
+            info(f'Iterations are taking on average {diff / self.num_iterations} seconds per run')
+            info(f'Current progress: {100*progress}%')
+
         logger.info(f'Finished training after {self.num_iterations} iterations')
+
+    @staticmethod
+    def _compute_progress(z_diff: float, sigma_diff: float, precision: float):
+        """
+        When both z_diff and sigma_diff reach the number of precision, the computation is done.
+        Before that is the case, z_diff, and sigma_diff will be orders of magnitude larger than
+        precision.
+
+        To scale the progress more linearly, we are taking the 10 log of the ratio between the
+        final precision and the current biggest value of z_dif and sigma_diff.
+        Args:
+            z_diff:
+            sigma_diff:
+            precision:
+
+        Returns:
+
+        """
+        max_diff = max(z_diff, sigma_diff)
+
+        progress = precision / max_diff
+
+        return np.log10(progress)
 
     def kill_all_datanodes(self):
         for institution in self.institutions:
             institution.kill(Empty())
 
-    
     def fit_one(self):
         # TODO: Parallelize
         sigma_per_institution = np.zeros((self.num_institutions, self.num_samples,))
@@ -150,7 +184,6 @@ class Aggregator:
         self.num_iterations += 1
         logger.debug(f'Num iterations: {self.num_iterations}')
 
-    
     def compute_z_per_institution(self, gamma_per_institution, sigma_per_institution, z):
         """
         Equation 11
@@ -193,7 +226,6 @@ class Aggregator:
 
         return num_features
 
-    
     def get_num_samples(self):
         """
         Get the number of samples in the dataset.
