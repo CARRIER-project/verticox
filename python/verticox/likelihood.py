@@ -5,7 +5,6 @@ import numba
 import numpy as np
 from numba import types
 from numpy.typing import ArrayLike
-from viztracer import log_sparse
 
 EPSILON = 1e-4
 
@@ -77,7 +76,7 @@ def component2(z, K, sigma, gamma, rho):
     return K * rho * element_wise.sum()
 
 
-@log_sparse
+
 @numba.njit()
 def find_z(gamma: ArrayLike, sigma: ArrayLike, rho: float,
            Rt: types.DictType(types.float64, types.int64[:]), z_start: types.float64[:], K: int,
