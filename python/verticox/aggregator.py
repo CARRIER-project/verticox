@@ -130,7 +130,8 @@ class Aggregator:
             progress.update(progress_value)
 
             info(f'Completed current iteration after {diff} seconds')
-            info(f'Iterations are taking on average {total_runtime / self.num_iterations} seconds per run')
+            info(f'Iterations are taking on average {total_runtime / self.num_iterations} seconds '
+                 f'per run')
             info(f'Current progress: {100 * progress.get_value():.2f}%')
 
         logger.info(f'Finished training after {self.num_iterations} iterations')
