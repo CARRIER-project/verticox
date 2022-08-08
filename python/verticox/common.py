@@ -1,10 +1,8 @@
 import numpy as np
 from numba import typed, types
 from numpy.typing import ArrayLike
-from viztracer import log_sparse
 
 
-@log_sparse
 def group_samples_at_risk(event_times: ArrayLike) -> types.DictType(types.float64, types.int64[:]):
     """
     Groups the indices of samples on whether they are at risk at a certain time.
@@ -29,7 +27,6 @@ def group_samples_at_risk(event_times: ArrayLike) -> types.DictType(types.float6
     return grouped
 
 
-@log_sparse
 def group_samples_on_event_time(event_times, event_happened) -> \
         types.DictType(types.float64, types.int64[:]):
     """

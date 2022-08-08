@@ -4,7 +4,6 @@ from numba import types, typed
 import numpy as np
 from numpy.typing import ArrayLike
 from vantage6.common import info
-from viztracer import log_sparse
 
 from verticox.likelihood import find_z
 from verticox.common import group_samples_at_risk, group_samples_on_event_time
@@ -119,7 +118,7 @@ class Aggregator:
         for institution in self.institutions:
             institution.kill(Empty())
 
-    @log_sparse
+    
     def fit_one(self):
         # TODO: Parallelize
         sigma_per_institution = np.zeros((self.num_institutions, self.num_samples,))
@@ -151,7 +150,7 @@ class Aggregator:
         self.num_iterations += 1
         logger.debug(f'Num iterations: {self.num_iterations}')
 
-    @log_sparse
+    
     def compute_z_per_institution(self, gamma_per_institution, sigma_per_institution, z):
         """
         Equation 11
@@ -194,7 +193,7 @@ class Aggregator:
 
         return num_features
 
-    @log_sparse
+    
     def get_num_samples(self):
         """
         Get the number of samples in the dataset.
