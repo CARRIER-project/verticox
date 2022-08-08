@@ -93,6 +93,14 @@ class Aggregator:
     def fit(self):
         start_time = time.time()
         current_time = start_time
+
+        # Progress regarding the convergence criteria (sigma diff and z diff <= precision)
+        # Since sigma and z diff will slowly shrink to match the order of magnitude of precision
+        # I will track the log of the proportion of the precision variable compared to the
+        # maximum of z_diff en sigma_diff and take the log. In the end result we should have
+        # log(1) which is 0.
+        progress = Progress(max_value=0)
+
         while True:
             logger.info('\n\n----------------------------------------\n'
                         '          Starting new iteration...'
@@ -117,37 +125,15 @@ class Aggregator:
             previous_time = current_time
             current_time = time.time()
             diff = current_time - previous_time
-            progress = Aggregator._compute_progress(z_diff, z_sigma_diff,
-                                                    self.convergence_precision)
+            total_runtime = current_time - start_time
+            progress_value = np.log10(self.convergence_precision / max(z_diff, z_sigma_diff))
+            progress.update(progress_value)
 
             info(f'Completed current iteration after {diff} seconds')
-            info(f'Iterations are taking on average {diff / self.num_iterations} seconds per run')
-            info(f'Current progress: {100*progress}%')
+            info(f'Iterations are taking on average {total_runtime / self.num_iterations} seconds per run')
+            info(f'Current progress: {100 * progress.get_value():.2f}%')
 
         logger.info(f'Finished training after {self.num_iterations} iterations')
-
-    @staticmethod
-    def _compute_progress(z_diff: float, sigma_diff: float, precision: float):
-        """
-        When both z_diff and sigma_diff reach the number of precision, the computation is done.
-        Before that is the case, z_diff, and sigma_diff will be orders of magnitude larger than
-        precision.
-
-        To scale the progress more linearly, we are taking the 10 log of the ratio between the
-        final precision and the current biggest value of z_dif and sigma_diff.
-        Args:
-            z_diff:
-            sigma_diff:
-            precision:
-
-        Returns:
-
-        """
-        max_diff = max(z_diff, sigma_diff)
-
-        progress = precision / max_diff
-
-        return np.log10(progress)
 
     def kill_all_datanodes(self):
         for institution in self.institutions:
@@ -243,3 +229,23 @@ class Aggregator:
             betas.append(institution.getBeta(Empty()).beta)
 
         return np.array(betas)
+
+
+class Progress:
+    """
+    Helper class to keep track of progress
+    """
+
+    def __init__(self, max_value: object):
+        self.initial_value = None
+        self.current_value = None
+        self.max_value = max_value
+
+    def update(self, value):
+        if self.initial_value is None:
+            self.initial_value = value
+
+        self.current_value = value
+
+    def get_value(self):
+        return (self.current_value - self.initial_value) / (self.max_value - self.initial_value)
