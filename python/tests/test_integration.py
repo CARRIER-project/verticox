@@ -183,8 +183,8 @@ def run_aggregator(ports: List[int], event_times: types.float64, right_censored:
 
     start_time = time.time()
     aggregator.fit()
-
-    _logger.info(f'Converged after {time.time() - start_time} seconds')
+    end_time = time.time()
+    _logger.info(f'Converged after {end_time - start_time} seconds')
 
     betas = aggregator.get_betas().tolist()
 
