@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import numpy as np
 from verticox.datanode import DataNode
 from verticox.grpc.datanode_pb2 import Empty
@@ -47,3 +49,22 @@ def test_get_num_features_returns_num_features():
     datanode = DataNode(features=data)
 
     assert datanode.getNumFeatures(Empty()).numFeatures == NUM_FEATURES
+
+
+def test_get_feature_names_gives_names_if_they_exist():
+    data = np.arange(4).reshape((2, 2))
+    datanode = DataNode(features=data, feature_names=['piet', 'henk'])
+
+    result = datanode.getFeatureNames(request=Empty(), context=None)
+
+    assert result.names == ['piet', 'henk']
+
+
+def test_get_feature_names_aborts_if_not_exist():
+    data = np.arange(4).reshape((2, 2))
+    datanode = DataNode(features=data, )
+
+    mock_context = MagicMock()
+    datanode.getFeatureNames(request=Empty(), context=mock_context)
+
+    mock_context.abort.assert_called_once()
