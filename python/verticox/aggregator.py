@@ -238,10 +238,18 @@ class Aggregator:
 
     def get_betas(self):
         betas = []
+        names = []
         for institution in self.institutions:
-            betas.append(institution.getBeta(Empty()).beta)
+            current_betas = institution.getBeta(Empty()).beta
+            try:
+                current_names = institution.getFeatureNames(Empty).names
+            except Exception as e:
+                print(e)
+                current_names = [None] * len(current_betas)
+            betas += current_betas
+            names += current_names
 
-        return np.array(betas)
+        return list(zip(names, betas))
 
 
 class Progress:

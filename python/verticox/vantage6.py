@@ -148,6 +148,7 @@ def RPC_run_datanode(data: pd.DataFrame, feature_columns: List[str], event_time_
     event_times = data[event_time_column].values
     event_happened = data[event_happened_column].values
 
-    datanode.serve(features, event_times, event_happened, PORT, timeout=DATANODE_TIMEOUT)
+    datanode.serve(features, feature_columns, event_times, event_happened, PORT,
+                   timeout=DATANODE_TIMEOUT)
 
     return None

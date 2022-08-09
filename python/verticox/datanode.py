@@ -2,7 +2,7 @@ import json
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
+from typing import Optional, List
 
 import grpc
 import numpy as np
@@ -11,7 +11,7 @@ from viztracer import log_sparse
 
 from verticox.common import group_samples_on_event_time
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
-    NumSamples, Empty, Beta
+    NumSamples, Empty, Beta, FeatureNames
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,8 @@ TIMEOUT = 3600
 
 
 class DataNode(DataNodeServicer):
-    def __init__(self, features: np.array = None, event_times: Optional[np.array] = None,
+    def __init__(self, features: np.array = None, feature_names: Optional[List[str]] = None,
+                 event_times: Optional[np.array] = None,
                  event_happened: Optional[np.array] = None, name=None, server=None):
         """
 
@@ -35,6 +36,7 @@ class DataNode(DataNodeServicer):
         self._logger = logging.getLogger(f'{__name__} :: {self.name}')
         self._logger.debug(f'Initializing datanode {self.name}')
         self.features = features
+        self.feature_names = feature_names
         self.num_features = self.features.shape[1]
         self.event_times = event_times
         self.event_happened = event_happened
@@ -148,6 +150,12 @@ class DataNode(DataNodeServicer):
 
         return Empty()
 
+    def getFeatureNames(self, request, context: grpc.ServicerContext):
+        if self.feature_names is not None:
+            return FeatureNames(names=self.feature_names)
+        else:
+            context.abort(grpc.StatusCode.NOT_FOUND, 'This datanode does not have feature names')
+
     @staticmethod
     def _sum_covariates(covariates: np.array):
         return np.sum(covariates, axis=0)
@@ -189,10 +197,12 @@ class DataNode(DataNodeServicer):
         return DataNode._compute_sigma(beta, features), beta
 
 
-def serve(features=None, event_times=None, event_happened=None, port=DEFAULT_PORT, timeout=TIMEOUT):
+def serve(features=None, feature_names=None, event_times=None, event_happened=None,
+          port=DEFAULT_PORT, timeout=TIMEOUT):
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
-    add_DataNodeServicer_to_server(DataNode(features=features, event_times=event_times,
-                                            event_happened=event_happened, server=server), server)
+    add_DataNodeServicer_to_server(
+        DataNode(features=features, feature_names=feature_names, event_times=event_times,
+                 event_happened=event_happened, server=server), server)
     server.add_insecure_port(f'[::]:{port}')
     info(f'Starting datanode on port {port} with timeout {timeout}')
     before = time.time()
