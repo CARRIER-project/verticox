@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+service DataNode{
+  rpc fit(Empty) returns (LocalParameters) {}
+  rpc getNumFeatures(Empty) returns (NumFeatures){}
+  rpc getNumSamples(Empty) returns (NumSamples){}
+  rpc updateParameters(AggregatedParameters) returns (Empty){}
+  rpc computeGamma(Empty) returns (Empty){}
+  rpc getBeta(Empty) returns (Beta){};
+  rpc prepare(InitialValues) returns (Empty){};
+  rpc kill(Empty) returns (Empty){};
+}
+
+message InitialValues{
+  float gamma = 1;
+  float z = 2;
+  float beta = 3;
+  float rho = 4;
+}
+
+message AggregatedParameters {
+  repeated float gamma = 1;
+  repeated float sigma = 2;
+  repeated float z = 3;
+
+}
+
+message LocalParameters{
+  repeated float gamma = 1;
+  repeated float sigma = 2;
+}
+
+message NumFeatures{
+  int32 numFeatures = 1;
+}
+
+message NumSamples{
+  int32 numSamples = 1;
+}
+
+message Beta{
+  repeated float beta = 1;
+}
+
+message Empty{}
