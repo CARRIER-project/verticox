@@ -53,15 +53,15 @@ def parametrized(z: types.float64[:], params: Parameters) -> types.float64:
     Returns:
 
     """
-    c1 = component1(z, params)
-    c2 = component2(z, params.K, params.sigma, params.gamma, params.rho)
+    c1 = aggregated_hazard(z, params)
+    c2 = auxiliary_variables_component(z, params.K, params.sigma, params.gamma, params.rho)
 
     result = c1 + c2
     return result
 
 
 @numba.njit
-def component1(z, params: Parameters):
+def aggregated_hazard(z, params: Parameters):
     result = 0
     for t, group in params.Rt.items():
         z_at_risk = z[group]
@@ -71,10 +71,9 @@ def component1(z, params: Parameters):
 
 
 @numba.njit
-def component2(z, K, sigma, gamma, rho):
+def auxiliary_variables_component(z, K, sigma, gamma, rho):
     element_wise = np.square(z) / 2 - sigma + (gamma / rho) * z
     return K * rho * element_wise.sum()
-
 
 
 @numba.njit()
@@ -113,7 +112,7 @@ def derivative_1(z, params: Parameters, sample_idx: int):
 
     first_part = 0
     for t in relevant_event_times:
-        denominator = bottom(z, params, t)
+        denominator = aggregated_hazard_at_t(z, params, t)
 
         first_part += params.deaths_per_t[t] * (enumerator / denominator)
 
@@ -136,14 +135,14 @@ def _filter_relevant_event_times(params, u_event_time):
 
 
 @numba.njit()
-def bottom(z, params, t):
+def aggregated_hazard_at_t(z, params, t):
     denominator = 0.
     for j in params.Rt[t]:
         denominator += np.exp(params.K * z[j])
     return denominator
 
 
-@numba.njit()
+@numba.njit(parallel=True)
 def jacobian_parametrized(z: types.float64[:], params: Parameters) -> types.float64[:]:
     result = np.zeros(z.shape)
 
@@ -151,14 +150,6 @@ def jacobian_parametrized(z: types.float64[:], params: Parameters) -> types.floa
         result[i] = derivative_1(z, params, sample_idx=i)
 
     return result
-
-
-@numba.njit()
-def bottom(z, params, t):
-    denominator = 0.
-    for j in params.Rt[t]:
-        denominator += np.exp(params.K * z[j])
-    return denominator
 
 
 @numba.njit()
@@ -170,7 +161,7 @@ def derivative_2_diagonal(z: types.float64, params: Parameters, u: int) -> types
     summed = 0
 
     for t in relevant_event_times:
-        denominator = bottom(z, params, t)
+        denominator = aggregated_hazard_at_t(z, params, t)
 
         first_part = np.square(params.K) * np.exp(params.K * z[u]) / denominator
 
@@ -197,7 +188,7 @@ def derivative_2_off_diagonal(z: ArrayLike, params, u, v):
     return -1 * summed
 
 
-@numba.njit()
+@numba.njit(parallel=True)
 def hessian_parametrized(z: types.float64[:], params: Parameters):
     # The hessian is a N x N matrix where N is the number of elements in z
     N = z.shape[0]
