@@ -97,7 +97,7 @@ class Aggregator:
         # Progress regarding the convergence criteria (sigma diff and z diff <= precision)
         # Since sigma and z diff will slowly shrink to match the order of magnitude of precision
         # I will track the log of the proportion of the precision variable compared to the
-        # maximum of z_diff en sigma_diff and take the log. In the end result we should have
+        # maximum of z_diff and sigma_diff then take the log. In the end result we should have
         # log(1) which is 0.
         progress = Progress(max_value=0)
 
