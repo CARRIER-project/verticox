@@ -230,7 +230,6 @@ def minimize_newton_raphson(x_0: types.float64[:], jacobian, hessian, params: Pa
     current_jac = jacobian(x, params)
     while np.linalg.norm(current_jac) > eps:
         # logger.debug(f'Old x: {old_x}')
-        # logger.debug(f'new x: {x}')
 
         current_hess = hessian(x, params)
         current_jac = jacobian(x, params)
