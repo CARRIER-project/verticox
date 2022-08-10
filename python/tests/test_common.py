@@ -21,6 +21,9 @@ def test_group_samples_at_risk_numbers_descend():
 
 
 def test_group_samples_at_risk():
+    """
+    Testing with duplicate event times on t=2
+    """
     event_times = [1, 2, 2, 3]
     result = common.group_samples_at_risk(event_times)
 
