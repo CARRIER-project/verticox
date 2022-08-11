@@ -1,17 +1,53 @@
 import logging
-from collections import namedtuple
-from typing import Dict, List
+from typing import Dict
 
+import numba
 import numpy as np
+from numba import types
 from numpy.typing import ArrayLike
 
 EPSILON = 1e-4
 
-Parameters = namedtuple('Parameters', ['gamma', 'sigma', 'rho', 'Rt', 'K', 'event_times', 'Dt'])
 _logger = logging.getLogger(__name__)
 
+spec = [
+    ('gamma', types.float64[:]),
+    ('sigma', types.float64[:]),
+    ('Rt', types.DictType(types.float64, types.int64[:])),
+    ('event_times', types.float64[:]),
+    ('Dt', types.DictType(types.float64, types.int64[:])),
+    ('deaths_per_t', types.DictType(types.float64, types.int64)),
+    ('relevant_event_times', types.DictType(types.float64, types.float64[:]))
+]
 
-def parametrized(z: ArrayLike, params: Parameters):
+
+@numba.experimental.jitclass(spec)
+class Parameters:
+    gamma: np.ndarray
+    sigma: np.ndarray
+    rho: float
+    Rt: Dict[float, np.ndarray]
+    K: int
+    event_times: np.ndarray
+    Dt: Dict[float, np.ndarray]
+    deaths_per_t: Dict[float, int]
+    relevant_event_times: Dict[float, np.ndarray]
+
+    def __init__(self, gamma, sigma, rho, Rt, K, event_times, Dt, deaths_per_t,
+                 relevant_event_times):
+        self.gamma = gamma
+        self.sigma = sigma
+        self.rho = rho
+        self.Rt = Rt
+        self.K = K
+        self.event_times = event_times
+        self.Dt = Dt
+        self.deaths_per_t = deaths_per_t
+        self.relevant_event_times = relevant_event_times
+
+
+@numba.njit
+def parametrized(z: types.float64[:], params: Parameters) -> types.float64:
     """
     Equation 12
     Args:
@@ -21,55 +57,46 @@ def parametrized(z: ArrayLike, params: Parameters):
     Returns:
 
     """
-    c1 = component1(z, params.K, params.Rt, params.Dt)
-    c2 = component2(z, params.K, params.sigma, params.gamma, params.rho)
+    c1 = aggregated_hazard(z, params)
+    c2 = auxiliary_variables_component(z, params.K, params.sigma, params.gamma, params.rho)
 
     result = c1 + c2
     return result
 
 
-def component1(z, K, Rt, Dt):
+@numba.njit
+def aggregated_hazard(z, params: Parameters):
     result = 0
-    for t, group in Rt.items():
+    for t, group in params.Rt.items():
         z_at_risk = z[group]
-        result += _get_dt(t, Dt) * np.log((np.exp(K * z_at_risk)).sum())
+        result += params.deaths_per_t[t] * np.log((np.exp(params.K * z_at_risk)).sum())
 
     return result
 
 
-def component2(z, K, sigma, gamma, rho):
+@numba.njit
+def auxiliary_variables_component(z, K, sigma, gamma, rho):
     element_wise = np.square(z) / 2 - sigma + (gamma / rho) * z
     return K * rho * element_wise.sum()
 
 
 def find_z(gamma: ArrayLike, sigma: ArrayLike, rho: float,
-           Rt: Dict[int, List[int]], z_start: ArrayLike, K: int, event_times: ArrayLike,
-           Dt: Dict[int, List[int]], eps: float = EPSILON):
-    params = Parameters(gamma, sigma, rho, Rt, K, event_times, Dt)
+           Rt: types.DictType(types.float64, types.int64[:]), z_start: types.float64[:], K: int,
+           event_times: types.float64[:], Dt: types.DictType(types.float64, types.int64[:]),
+           deaths_per_t: types.DictType(types.float64, types.int64),
+           relevant_event_times: types.DictType(types.float64, types.float64[:]),
+           eps: float = EPSILON):
+    params = Parameters(gamma, sigma, rho, Rt, K, event_times, Dt, deaths_per_t,
+                        relevant_event_times)
 
-    _logger.debug(f'Rt: {params.Rt}')
+    minimum = minimize_newton_raphson(z_start,
+                                      jacobian_parametrized, hessian_parametrized,
+                                      params=params, eps=eps)
 
-    def L_z(z):
-        return parametrized(z=z, params=params)
-
-    _logger.debug(
-        f'Finding minimum z starting at\n{z_start.tolist()}\nwith parameters\n{params}')
-
-    def jac(z):
-        return jacobian_parametrized(z, params)
-
-    def hessian(z):
-        return hessian_parametrized(z, params)
-
-    # minimum = minimize(L_z, z_start, jac=jac, hess=hessian, method=OPTIMIZATION_METHOD,
-    #                    options=OPTIMIZATION_OPTIONS)
-    minimum = minimize_newton_raphson(z_start, L_z, jac, hessian, eps=eps)
-
-    _logger.debug(f'Found minimum z at {minimum}')
-    _logger.debug(f'Lz_outer: {L_z(minimum)}')
     return minimum
 
 
+@numba.njit()
 def derivative_1(z, params: Parameters, sample_idx: int):
     """
 
@@ -84,16 +111,16 @@ def derivative_1(z, params: Parameters, sample_idx: int):
     """
     u_event_time = params.event_times[sample_idx]
 
-    relevant_event_times = [t for t in params.Rt.keys() if t <= u_event_time]
+    relevant_event_times = params.relevant_event_times[u_event_time]
 
     # First part
     enumerator = params.K * np.exp(params.K * z[sample_idx])
 
     first_part = 0
     for t in relevant_event_times:
-        denominator = bottom(z, params, t)
+        denominator = aggregated_hazard_at_t(z, params, t)
 
-        first_part += _get_dt(t, params.Dt) * (enumerator / denominator)
+        first_part += params.deaths_per_t[t] * (enumerator / denominator)
 
     # Second part
     second_part = params.K * params.rho * (z[sample_idx] - params.sigma[sample_idx] - (
@@ -102,14 +129,16 @@ def derivative_1(z, params: Parameters, sample_idx: int):
     return first_part + second_part
 
 
-def bottom(z, params, t):
+@numba.njit()
+def aggregated_hazard_at_t(z, params, t):
     denominator = 0.
     for j in params.Rt[t]:
         denominator += np.exp(params.K * z[j])
     return denominator
 
 
-def jacobian_parametrized(z: ArrayLike, params: Parameters) -> ArrayLike:
+@numba.njit()
+def jacobian_parametrized(z: types.float64[:], params: Parameters) -> types.float64[:]:
     result = np.zeros(z.shape)
 
     for i in range(z.shape[0]):
@@ -118,67 +147,66 @@ def jacobian_parametrized(z: ArrayLike, params: Parameters) -> ArrayLike:
     return result
 
 
-def hessian_parametrized(z: ArrayLike, params: Parameters):
+@numba.njit()
+def derivative_2_diagonal(z: types.float64, params: Parameters, u: int) -> types.float64[:, :]:
+    u_event_time = params.event_times[u]
+
+    relevant_event_times = params.relevant_event_times[u_event_time]
+
+    summed = 0
+
+    for t in relevant_event_times:
+        denominator = aggregated_hazard_at_t(z, params, t)
+
+        first_part = np.square(params.K) * np.exp(params.K * z[u]) / denominator
+
+        second_part = np.square(params.K) * np.square(np.exp(params.K * z[u])) / \
+                      np.square(denominator)
+
+        summed += params.deaths_per_t[t] * (first_part - second_part)
+
+    return summed + params.K * params.rho
+
+
+@numba.njit()
+def derivative_2_off_diagonal(z: ArrayLike, params, u, v):
+    min_event_time = min(params.event_times[u], params.event_times[v])
+    relevant_event_times = params.relevant_event_times[min_event_time]
+
+    elements = np.zeros(relevant_event_times.shape[0])
+    K_squared = params.K * params.K
+
+    for i in range(relevant_event_times.shape[0]):
+        t = relevant_event_times[i]
+        elements[i] = params.deaths_per_t[t] * K_squared * np.exp(params.K * z[u]) * \
+                      np.exp(params.K * z[v]) / \
+                      np.square(np.exp(params.K * z[params.Rt[t]]).sum())
+
+    return -1 * elements.sum()
+
+
+@numba.njit(parallel=True)
+def hessian_parametrized(z: types.float64[:], params: Parameters):
     # The hessian is a N x N matrix where N is the number of elements in z
     N = z.shape[0]
     mat = np.zeros((N, N))
 
     for u in range(N):
-        for v in range(N):
+        mat[u, u] = derivative_2_diagonal(z, params, u)
 
-            if u == v:
-                # Formula for diagonals
-                mat[u, v] = derivative_2_diagonal(z, params, u)
-            else:
-                # Formula for off-diagonals
-                mat[u, v] = derivative_2_off_diagonal(z, params, u, v)
+    for u in range(N):
+        for v in range(u + 1, N):
+            # Formula for off-diagonals
+            mat[u, v] = derivative_2_off_diagonal(z, params, u, v)
+            mat[v, u] = mat[u, v]
 
     return mat
 
 
-def derivative_2_diagonal(z: ArrayLike, params: Parameters, u):
-    u_event_time = params.event_times[u]
-
-    relevant_event_times = [t for t in params.Rt.keys() if t <= u_event_time]
-
-    summed = 0
-
-    for t in relevant_event_times:
-        denominator = bottom(z, params, t)
-
-        first_part = np.square(params.K) * np.exp(params.K * z[u]) / denominator
-
-        second_part = np.square(params.K) * np.square(np.exp(params.K * z[u])) / np.square(
-            denominator)
-
-        summed += _get_dt(t, params.Dt) * (first_part - second_part)
-
-    return summed + params.K * params.rho
-
-
-def derivative_2_off_diagonal(z: ArrayLike, params: Parameters, u, v):
-    min_event_time = min(params.event_times[u], params.event_times[v])
-    relevant_event_times = [t for t in params.Rt.keys() if t <= min_event_time]
-
-    summed = 0
-
-    for t in relevant_event_times:
-        summed += _get_dt(t, params.Dt) * np.square(params.K) * np.exp(params.K * z[u]) * \
-                  np.exp(params.K * z[
-                      v]) / \
-                  np.square(np.exp(params.K * z[params.Rt[t]]).sum())
-
-    return -1 * summed
-
-
-def _get_dt(t, Dt):
-    # If there is no entry for time t it means that it was from a right-censored sample
-    # I'm making it an empty list so I can call len on it but it's semantically sound
-    d = Dt.get(t, [])
-    return len(d)
-
-
-def minimize_newton_raphson(x_0, func, jacobian, hessian, eps) -> ArrayLike:
+@numba.njit()
+def minimize_newton_raphson(x_0: types.float64[:], jacobian, hessian, params: Parameters,
+                            eps: float) -> \
+        types.float64[:]:
     """
     The terminology is a little confusing here. We are trying to find the minimum,
     but newton-raphson is a root-finding algorithm. Therefore we are looking for the x where the
@@ -188,23 +216,17 @@ def minimize_newton_raphson(x_0, func, jacobian, hessian, eps) -> ArrayLike:
         x_0:
         jacobian:
         hessian:
+        params:
         eps:
 
     Returns:
 
     """
     x = x_0
-    current_jac = jacobian(x)
+    current_jac = jacobian(x, params)
     while np.linalg.norm(current_jac) > eps:
-        # logger.debug(f'Old x: {old_x}')
-        # logger.debug(f'new x: {x}')
+        current_hess = hessian(x, params)
+        current_jac = jacobian(x, params)
 
-        current_hess = hessian(x)
-        current_jac = jacobian(x)
-
-        x = x - np.matmul(np.linalg.inv(current_hess), current_jac)
-
-        _logger.debug(f'Jacobian: {current_jac}')
-        _logger.debug(f'Norm of jacobian: {np.linalg.norm(current_jac)}')
-        _logger.debug(f'Lz_inner: {func(x)}')
+        x = x - np.linalg.inv(current_hess) @ current_jac
     return x

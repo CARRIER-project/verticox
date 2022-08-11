@@ -20,8 +20,10 @@ def test_group_samples_at_risk_numbers_descend():
         previous_length = length
 
 
-
 def test_group_samples_at_risk():
+    """
+    Testing with duplicate event times on t=2
+    """
     event_times = [1, 2, 2, 3]
     result = common.group_samples_at_risk(event_times)
 
@@ -39,6 +41,9 @@ def test_group_deaths():
     event_times = [2, 2, 3, 4]
 
     result = common.group_samples_on_event_time(event_times, include)
+
+    result = {key: list(value) for key, value in result.items()}
+
     target = {2: [0, 1], 4: [3]}
 
     TestCase().assertDictEqual(result, target)

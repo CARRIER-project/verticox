@@ -14,3 +14,7 @@ These are the components:
 Where $E$ is the collection of samples that are NOT right-censored.
 
 ## $\sum \limits_{j \in R_t} exp(K \overline{z}_j)$ -->
+
+
+## Python version
+Follow the [README](python/README.md) in the `python/` directory.
