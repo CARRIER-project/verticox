@@ -1,10 +1,9 @@
 import logging
-import time
 from typing import Dict
 
 import numba
 import numpy as np
-from numba import types, prange
+from numba import types
 from numpy.typing import ArrayLike
 
 EPSILON = 1e-4
@@ -175,14 +174,16 @@ def derivative_2_off_diagonal(z: ArrayLike, params, u, v):
     relevant_event_times = params.relevant_event_times[min_event_time]
 
     elements = np.zeros(relevant_event_times.shape[0])
+    K_squared = params.K * params.K
 
     for i in range(relevant_event_times.shape[0]):
         t = relevant_event_times[i]
-        elements[i] = params.deaths_per_t[t] * np.square(params.K) * np.exp(params.K * z[u]) * \
-                  np.exp(params.K * z[v]) / \
-                  np.square(np.exp(params.K * z[params.Rt[t]]).sum())
+        elements[i] = params.deaths_per_t[t] * K_squared * np.exp(params.K * z[u]) * \
+                      np.exp(params.K * z[v]) / \
+                      np.square(np.exp(params.K * z[params.Rt[t]]).sum())
 
     return -1 * elements.sum()
+
 
 @numba.njit(parallel=True)
 def hessian_parametrized(z: types.float64[:], params: Parameters):
@@ -190,19 +191,19 @@ def hessian_parametrized(z: types.float64[:], params: Parameters):
     N = z.shape[0]
     mat = np.zeros((N, N))
 
-    for u in prange(N):
-        for v in range(N):
+    for u in range(N):
+        mat[u, u] = derivative_2_diagonal(z, params, u)
 
-            if u == v:
-                # Formula for diagonals
-                mat[u, v] = derivative_2_diagonal(z, params, u)
-            else:
-                # Formula for off-diagonals
-                mat[u, v] = derivative_2_off_diagonal(z, params, u, v)
+    for u in range(N):
+        for v in range(u + 1, N):
+            # Formula for off-diagonals
+            mat[u, v] = derivative_2_off_diagonal(z, params, u, v)
+            mat[v, u] = mat[u, v]
 
     return mat
 
 
+@numba.njit()
 def minimize_newton_raphson(x_0: types.float64[:], jacobian, hessian, params: Parameters,
                             eps: float) -> \
         types.float64[:]:
@@ -224,7 +225,6 @@ def minimize_newton_raphson(x_0: types.float64[:], jacobian, hessian, params: Pa
     x = x_0
     current_jac = jacobian(x, params)
     while np.linalg.norm(current_jac) > eps:
-
         current_hess = hessian(x, params)
         current_jac = jacobian(x, params)
 
