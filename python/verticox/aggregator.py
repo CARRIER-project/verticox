@@ -56,6 +56,8 @@ class Aggregator:
         self.event_happened = event_happened
         self.Rt = group_samples_at_risk(event_times)
         self.Dt = group_samples_on_event_time(event_times, event_happened)
+        # I only need unique event times, therefore I use Rt.keys()
+        self.relevant_event_times = Aggregator._group_relevant_event_times(self.Rt.keys())
         self.deaths_per_t = Aggregator._compute_deaths_per_t(event_times, event_happened)
         # Initializing parameters
         self.z = np.zeros(self.num_samples)
@@ -66,6 +68,16 @@ class Aggregator:
         self.num_iterations = 0
 
         self.prepare_datanodes(GAMMA, Z, BETA, self.rho)
+
+    @staticmethod
+    def _group_relevant_event_times(unique_event_times) -> \
+            types.DictType(types.float64, types.float64[:]):
+        result = typed.Dict.empty(types.float64, types.float64[:])
+
+        for current_t in unique_event_times:
+            result[current_t] = np.array([t for t in unique_event_times if t <= current_t])
+
+        return result
 
     @staticmethod
     def _compute_deaths_per_t(event_times: ArrayLike, event_happened: ArrayLike) -> \
@@ -156,7 +168,7 @@ class Aggregator:
         self.z_old = self.z
         self.z = find_z(self.gamma, self.sigma, self.rho, self.Rt, self.z,
                         self.num_institutions, self.event_times, self.Dt,
-                        self.deaths_per_t, self.newton_raphson_precision)
+                        self.deaths_per_t, self.relevant_event_times, self.newton_raphson_precision)
 
         z_per_institution = self.compute_z_per_institution(gamma_per_institution,
                                                            sigma_per_institution, self.z)
