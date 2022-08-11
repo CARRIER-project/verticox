@@ -14,7 +14,7 @@ from verticox.likelihood import Parameters, parametrized, derivative_1, \
 NUM_PATIENTS = 3
 NUM_FEATURES = 2
 K = 2
-RT = {1: np.array([0]), 2: np.array([1])}
+RT = {1.: np.array([0]), 2.: np.array([1])}
 EVENT_TIMES = np.arange(NUM_PATIENTS, dtype=float)
 Z = numba.float64(np.arange(NUM_PATIENTS))
 GAMMA = Z
@@ -23,6 +23,15 @@ RHO = 2.
 DT = {t: np.array([t], dtype=int) for t in EVENT_TIMES}
 EPSILON = 1e-5
 DEATHS_PER_T = {t: len(l) for t, l in DT.items()}
+RELEVANT_EVENT_TIMES = {k: np.array([t for t in RT.keys() if t <= k]) for k in RT.keys()}
+
+
+def get_typed_relevant_t():
+    typed_rel_t = typed.Dict.empty(types.float64, types.float64[:])
+
+    for k, v in RELEVANT_EVENT_TIMES.items():
+        typed_rel_t[k] = v
+    return typed_rel_t
 
 
 def get_typed_Rt():
@@ -52,7 +61,7 @@ def get_typed_deaths_per_t():
 
 
 PARAMS = Parameters(GAMMA, SIGMA, RHO, get_typed_Rt(), K, EVENT_TIMES, get_typed_Dt(),
-                    get_typed_deaths_per_t())
+                    get_typed_deaths_per_t(), get_typed_relevant_t())
 
 
 def test_lz_outputs_scalar():
