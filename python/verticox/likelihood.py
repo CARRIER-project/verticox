@@ -152,7 +152,6 @@ def jacobian_parametrized(z: types.float64[:], params: Parameters) -> types.floa
 def derivative_2_diagonal(z: types.float64, params: Parameters, u: int) -> types.float64[:, :]:
     u_event_time = params.event_times[u]
 
-    # TODO: move out of the inner loop
     relevant_event_times = params.relevant_event_times[u_event_time]
 
     summed = 0
@@ -175,15 +174,15 @@ def derivative_2_off_diagonal(z: ArrayLike, params, u, v):
     min_event_time = min(params.event_times[u], params.event_times[v])
     relevant_event_times = params.relevant_event_times[min_event_time]
 
-    summed = 0
+    elements = np.zeros(relevant_event_times.shape[0])
 
-    for t in relevant_event_times:
-        summed += params.deaths_per_t[t] * np.square(params.K) * np.exp(params.K * z[u]) * \
+    for i in range(relevant_event_times.shape[0]):
+        t = relevant_event_times[i]
+        elements[i] = params.deaths_per_t[t] * np.square(params.K) * np.exp(params.K * z[u]) * \
                   np.exp(params.K * z[v]) / \
                   np.square(np.exp(params.K * z[params.Rt[t]]).sum())
 
-    return -1 * summed
-
+    return -1 * elements.sum()
 
 @numba.njit(parallel=True)
 def hessian_parametrized(z: types.float64[:], params: Parameters):
