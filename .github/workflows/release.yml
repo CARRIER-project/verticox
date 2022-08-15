@@ -39,7 +39,8 @@ jobs:
           # Command to run Dunamai.
           #command: # optional, default is dunamai from any
           # Additional arguments to pass to the command.
-          args: --style semver
+          args: --style semver --no-metadata
+
 
       - name: "Create new version file"
         run: echo "__version__ = '$VERTICOX_VERSION'" > python/verticox/_version.py
