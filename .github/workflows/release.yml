@@ -10,11 +10,8 @@ name: Publish algorithm image
 env:
   HARBOR_HOST: harbor.carrier-mu.src.surf-hosted.nl
 on:
-#  release:
-#    types: [ published ]
-  push:
-    branches:
-      - "26-automated-versioning"
+  release:
+    types: [ published ]
 permissions:
   contents: write
 
