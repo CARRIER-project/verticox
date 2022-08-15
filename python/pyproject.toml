@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "verticox"
-version = "0.1.0"
+version = "0.0.0"
 description = "Python implementation of the Verticox algorithm."
 authors = ["Djura Smits <djura.smits@gmail.com>"]
 license = "Apache 2.0"
 
 [tool.poetry.dependencies]
-python =  ">=3.8,<3.11"
+python = ">=3.8,<3.11"
 numpy = "^1.22.2"
 pandas = "^1.4.1"
 scikit-survival = "^0.17.0"
@@ -31,7 +31,11 @@ jupyterlab = "^3.4.4"
 pythonpath = "."
 addopts = "-v --log-level=INFO --log-file=test.log"
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "semver"
 
+[build-system]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+build-backend = "poetry.core.masonry.api"
