@@ -40,7 +40,7 @@ jobs:
       #command: # optional, default is dunamai from any
     # Additional arguments to pass to the command.
         args: --style semver
-        command: echo "${{env.VERTICOX_VERSION}} > python/verticox/_version.py"
+        command: echo "__version__ = $VERTICOX_VERSION" > python/verticox/_version.py
 
     - name: Commit version file
       uses: stefanzweifel/git-auto-commit-action@v4
