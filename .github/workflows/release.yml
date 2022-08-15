@@ -22,8 +22,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: "${{ github.event.release.head.ref }}"
       - name: Set up Python
         uses: actions/setup-python@v3
         with:
@@ -62,7 +60,7 @@ jobs:
             ${{ env.HARBOR_HOST }}/carrier/verticox:${{env.VERTICOX_VERSION}}
             ${{ env.HARBOR_HOST }}/carrier/verticox
           # build on feature branches, push only on main branch
-          push: ${{ github.ref == 'refs/heads/main' }}
+          push: true
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
