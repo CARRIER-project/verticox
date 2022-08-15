@@ -40,14 +40,6 @@ jobs:
           # Additional arguments to pass to the command.
           args: --style semver --no-metadata
 
-
-      - name: "Create new version file"
-        run: echo "__version__ = '$VERTICOX_VERSION'" > python/verticox/_version.py
-
-      - name: Commit version file
-        uses: stefanzweifel/git-auto-commit-action@v4
-
-
         # setup Docker build action
       - name: Set up Docker Buildx
         id: buildx
