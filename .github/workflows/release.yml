@@ -42,7 +42,7 @@ jobs:
           args: --style semver
 
       - name: "Create new version file"
-        run: echo "__version__ = $VERTICOX_VERSION" > python/verticox/_version.py
+        run: echo "__version__ = '$VERTICOX_VERSION'" > python/verticox/_version.py
 
       - name: Commit version file
         uses: stefanzweifel/git-auto-commit-action@v4
@@ -67,7 +67,7 @@ jobs:
           context: ./python
           # Note: tags has to be all lower-case
           tags: |
-            ${{ env.HARBOR_HOST }}/carrier/verticox:$VERTICOX_VERSION
+            ${{ env.HARBOR_HOST }}/carrier/verticox:${{env.VERTICOX_VERSION}}
             ${{ env.HARBOR_HOST }}/carrier/verticox
           # build on feature branches, push only on main branch
           push: ${{ github.ref == 'refs/heads/main' }}
