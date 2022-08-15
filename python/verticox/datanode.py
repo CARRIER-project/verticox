@@ -7,7 +7,6 @@ from typing import Optional, List
 import grpc
 import numpy as np
 from vantage6.tools.util import info
-from viztracer import log_sparse
 
 from verticox.common import group_samples_on_event_time
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
@@ -107,7 +106,6 @@ class DataNode(DataNodeServicer):
 
         return response
 
-    @log_sparse
     def updateParameters(self, request, context=None):
         self.z = np.array(request.z)
         self.sigma = np.array(request.sigma)
@@ -115,7 +113,6 @@ class DataNode(DataNodeServicer):
 
         return Empty()
 
-    @log_sparse
     def computeGamma(self, request, context=None):
         """
         Equation 18
@@ -189,7 +186,6 @@ class DataNode(DataNodeServicer):
         return sigma
 
     @staticmethod
-    @log_sparse
     def _local_update(features: np.array, z: np.array, gamma: np.array, rho,
                       features_multiplied, sum_Dt):
         beta = DataNode._compute_beta(features, z, gamma, rho, features_multiplied, sum_Dt)
