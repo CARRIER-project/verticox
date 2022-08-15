@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import List
+from typing import List, Tuple
 from numba import types, typed
 import numpy as np
 from numpy.typing import ArrayLike
@@ -236,12 +236,19 @@ class Aggregator:
         response = self.institutions[0].getNumSamples(Empty())
         return response.numSamples
 
-    def get_betas(self):
+    def get_betas(self) -> List[Tuple[str, float]]:
         betas = []
+        names = []
         for institution in self.institutions:
-            betas.append(institution.getBeta(Empty()).beta)
+            current_betas = institution.getBeta(Empty()).beta
+            try:
+                current_names = institution.getFeatureNames(Empty()).names
+            except Exception as e:
+                current_names = [None] * len(current_betas)
+            betas += current_betas
+            names += current_names
 
-        return np.array(betas)
+        return list(zip(names, betas))
 
 
 class Progress:

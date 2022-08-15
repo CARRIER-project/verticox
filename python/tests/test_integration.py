@@ -20,7 +20,7 @@ from verticox.grpc.datanode_pb2 import Empty
 from verticox.grpc.datanode_pb2_grpc import add_DataNodeServicer_to_server, DataNodeStub
 
 logging.basicConfig(level=logging.INFO, handlers=[logging.FileHandler('log.txt', mode='w'),
-                                                   logging.StreamHandler(sys.stdout)])
+                                                  logging.StreamHandler(sys.stdout)])
 _logger = logging.getLogger(__name__)
 
 MAX_WORKERS = 5
@@ -70,15 +70,16 @@ def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True
     features = features.values.astype(float)
     if feature_limit:
         features = features[:, :feature_limit]
-    return features, events
+        numerical_columns = numerical_columns[:feature_limit]
+    return features, events, numerical_columns
 
 
-def run_datanode_grpc_server(features, event_times, right_censored, port, name):
+def run_datanode_grpc_server(features, feature_names, event_times, right_censored, port, name):
     server = grpc.server(ThreadPoolExecutor(),
                          )
-    add_DataNodeServicer_to_server(DataNode(features=features, event_times=event_times,
-                                            event_happened=right_censored, name=name,
-                                            server=server), server)
+    add_DataNodeServicer_to_server(
+        DataNode(features=features, feature_names=feature_names, event_times=event_times,
+                 event_happened=right_censored, name=name, server=server), server)
     server.add_insecure_port(f'[::]:{port}')
     _logger.info(f'Starting datanode on port {port}')
     server.start()
@@ -110,9 +111,9 @@ def integration_test(ports=PORTS, row_limit=ROW_LIMIT, feature_limit=FEATURE_LIM
                      right_censored=True, convergence_precision=CONVERGENCE_PRECISION,
                      newton_raphson_precision=NEWTON_RAPHSON_PRECISION):
     num_institutions = len(ports)
-    features, events = get_test_dataset(limit=row_limit,
-                                        feature_limit=feature_limit,
-                                        include_right_censored=right_censored)
+    features, events, feature_names = get_test_dataset(limit=row_limit,
+                                                       feature_limit=feature_limit,
+                                                       include_right_censored=right_censored)
 
     target_result = get_target_result(features, events)
 
@@ -121,11 +122,12 @@ def integration_test(ports=PORTS, row_limit=ROW_LIMIT, feature_limit=FEATURE_LIM
 
     _logger.info(f'Target result: {json.dumps(target_result.tolist())}')
 
-    features_per_institution = list(chunk_features(feature_split, features))
-
+    chunked = list(chunk_features(feature_split, features, feature_names))
+    features_per_institution, names_per_institution = zip(*chunked)
     event_times, right_censored = split_events(events)
 
-    processes = create_processes(event_times, features_per_institution, right_censored, ports)
+    processes = create_processes(event_times, features_per_institution,
+                                 names_per_institution, right_censored, ports)
     processes = list(processes)
 
     try:
@@ -159,15 +161,16 @@ def chunk_list(feature_split, target_result):
         yield target_result[i:i + feature_split].tolist()
 
 
-def chunk_features(feature_split, features):
+def chunk_features(feature_split, features, names):
     for i in range(0, features.shape[1], feature_split):
-        yield features[:, i:i + feature_split]
+        yield features[:, i:i + feature_split], names[i:i + feature_split]
 
 
-def create_processes(event_times, features_per_institution, right_censored, ports):
+def create_processes(event_times, features_per_institution, feature_names, right_censored, ports):
     for idx, f in enumerate(features_per_institution):
         p = Process(target=run_datanode,
-                    args=(event_times, f, right_censored, ports[idx], f'institution no. {idx}'))
+                    args=(event_times, f, feature_names, right_censored, ports[idx],
+                          f'institution no. {idx}'))
 
         yield p
 
@@ -186,22 +189,19 @@ def run_aggregator(ports: List[int], event_times: types.float64, right_censored:
     end_time = time.time()
     _logger.info(f'Converged after {end_time - start_time} seconds')
 
-    betas = aggregator.get_betas().tolist()
-
-    # I need to flatten the array
-    betas = [el for sublist in betas for el in sublist]
+    betas = aggregator.get_betas()
 
     for i in range(len(betas)):
-        result[i] = betas[i]
+        result[i] = betas[i][1]
 
-    _logger.info(f'Resulting betas: {json.dumps(aggregator.get_betas().tolist())}')
+    _logger.info(f'Resulting betas: {json.dumps(betas)}')
 
     for stub in stubs:
         stub.kill(Empty())
 
 
-def run_datanode(event_times, features, right_censored, port, name):
-    run_datanode_grpc_server(features, event_times, right_censored, port, name)
+def run_datanode(event_times, features, feature_names, right_censored, port, name):
+    run_datanode_grpc_server(features, feature_names, event_times, right_censored, port, name)
 
 
 def get_datanode_client(port):
