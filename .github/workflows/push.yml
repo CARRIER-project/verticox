@@ -1,6 +1,7 @@
 name: Build and Publish
 env:
   HARBOR_HOST: harbor.carrier-mu.src.surf-hosted.nl
+  VERTICOX_VERSION:
 on:
   # run it on push to the default repository branch
   push:
@@ -32,7 +33,7 @@ jobs:
           context: ./python
           # Note: tags has to be all lower-case
           tags: |
-            ${{ env.HARBOR_HOST }}/carrier/verticox:latest
+            ${{ env.HARBOR_HOST }}/carrier/verticox:dev
           # build on feature branches, push only on main branch
           push: ${{ github.ref == 'refs/heads/main' }}
 
