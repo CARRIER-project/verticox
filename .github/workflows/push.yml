@@ -1,7 +1,6 @@
 name: Build and Publish
 env:
   HARBOR_HOST: harbor.carrier-mu.src.surf-hosted.nl
-  VERTICOX_VERSION:
 on:
   # run it on push to the default repository branch
   push:

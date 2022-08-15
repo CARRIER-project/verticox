@@ -7,7 +7,8 @@
 # documentation.
 
 name: Publish algorithm image
-
+env:
+  HARBOR_HOST: harbor.carrier-mu.src.surf-hosted.nl
 on:
   release:
     types: [published]
@@ -39,7 +40,7 @@ jobs:
       #command: # optional, default is dunamai from any
     # Additional arguments to pass to the command.
         args: --style semver
-        run: echo "$VERTICOX_VERSION > python/verticox/_version.py"
+        command: echo "$VERTICOX_VERSION > python/verticox/_version.py"
 
     - name: Commit version file
       uses: stefanzweifel/git-auto-commit-action@v4
