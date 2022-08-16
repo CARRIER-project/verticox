@@ -152,3 +152,19 @@ def RPC_run_datanode(data: pd.DataFrame, feature_columns: List[str], event_time_
                    timeout=DATANODE_TIMEOUT)
 
     return None
+
+
+# Note this function also exists in other algorithm packages but since it is so easy to implement I
+# decided to do that rather than rely on other algorithm packages.
+def RPC_column_names(client: ContainerClient, data: pd.DataFrame):
+    """
+
+
+    Args:
+        client:
+        data:
+
+    Returns:
+
+    """
+    return data.columns.tolist()
