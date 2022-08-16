@@ -1,6 +1,7 @@
 import logging
-from typing import List
-
+import time
+from typing import List, Tuple
+from numba import types, typed
 import numpy as np
 from numpy.typing import ArrayLike
 from vantage6.common import info
@@ -31,8 +32,8 @@ class Aggregator:
             state. This will have to be fixed later.
     """
 
-    def __init__(self, institutions: List[DataNodeStub], event_times: ArrayLike,
-                 event_happened: ArrayLike, convergence_precision: float = DEFAULT_PRECISION,
+    def __init__(self, institutions: List[DataNodeStub], event_times: types.float64[:],
+                 event_happened: types.boolean[:], convergence_precision: float = DEFAULT_PRECISION,
                  newton_raphson_precision: float = DEFAULT_PRECISION, rho=RHO):
         """
         Initialize regular verticox aggregator. Note that this type of aggregator needs access to the
@@ -55,16 +56,43 @@ class Aggregator:
         self.event_happened = event_happened
         self.Rt = group_samples_at_risk(event_times)
         self.Dt = group_samples_on_event_time(event_times, event_happened)
-
+        # I only need unique event times, therefore I use Rt.keys()
+        self.relevant_event_times = Aggregator._group_relevant_event_times(self.Rt.keys())
+        self.deaths_per_t = Aggregator._compute_deaths_per_t(event_times, event_happened)
         # Initializing parameters
-        self.z = np.zeros(self.num_samples, dtype=np.float128)
+        self.z = np.zeros(self.num_samples)
         self.z_old = self.z
-        self.gamma = np.ones(self.num_samples, dtype=np.float128)
-        self.sigma = np.zeros(self.num_samples, dtype=np.float128)
+        self.gamma = np.ones(self.num_samples)
+        self.sigma = np.zeros(self.num_samples)
 
         self.num_iterations = 0
 
         self.prepare_datanodes(GAMMA, Z, BETA, self.rho)
+
+    @staticmethod
+    def _group_relevant_event_times(unique_event_times) -> \
+            types.DictType(types.float64, types.float64[:]):
+        result = typed.Dict.empty(types.float64, types.float64[:])
+
+        for current_t in unique_event_times:
+            result[current_t] = np.array([t for t in unique_event_times if t <= current_t])
+
+        return result
+
+    @staticmethod
+    def _compute_deaths_per_t(event_times: ArrayLike, event_happened: ArrayLike) -> \
+            types.DictType(types.float64, types.int64):
+
+        deaths_per_t = typed.Dict.empty(types.float64, types.int64)
+
+        for t, event in zip(event_times, event_happened):
+            if t not in deaths_per_t.keys():
+                deaths_per_t[t] = 0
+
+            if event:
+                deaths_per_t[t] += 1
+
+        return deaths_per_t
 
     def prepare_datanodes(self, gamma, z, beta, rho):
         initial_values = InitialValues(gamma=gamma, z=z, beta=beta, rho=rho)
@@ -75,6 +103,15 @@ class Aggregator:
             i.prepare(initial_values)
 
     def fit(self):
+        start_time = time.time()
+        current_time = start_time
+
+        # Progress regarding the convergence criteria (sigma diff and z diff <= precision)
+        # Since sigma and z diff will slowly shrink to match the order of magnitude of precision
+        # I will track the log of the proportion of the precision variable compared to the
+        # maximum of z_diff and sigma_diff then take the log. In the end result we should have
+        # log(1) which is 0.
+        progress = Progress(max_value=0)
 
         while True:
             logger.info('\n\n----------------------------------------\n'
@@ -96,6 +133,18 @@ class Aggregator:
 
             if z_diff <= self.convergence_precision and z_sigma_diff <= self.convergence_precision:
                 break
+
+            previous_time = current_time
+            current_time = time.time()
+            diff = current_time - previous_time
+            total_runtime = current_time - start_time
+            progress_value = np.log10(self.convergence_precision / max(z_diff, z_sigma_diff))
+            progress.update(progress_value)
+
+            info(f'Completed current iteration after {diff} seconds')
+            info(f'Iterations are taking on average {total_runtime / self.num_iterations} seconds '
+                 f'per run')
+            info(f'Current progress: {100 * progress.get_value():.2f}%')
 
         logger.info(f'Finished training after {self.num_iterations} iterations')
 
@@ -119,12 +168,10 @@ class Aggregator:
         self.z_old = self.z
         self.z = find_z(self.gamma, self.sigma, self.rho, self.Rt, self.z,
                         self.num_institutions, self.event_times, self.Dt,
-                        self.newton_raphson_precision)
+                        self.deaths_per_t, self.relevant_event_times, self.newton_raphson_precision)
 
         z_per_institution = self.compute_z_per_institution(gamma_per_institution,
                                                            sigma_per_institution, self.z)
-
-        logger.debug(f'z per institution: {z_per_institution}')
 
         # Update parameters at datanodes
         for idx, node in enumerate(self.institutions):
@@ -189,9 +236,36 @@ class Aggregator:
         response = self.institutions[0].getNumSamples(Empty())
         return response.numSamples
 
-    def get_betas(self):
+    def get_betas(self) -> List[Tuple[str, float]]:
         betas = []
+        names = []
         for institution in self.institutions:
-            betas.append(institution.getBeta(Empty()).beta)
+            current_betas = institution.getBeta(Empty()).beta
+            try:
+                current_names = institution.getFeatureNames(Empty()).names
+            except Exception as e:
+                current_names = [None] * len(current_betas)
+            betas += current_betas
+            names += current_names
 
-        return np.array(betas)
+        return list(zip(names, betas))
+
+
+class Progress:
+    """
+    Helper class to keep track of progress
+    """
+
+    def __init__(self, max_value: object):
+        self.initial_value = None
+        self.current_value = None
+        self.max_value = max_value
+
+    def update(self, value):
+        if self.initial_value is None:
+            self.initial_value = value
+
+        self.current_value = value
+
+    def get_value(self):
+        return (self.current_value - self.initial_value) / (self.max_value - self.initial_value)

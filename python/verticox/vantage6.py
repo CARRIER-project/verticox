@@ -14,7 +14,7 @@ PORT = 8888
 MAX_RETRIES = 20
 GRPC_OPTIONS = [('wait_for_ready', True)]
 SLEEP = 5
-DATANODE_TIMEOUT = 60 * 60
+DATANODE_TIMEOUT = None
 DATA_LIMIT = 10
 DEFAULT_PRECISION = 1e-5
 DEFAULT_RHO = 0.5
@@ -148,6 +148,7 @@ def RPC_run_datanode(data: pd.DataFrame, feature_columns: List[str], event_time_
     event_times = data[event_time_column].values
     event_happened = data[event_happened_column].values
 
-    datanode.serve(features, event_times, event_happened, PORT, timeout=DATANODE_TIMEOUT)
+    datanode.serve(features, feature_columns, event_times, event_happened, PORT,
+                   timeout=DATANODE_TIMEOUT)
 
     return None
