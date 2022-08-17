@@ -71,7 +71,7 @@ def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True
     if feature_limit:
         features = features[:, :feature_limit]
         numerical_columns = numerical_columns[:feature_limit]
-    return features, events, numerical_columns
+    return features, events, list(numerical_columns)
 
 
 def run_datanode_grpc_server(features, feature_names, event_times, right_censored, port, name):
@@ -166,10 +166,11 @@ def chunk_features(feature_split, features, names):
         yield features[:, i:i + feature_split], names[i:i + feature_split]
 
 
-def create_processes(event_times, features_per_institution, feature_names, right_censored, ports):
+def create_processes(event_times, features_per_institution, names_per_institution
+                     , right_censored, ports):
     for idx, f in enumerate(features_per_institution):
         p = Process(target=run_datanode,
-                    args=(event_times, f, feature_names, right_censored, ports[idx],
+                    args=(event_times, f, names_per_institution[idx], right_censored, ports[idx],
                           f'institution no. {idx}'))
 
         yield p
