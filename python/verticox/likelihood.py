@@ -3,7 +3,7 @@ from typing import Dict
 
 import numba
 import numpy as np
-from numba import types
+from numba import types, prange
 from numpy.typing import ArrayLike
 
 EPSILON = 1e-4
@@ -194,7 +194,7 @@ def hessian_parametrized(z: types.float64[:], params: Parameters):
     for u in range(N):
         mat[u, u] = derivative_2_diagonal(z, params, u)
 
-    for u in range(N):
+    for u in prange(N):
         for v in range(u + 1, N):
             # Formula for off-diagonals
             mat[u, v] = derivative_2_off_diagonal(z, params, u, v)

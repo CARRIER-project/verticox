@@ -45,6 +45,7 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     Returns:
 
     """
+    start_time = time.time()
     event_times = data[event_times_column].values
     event_happened = data[event_happened_column]
 
@@ -78,8 +79,9 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     aggregator = Aggregator(stubs, event_times, event_happened, convergence_precision=precision,
                             rho=rho)
     aggregator.fit()
-
-    info('Verticox algorithm complete')
+    end_time = time.time()
+    duration = end_time - start_time
+    info(f'Verticox algorithm complete after {duration} seconds')
     info('Retrieving betas')
     betas = aggregator.get_betas()
 
