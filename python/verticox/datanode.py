@@ -149,7 +149,8 @@ class DataNode(DataNodeServicer):
 
     def getFeatureNames(self, request, context: grpc.ServicerContext):
         if self.feature_names is not None:
-            return FeatureNames(names=self.feature_names)
+            unicode_names = [n.encode('utf-8') for n in self.feature_names]
+            return FeatureNames(names=unicode_names)
         else:
             context.abort(grpc.StatusCode.NOT_FOUND, 'This datanode does not have feature names')
 
