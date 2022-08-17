@@ -1,4 +1,5 @@
 import time
+from collections import namedtuple
 from typing import List
 import logging
 import verticox
@@ -7,15 +8,19 @@ from vantage6.client import Client
 _VERTICOX_IMAGE = 'harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox'
 _DATA_FORMAT = 'json'
 _SLEEP = 5
+_TIMEOUT = 5 * 60  # 5 minutes
+_DEFAULT_PRECISION = 1e-5
+
 
 class VerticoxClient:
 
-    def __init__(self, v6client: Client, collaboration=None, log_level=logging.INFO):
+    def __init__(self, v6client: Client, collaboration=None, log_level=logging.INFO,
+                 image=_VERTICOX_IMAGE):
         self._logger = logging.getLogger(__name__)
         self._logger.setLevel(log_level)
-        self.v6client = v6client
-
-        collaborations = self.v6client.collaboration.list()
+        self._v6client = v6client
+        self._image = image
+        collaborations = self._v6client.collaboration.list()
         if len(collaborations) > 1:
             raise VerticoxClientException(f'You are in multiple collaborations, please specify '
                                           f'one of:\n {collaborations}')
@@ -23,7 +28,7 @@ class VerticoxClient:
         self.collaboration_id = collaborations[0]['id']
 
     def get_active_node_organizations(self):
-        nodes = self.v6client.node.list(is_online=True)
+        nodes = self._v6client.node.list(is_online=True)
 
         # TODO: Add pagination support
         nodes = nodes['data']
@@ -33,42 +38,70 @@ class VerticoxClient:
         active_nodes = self.get_active_node_organizations()
         self._logger.debug(f'There are currently {len(active_nodes)} active nodes')
 
-        self._run_task('column_names', master=False)
+        task = self._run_task('column_names', organizations=active_nodes, master=False)
+        return task
 
-    def _run_task(self, method, master, kwargs=None, organizations=List[int],
+    def compute(self, feature_columns, outcome_time_column, right_censor_column, data_nodes,
+                central_node, precision=_DEFAULT_PRECISION):
+        input_params = {
+            'feature_columns': feature_columns,
+            'event_times_column': outcome_time_column,
+            'event_happened_column': right_censor_column,
+            'datanode_ids': data_nodes,
+            'precision': precision
+        }
+
+        return self._run_task('verticox', True, [central_node], kwargs=input_params)
+
+
+    def _run_task(self, method, master, organizations: List[int], kwargs=None,
                   database='default'):
         if kwargs is None:
             kwargs = {}
         # TODO: Construct description out of parameters
         description = ''
         name = ''
-        task_input = {'method': method, 'master': True, 'kwargs': kwargs}
-        task = self.v6client.task.create(collaboration=self.collaboration_id,
-                                         organizations=organizations,
-                                         name=name,
-                                         image=_VERTICOX_IMAGE,
-                                         description=description,
-                                         input=task_input,
-                                         data_format=_DATA_FORMAT,
-                                         database=database
-                                         )
-        return Task(self.v6client, task)
+        task_input = {'method': method, 'master': master, 'kwargs': kwargs}
 
-    # def analyze(self, feature_columns, outcome_time_colum, right_censor_column, datanode_ids,
-    #             precision):
-    #     input_params = {'method': 'verticox', 'master': True, 'kwargs':
-    #         {
-    #             'feature_columns': ['afb',
-    #                                 #                                        'age', 'av3', 'bmi', 'chf', 'cvd',
-    #                                 #                     'diasbp', 'gender', 'hr','los', 'miord',
-    #                                 #                     'mitype', 'sho',
-    #                                 'sysbp'],
-    #             'event_times_column': 'event_time',
-    #             'event_happened_column': 'event_happened',
-    #             'datanode_ids': orgs[1:],
-    #             'precision': 0.1
-    #         }
-    #                     }
+        print(f'''
+                    task = self.v6client.task.create(collaboration={self.collaboration_id},
+                                             organizations={organizations},
+                                             name={name},
+                                             image={self._image},
+                                             description={description},
+                                             input={task_input},
+                                             data_format={_DATA_FORMAT},
+                                             database={database}
+                                             )
+            ''')
+        task = self._v6client.task.create(collaboration=self.collaboration_id,
+                                          organizations=organizations,
+                                          name=name,
+                                          image=self._image,
+                                          description=description,
+                                          input=task_input,
+                                          data_format=_DATA_FORMAT,
+                                          database=database
+                                          )
+
+        return Task(self._v6client, task)
+
+
+# def analyze(self, feature_columns, outcome_time_colum, right_censor_column, datanode_ids,
+#             precision):
+#     input_params = {'method': 'verticox', 'master': True, 'kwargs':
+#         {
+#             'feature_columns': ['afb',
+#                                 #                                        'age', 'av3', 'bmi', 'chf', 'cvd',
+#                                 #                     'diasbp', 'gender', 'hr','los', 'miord',
+#                                 #                     'mitype', 'sho',
+#                                 'sysbp'],
+#             'event_times_column': 'event_time',
+#             'event_happened_column': 'event_happened',
+#             'datanode_ids': orgs[1:],
+#             'precision': 0.1
+#         }
+#                     }
 
 
 #
@@ -77,31 +110,41 @@ class VerticoxClient:
 #                           image=IMAGE, description='verticox test',
 #                           input=input_params)
 
+Result = namedtuple('Result', ['organization_id', 'content'])
+
 class Task:
 
     def __init__(self, client: Client, task_data):
         self._raw_data = task_data
-        self.client=client
+        self.client = client
 
         self.result_ids = [r['id'] for r in task_data['results']]
 
-    def await_result(self):
-        results = {}
-
+    def get_result(self):
+        results = []
+        max_retries = _TIMEOUT // _SLEEP
+        retries = 0
         result_ids = set(self.result_ids)
+        results_complete = set()
 
-        while True:
-            results_missing = result_ids - results.keys()
+        while retries < max_retries:
+            results_missing = result_ids - results_complete
             for missing in results_missing:
                 result = self.client.result.get(missing)
                 if result['finished_at'] is not None:
-                    results[missing] = result
+                    organization_id = result['organization']['id']
+                    result_content = result['result']
+                    results.append(Result(organization_id, result_content))
+                    results_complete.add(missing)
 
             if len(results) >= len(self.result_ids):
-                break
+
+                return results
+            retries += 1
             time.sleep(_SLEEP)
+
+        raise VerticoxClientException(f'Timeout after {_TIMEOUT} seconds')
 
 
 class VerticoxClientException(Exception):
     pass
-
