@@ -92,7 +92,7 @@ public class VerticoxEndpointTest {
     }
 
     @Test
-    public void testValuesHybridSplitMultiplication()
+    public void testValuesHybridSplitValues()
             throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
         VerticoxServer serverZ = new VerticoxServer("resources/smallK2Example_secondhalf.csv", "Z");
         VerticoxEndpoint endpointZ = new VerticoxEndpoint(serverZ);
@@ -253,7 +253,7 @@ public class VerticoxEndpointTest {
     }
 
     @Test
-    public void testValuesMultiplicationHybridSplit()
+    public void testValuesMultiplicationHybridSplitSelectionCriteria()
             throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
         VerticoxServer serverZ = new VerticoxServer("resources/hybridsplit/smallK2Example_firsthalf.csv", "Z");
         VerticoxEndpoint endpointZ = new VerticoxEndpoint(serverZ);
