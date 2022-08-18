@@ -16,7 +16,7 @@ GRPC_OPTIONS = [('wait_for_ready', True)]
 SLEEP = 5
 DATANODE_TIMEOUT = None
 DATA_LIMIT = 10
-DEFAULT_PRECISION = 1e-5
+DEFAULT_PRECISION = 1e-3
 DEFAULT_RHO = 0.5
 
 
@@ -154,3 +154,19 @@ def RPC_run_datanode(data: pd.DataFrame, feature_columns: List[str], event_time_
                    timeout=DATANODE_TIMEOUT)
 
     return None
+
+
+# Note this function also exists in other algorithm packages but since it is so easy to implement I
+# decided to do that rather than rely on other algorithm packages.
+def RPC_column_names(data: pd.DataFrame, *args, **kwargs):
+    """
+
+
+    Args:
+        client:
+        data:
+
+    Returns:
+
+    """
+    return data.columns.tolist()
