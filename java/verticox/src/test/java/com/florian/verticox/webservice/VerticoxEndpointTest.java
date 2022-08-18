@@ -84,7 +84,82 @@ public class VerticoxEndpointTest {
 
         central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
         SumRelevantValuesRequest request = new SumRelevantValuesRequest();
-        request.setValueServer("z");
+        request.setValueServer(Arrays.asList("z"));
+        request.setRequirements(Arrays.asList(req));
+        BigDecimal result = central.sumRelevantValues(request);
+
+        assertEquals(result.longValue(), expected.longValue(), multiplier.longValue());
+    }
+
+    @Test
+    public void testValuesHybridSplitMultiplication()
+            throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
+        VerticoxServer serverZ = new VerticoxServer("resources/smallK2Example_secondhalf.csv", "Z");
+        VerticoxEndpoint endpointZ = new VerticoxEndpoint(serverZ);
+        VerticoxServer serverZ2 = new VerticoxServer("resources/smallK2Example_secondhalf.csv", "Z");
+        VerticoxEndpoint endpointZ2 = new VerticoxEndpoint(serverZ2);
+
+        VerticoxServer server2 = new VerticoxServer("resources/smallK2Example_firsthalf.csv", "2");
+        VerticoxEndpoint endpoint2 = new VerticoxEndpoint(server2);
+
+        BigDecimal[] values = generateValues();
+        //split up values into two lists:
+        BigDecimal[] valuesZ = new BigDecimal[values.length];
+        BigDecimal[] valuesZ2 = new BigDecimal[values.length];
+
+        for (int i = 0; i < values.length; i++) {
+            valuesZ[i] = BigDecimal.ONE;
+            valuesZ2[i] = BigDecimal.ONE;
+            if (i % 2 == 0) {
+                valuesZ[i] = values[i];
+            } else {
+                valuesZ2[i] = values[i];
+            }
+        }
+
+        endpointZ.setValues(createSetValuesRequest(endpointZ, valuesZ));
+        endpointZ2.setValues(createSetValuesRequest(endpointZ2, valuesZ2));
+
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            System.out.println(mapper.writerWithDefaultPrettyPrinter()
+                                       .writeValueAsString(createSetValuesRequest(endpointZ, values)));
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+
+        AttributeRequirement req = new AttributeRequirement();
+        req.setValue(new Attribute(Attribute.AttributeType.numeric, "1", "x1"));
+        //this selects individuals: 1,2,4,7, & 9
+        BigDecimal expected = BigDecimal.ZERO;
+        expected = expected.add(values[0]).add(values[1]).add(values[3]).add(values[6]).add(values[8]);
+
+        VerticoxServer secret = new VerticoxServer("3", Arrays.asList(endpointZ, endpoint2));
+        ServerEndpoint secretEnd = new ServerEndpoint(secret);
+
+        List<ServerEndpoint> all = new ArrayList<>();
+        all.add(endpointZ);
+        all.add(endpointZ2);
+        all.add(endpoint2);
+        all.add(secretEnd);
+        secret.setEndpoints(all);
+        serverZ.setEndpoints(all);
+        serverZ2.setEndpoints(all);
+        server2.setEndpoints(all);
+
+        VerticoxCentralServer central = new VerticoxCentralServer(true);
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2, endpointZ2), secretEnd);
+
+        int precision = 5;
+        BigDecimal multiplier = BigDecimal.valueOf(Math.pow(10, precision));
+        endpointZ.setPrecision(precision);
+        endpoint2.setPrecision(precision);
+        central.setPrecisionCentral(precision);
+        secret.setPrecision(precision);
+
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
+        SumRelevantValuesRequest request = new SumRelevantValuesRequest();
+        request.setValueServer(Arrays.asList("z", "z2"));
         request.setRequirements(Arrays.asList(req));
         BigDecimal result = central.sumRelevantValues(request);
 
@@ -224,7 +299,7 @@ public class VerticoxEndpointTest {
 
         central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
         SumRelevantValuesRequest request = new SumRelevantValuesRequest();
-        request.setValueServer("z");
+        request.setValueServer(Arrays.asList("z"));
         request.setRequirements(Arrays.asList(req));
         BigDecimal result = central.sumRelevantValues(request);
 
@@ -277,7 +352,7 @@ public class VerticoxEndpointTest {
 
         central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
         SumRelevantValuesRequest request = new SumRelevantValuesRequest();
-        request.setValueServer("z");
+        request.setValueServer(Arrays.asList("z"));
         request.setRequirements(Arrays.asList(req));
         BigDecimal result = central.sumRelevantValues(request);
 
@@ -325,7 +400,7 @@ public class VerticoxEndpointTest {
 
         central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
         SumRelevantValuesRequest request = new SumRelevantValuesRequest();
-        request.setValueServer("z");
+        request.setValueServer(Arrays.asList("z"));
         request.setRequirements(Arrays.asList(req));
         BigDecimal result = central.sumRelevantValues(request);
 
@@ -373,7 +448,7 @@ public class VerticoxEndpointTest {
 
         central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
         SumRelevantValuesRequest request = new SumRelevantValuesRequest();
-        request.setValueServer("z");
+        request.setValueServer(Arrays.asList("z"));
         request.setRequirements(Arrays.asList(req));
         BigDecimal result = central.sumRelevantValues(request);
 

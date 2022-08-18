@@ -7,8 +7,9 @@ allows you to set a value per individual. Then insert this value into the n-part
 The assumption is that only 1 party contains values (e.g. co-variates) for a given value the other parties only contain
 selection criteria (e.g. individual is right-cencored, individual has event-time t ). It is possible for party A to
 contain values for individual 1, party B for individual 2 and party C knows the selection criteria. It is also
-acceptable if A knows both the relevant values & selection criteria. But it should not be the case that both A & B know
-relevant values
+acceptable if A knows both the relevant values & selection criteria. It can als be the case that both A & B know
+relevant values due to a hybrid split. In this case missing records need to have a value of 1. E.g. A has record 1,2,3 B
+has record 4,5,6 then the data needs to look as follows: A = [A1,A2,A3,1,1,1] B= [1,1,1,B1,B1,B1]
 
 To use this method the following needs to be done:
 
@@ -85,6 +86,7 @@ handled in a preprocessing step as well.
 This functionality is only available in the java implementation.
 
 #### SOAPUI example project
-A SOAPUI example project is also present in this repository.
-Do be aware that the method "setValues" does not work straightforwardly as it requires also using the correct keys for the various encryptions. This isn't easily doable in SOAPUI.
-However, it serves as an example for the various requests
+
+A SOAPUI example project is also present in this repository. Do be aware that the method "setValues" does not work
+straightforwardly as it requires also using the correct keys for the various encryptions. This isn't easily doable in
+SOAPUI. However, it serves as an example for the various requests

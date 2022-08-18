@@ -5,15 +5,15 @@ import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
 import java.util.List;
 
 public class SumRelevantValuesRequest {
-    private String valueServer;
+    private List<String> valueServers;
     private List<AttributeRequirement> requirements;
 
-    public String getValueServer() {
-        return valueServer;
+    public List<String> getValueServer() {
+        return valueServers;
     }
 
-    public void setValueServer(String valueServer) {
-        this.valueServer = valueServer;
+    public void setValueServer(List<String> valueServers) {
+        this.valueServers = valueServers;
     }
 
     public List<AttributeRequirement> getRequirements() {
