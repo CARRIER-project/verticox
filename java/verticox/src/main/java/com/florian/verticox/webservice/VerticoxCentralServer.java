@@ -4,10 +4,9 @@ import com.florian.nscalarproduct.station.CentralStation;
 import com.florian.nscalarproduct.webservice.CentralServer;
 import com.florian.nscalarproduct.webservice.Protocol;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
-import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
 import com.florian.verticox.webservice.domain.InitCentralServerRequest;
-import com.florian.verticox.webservice.domain.MinimumPeriodRequest;
-import com.florian.verticox.webservice.domain.SumRelevantValuesRequest;
+import com.florian.verticox.webservice.domain.InitDataResponse;
+import com.florian.verticox.webservice.domain.SumPredictorInTimeFrameRequest;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,7 +16,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @RestController
@@ -71,36 +69,34 @@ public class VerticoxCentralServer extends CentralServer {
         endpoints.stream().forEach(x -> ((VerticoxEndpoint) x).setPrecision(precision));
     }
 
-    @PostMapping ("determineMinimumPeriodCentral")
-    public AttributeRequirement determineMinimumPeriodCentral(@RequestBody MinimumPeriodRequest req) {
-        initEndpoints();
-        List<AttributeRequirement> list = endpoints.stream()
-                .map(x -> ((VerticoxEndpoint) x).determineMinimumPeriod(req.getLowerLimit())).collect(
-                        Collectors.toList()).stream().filter(Objects::nonNull).collect(Collectors.toList());
-        //If the attribute exists it only exists in one place, so return first value in the list, the rest was null
-        //if it doesn't exist return null
-        if (list.size() > 0) {
-            return list.get(0);
-        }
-        return null;
-    }
-
     @PostMapping ("sumRelevantValues")
-    public BigDecimal sumRelevantValues(@RequestBody SumRelevantValuesRequest req) {
+    public BigDecimal sumRelevantValues(@RequestBody SumPredictorInTimeFrameRequest req) {
         initEndpoints();
+        List<ServerEndpoint> relevantEndpoints = new ArrayList<>();
+        BigDecimal divider = BigDecimal.ONE;
         for (ServerEndpoint endpoint : endpoints) {
-            if (req.getValueServer().contains(endpoint.getServerId())) {
-                ((VerticoxEndpoint) endpoint).initData(req.getRequirements());
-            } else {
-                ((VerticoxEndpoint) endpoint).selectIndividuals(req.getRequirements());
+            InitDataResponse response = ((VerticoxEndpoint) endpoint).initData(req);
+            if (response.isRelevant()) {
+                relevantEndpoints.add(endpoint);
+                if (response.isPredictorPresent()) {
+                    divider = divider.multiply(multiplier);
+                }
             }
         }
-        secretEndpoint.addSecretStation("start", endpoints.stream().map(x -> x.getServerId()).collect(
-                Collectors.toList()), endpoints.get(0).getPopulation());
+
+        if (relevantEndpoints.size() == 1) {
+            // only one relevant party, make things easy and just sum stuff
+            return ((VerticoxEndpoint) relevantEndpoints.get(0)).getSum();
+        } else {
+
+            secretEndpoint.addSecretStation("start", relevantEndpoints.stream().map(x -> x.getServerId()).collect(
+                    Collectors.toList()), relevantEndpoints.get(0).getPopulation());
+
+            BigDecimal result = new BigDecimal(nparty(relevantEndpoints, secretEndpoint).toString());
 
 
-        return BigDecimal.valueOf(nparty(endpoints, secretEndpoint).longValue())
-                .divide(multiplier);
+            return result.divide(divider);
+        }
     }
 
     private BigInteger nparty(List<ServerEndpoint> endpoints, ServerEndpoint secretEndpoint) {
