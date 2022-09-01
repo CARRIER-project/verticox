@@ -2,7 +2,7 @@ import json
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, List
+from typing import Optional, List, Union
 
 import grpc
 import numpy as np
@@ -195,12 +195,18 @@ class DataNode(DataNodeServicer):
 
 
 def serve(features=None, feature_names=None, event_times=None, event_happened=None,
-          port=DEFAULT_PORT, timeout=TIMEOUT):
+          port=DEFAULT_PORT, timeout=TIMEOUT,
+          credentials: Union[grpc.ServerCredentials, None] = None):
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
     add_DataNodeServicer_to_server(
         DataNode(features=features, feature_names=feature_names, event_times=event_times,
                  event_happened=event_happened, server=server), server)
-    server.add_insecure_port(f'[::]:{port}')
+
+    if credentials is None:
+        server.add_insecure_port(f'[::]:{port}')
+    else:
+        server.add_secure_port(f'[::]:{port}', credentials)
+
     info(f'Starting datanode on port {port} with timeout {timeout}')
     before = time.time()
     server.start()

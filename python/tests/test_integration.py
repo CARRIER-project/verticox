@@ -3,7 +3,6 @@ import logging
 import sys
 import time
 import traceback
-from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import Process, Array
 from typing import List
 
@@ -14,10 +13,10 @@ from numba import types
 from sksurv.datasets import load_whas500
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 
+from verticox import datanode, encryption
 from verticox.aggregator import Aggregator
-from verticox.datanode import DataNode
 from verticox.grpc.datanode_pb2 import Empty
-from verticox.grpc.datanode_pb2_grpc import add_DataNodeServicer_to_server, DataNodeStub
+from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 
 logging.basicConfig(level=logging.INFO, handlers=[logging.FileHandler('log.txt', mode='w'),
                                                   logging.StreamHandler(sys.stdout)])
@@ -74,18 +73,6 @@ def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True
     return features, events, list(numerical_columns)
 
 
-def run_datanode_grpc_server(features, feature_names, event_times, right_censored, port, name):
-    server = grpc.server(ThreadPoolExecutor(),
-                         )
-    add_DataNodeServicer_to_server(
-        DataNode(features=features, feature_names=feature_names, event_times=event_times,
-                 event_happened=right_censored, name=name, server=server), server)
-    server.add_insecure_port(f'[::]:{port}')
-    _logger.info(f'Starting datanode on port {port}')
-    server.start()
-    server.wait_for_termination()
-
-
 def split_events(events):
     df = pd.DataFrame(events)
     times = df.lenfol.values
@@ -126,9 +113,14 @@ def integration_test(ports=PORTS, row_limit=ROW_LIMIT, feature_limit=FEATURE_LIM
     features_per_institution, names_per_institution = zip(*chunked)
     event_times, right_censored = split_events(events)
 
+    node_key, certificate = encryption.create_server_credentials(host='localhost')
+
     processes = create_processes(event_times, features_per_institution,
-                                 names_per_institution, right_censored, ports)
+                                 names_per_institution, right_censored, ports, node_key,
+                                 certificate)
     processes = list(processes)
+
+    client_key = encryption.generate_rsa_private_key()
 
     try:
         for p in processes:
@@ -138,7 +130,7 @@ def integration_test(ports=PORTS, row_limit=ROW_LIMIT, feature_limit=FEATURE_LIM
         aggregator_process = Process(target=run_aggregator,
                                      args=(ports, event_times, right_censored,
                                            convergence_precision, newton_raphson_precision,
-                                           result))
+                                           result, [certificate] * len(ports), client_key))
 
         _logger.info('Starting aggregator')
         aggregator_process.start()
@@ -167,19 +159,22 @@ def chunk_features(feature_split, features, names):
 
 
 def create_processes(event_times, features_per_institution, names_per_institution
-                     , right_censored, ports):
-    for idx, f in enumerate(features_per_institution):
-        p = Process(target=run_datanode,
-                    args=(event_times, f, names_per_institution[idx], right_censored, ports[idx],
-                          f'institution no. {idx}'))
+                     , right_censored, ports, key, certificate):
+    credentials = grpc.ssl_server_credentials([(key, certificate)], certificate)
 
+    for idx, f in enumerate(features_per_institution):
+        p = Process(target=datanode.serve,
+                    args=(f, names_per_institution[idx], event_times, right_censored, ports[idx]),
+                    kwargs={'credentials': credentials})
         yield p
 
 
 def run_aggregator(ports: List[int], event_times: types.float64, right_censored: types.boolean[:],
                    convergence_precision: float, newton_raphson_precision: float,
-                   result: Array):
-    stubs = [get_datanode_client(port) for port in ports]
+                   result: Array, certificates, private_key):
+    stubs = []
+    for port, certificate in zip(ports, certificates):
+        stubs.append(get_datanode_client(port, certificate, private_key))
 
     aggregator = Aggregator(stubs, event_times, right_censored,
                             convergence_precision=convergence_precision,
@@ -201,13 +196,12 @@ def run_aggregator(ports: List[int], event_times: types.float64, right_censored:
         stub.kill(Empty())
 
 
-def run_datanode(event_times, features, feature_names, right_censored, port, name):
-    run_datanode_grpc_server(features, feature_names, event_times, right_censored, port, name)
-
-
-def get_datanode_client(port):
+def get_datanode_client(port, root_certificate, private_key):
     logging.info(f'Connecting to datanode at port {port}')
-    channel = grpc.insecure_channel(f'localhost:{port}')
+    credentials = grpc.ssl_channel_credentials(root_certificates=root_certificate,
+                                               # private_key=private_key
+                                               )
+    channel = grpc.secure_channel(f'localhost:{port}', credentials)
     # ready = grpc.channel_ready_future(channel)
     # ready.result(timeout=300)
     stub = DataNodeStub(channel)
