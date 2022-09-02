@@ -68,12 +68,12 @@ public class VerticoxServer extends Server {
     }
 
     @GetMapping ("getSum")
-    public BigDecimal getSum() {
+    public double getSum() {
         BigInteger sum = BigInteger.ZERO;
         for (BigInteger d : this.localData) {
             sum = sum.add(d);
         }
-        return new BigDecimal(sum.toString()).divide(multiplier);
+        return new BigDecimal(sum).divide(multiplier).doubleValue();
     }
 
     @PostMapping ("initData")
@@ -84,50 +84,63 @@ public class VerticoxServer extends Server {
         }
 
         boolean predictorPresent = isLocallyPresent(request.getPredictor());
-        boolean timePresent = isLocallyPresent(request.getTimeFrame().getName());
+        boolean requirementPresent = true;
+        for (AttributeRequirement r : request.getRequirements()) {
+            if (!isLocallyPresent(r.getName())) {
+                requirementPresent = false;
+                break;
+            }
+        }
 
-        if (timePresent) {
+        if (requirementPresent) {
             // If the time variable is locally present select individuals
-            selectIndividuals(request.getTimeFrame());
+            selectIndividuals(request.getRequirements());
         }
         if (predictorPresent) {
             // If predictor is locally present
             List<Attribute> values = this.data.getAttributeValues(request.getPredictor());
-            if (timePresent) {
+            if (requirementPresent) {
                 // Time variable was present, so multiply all selected population with the predictor value
                 for (int i = 0; i < population; i++) {
                     // selected population currently has localData = 1
                     // Not selected currently has localData = 0
                     // This way if the criteria & data are in the same location only the applicable population is
                     // selected
-                    localData[i] = localData[i].multiply(
-                            BigInteger.valueOf(
-                                    (new BigDecimal(values.get(i).getValue()).multiply(multiplier).longValue())));
+                    localData[i] = localData[i].multiply(transForm(values.get(i)));
                 }
             } else {
                 // Time variable was not present, so just insert the predictor value
                 localData = new BigInteger[population];
                 for (int i = 0; i < population; i++) {
-                    localData[i] = BigInteger.valueOf(
-                            (new BigDecimal(values.get(i).getValue()).multiply(multiplier).longValue()));
+                    localData[i] = transForm(values.get(i));
                 }
             }
         }
-        if (predictorPresent || timePresent) {
+        if (predictorPresent || requirementPresent) {
             this.population = localData.length;
             this.dataStations.put("start", new DataStation(this.serverId, this.localData));
         }
         InitDataResponse response = new InitDataResponse();
-        response.setOutcomePresent(timePresent);
+        response.setOutcomePresent(requirementPresent);
         response.setPredictorPresent(predictorPresent);
         return response;
+    }
+
+    private BigInteger transForm(Attribute attribute) {
+        if (attribute.isUknown()) {
+            //if locally unknown set to 1, another party will set it to the correct value and 1xvalue=value
+            return BigDecimal.ONE.multiply(multiplier).toBigIntegerExact();
+        } else {
+            //if locally known set the value to whatever the value is multiplied with the multiplier for precision
+            return new BigDecimal(attribute.getValue()).multiply(multiplier).toBigIntegerExact();
+        }
     }
 
     private boolean isLocallyPresent(String predictor) {
         return this.data.getAttributeCollumn(predictor) != null;
     }
 
-    private void selectIndividuals(AttributeRequirement req) {
+    private void selectIndividuals(List<AttributeRequirement> reqs) {
         //method to select appropriate individuals.
         //Assumption is that they're onl selected based on eventtime
         //But it is possible to select on multiple attributes at once
@@ -142,9 +155,16 @@ public class VerticoxServer extends Server {
 
 
         List<List<Attribute>> values = data.getData();
-        for (int i = 0; i < population; i++) {
-            if (!req.checkRequirement(values.get(data.getAttributeCollumn(req.getName())).get(i))) {
-                localData[i] = BigInteger.ZERO;
+        for (AttributeRequirement req : reqs) {
+            for (int i = 0; i < population; i++) {
+                Attribute a = values.get(data.getAttributeCollumn(req.getName())).get(i);
+                if (locallyUnknown(a)) {
+                    // attribute is locally unknown so ignore it in this vector, another party will correct this
+                    continue;
+                } else if (!req.checkRequirement(a)) {
+                    // attribute is locally
+                    localData[i] = BigInteger.ZERO;
+                }
             }
         }
 
@@ -152,6 +172,10 @@ public class VerticoxServer extends Server {
 
         this.population = localData.length;
         this.dataStations.put("start", new DataStation(this.serverId, this.localData));
+    }
+
+    private boolean locallyUnknown(Attribute a) {
+        return a.isUknown();
     }
 
     private void readData() {

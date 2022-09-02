@@ -5,8 +5,6 @@ import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.verticox.webservice.domain.InitDataResponse;
 import com.florian.verticox.webservice.domain.SumPredictorInTimeFrameRequest;
 
-import java.math.BigDecimal;
-
 public class VerticoxEndpoint extends ServerEndpoint {
     public VerticoxEndpoint(Server server) {
         super(server);
@@ -16,11 +14,11 @@ public class VerticoxEndpoint extends ServerEndpoint {
         super(url);
     }
 
-    public BigDecimal getSum() {
+    public Double getSum() {
         if (testing) {
             return ((VerticoxServer) (server)).getSum();
         } else {
-            return REST_TEMPLATE.getForEntity(serverUrl + "/getSum", BigDecimal.class).getBody();
+            return REST_TEMPLATE.getForEntity(serverUrl + "/getSum", Double.class).getBody();
         }
     }
 

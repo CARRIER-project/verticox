@@ -2,16 +2,18 @@ package com.florian.verticox.webservice.domain;
 
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
 
+import java.util.List;
+
 public class SumPredictorInTimeFrameRequest {
-    private AttributeRequirement timeFrame;
+    private List<AttributeRequirement> requirements;
     private String predictor;
 
-    public AttributeRequirement getTimeFrame() {
-        return timeFrame;
+    public List<AttributeRequirement> getRequirements() {
+        return requirements;
     }
 
-    public void setTimeFrame(AttributeRequirement timeFrame) {
-        this.timeFrame = timeFrame;
+    public void setRequirements(List<AttributeRequirement> requirements) {
+        this.requirements = requirements;
     }
 
     public String getPredictor() {
