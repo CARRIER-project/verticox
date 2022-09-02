@@ -105,7 +105,7 @@ public class VerticoxCentralServer extends CentralServer {
 
     private BigInteger nparty(List<ServerEndpoint> endpoints, ServerEndpoint secretEndpoint) {
         CentralStation station = new CentralStation();
-        Protocol prot = new Protocol(endpoints, secretEndpoint, "start");
+        Protocol prot = new Protocol(endpoints, secretEndpoint, "start", precision);
         return station.calculateNPartyScalarProduct(prot);
     }
 }

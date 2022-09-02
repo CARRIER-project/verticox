@@ -1,7 +1,6 @@
 package com.florian.verticox.webservice;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.florian.nscalarproduct.data.Attribute;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
@@ -563,10 +562,6 @@ public class VerticoxEndpointTest {
 
         AttributeRequirement req = new AttributeRequirement();
         req.setValue(new Attribute(Attribute.AttributeType.numeric, "1", "x6"));
-        ObjectMapper mapper = new ObjectMapper();
-
-        String json = mapper.writeValueAsString(req);
-        System.out.println(json);
         //this selects individuals: 2,4,6,8, & 10
 
 
