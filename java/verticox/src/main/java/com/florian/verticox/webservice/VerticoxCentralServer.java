@@ -52,6 +52,8 @@ public class VerticoxCentralServer extends CentralServer {
         if (secretEndpoint == null) {
             secretEndpoint = new ServerEndpoint(secretServer);
         }
+        endpoints.stream().forEach(x -> x.initEndpoints());
+        secretEndpoint.initEndpoints();
     }
 
     @PostMapping ("initCentralServer")
@@ -64,14 +66,16 @@ public class VerticoxCentralServer extends CentralServer {
     @PutMapping ("setPrecisionCentral")
     public void setPrecisionCentral(int precision) {
         initEndpoints();
+
         this.precision = precision;
         multiplier = BigDecimal.valueOf(Math.pow(TEN, precision));
         endpoints.stream().forEach(x -> ((VerticoxEndpoint) x).setPrecision(precision));
     }
 
     @PostMapping ("sumRelevantValues")
-    public BigDecimal sumRelevantValues(@RequestBody SumPredictorInTimeFrameRequest req) {
+    public double sumRelevantValues(@RequestBody SumPredictorInTimeFrameRequest req) {
         initEndpoints();
+
         List<ServerEndpoint> relevantEndpoints = new ArrayList<>();
         BigDecimal divider = BigDecimal.ONE;
         for (ServerEndpoint endpoint : endpoints) {
@@ -95,7 +99,7 @@ public class VerticoxCentralServer extends CentralServer {
             BigDecimal result = new BigDecimal(nparty(relevantEndpoints, secretEndpoint).toString());
 
 
-            return result.divide(divider);
+            return result.divide(divider).doubleValue();
         }
     }
 

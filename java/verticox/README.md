@@ -1,22 +1,20 @@
 ## Verticox N-party scalar product protocol wrapper
 
 This is a wrapper that can be used to incorperate the N-party scalar product protocol within verticox by Dai et al. The
-advantage of using this wrapper is that you no longer need to share the time of events among all parties. This wrapper
-allows you to set a value per individual. Then insert this value into the n-party protocol.
+advantage of using this wrapper is that you no longer need to share the outcome among all parties. Instead this wrapper
+will calculate the value in a privacy preserving manner. See associated powerpoint in this repositories for a more
+detailed explanation.
 
-The assumption is that only 1 party contains values (e.g. co-variates) for a given value the other parties only contain
-selection criteria (e.g. individual is right-cencored, individual has event-time t ). It is possible for party A to
-contain values for individual 1, party B for individual 2 and party C knows the selection criteria. It is also
-acceptable if A knows both the relevant values & selection criteria. It can als be the case that both A & B know
-relevant values due to a hybrid split. In this case missing records need to have a value of 1. E.g. A has record 1,2,3 B
-has record 4,5,6 then the data needs to look as follows: A = [A1,A2,A3,1,1,1] B= [1,1,1,B1,B1,B1]
+It is possible for party A to contain values for individual 1, party B for individual 2 and party C knows the selection
+criteria. It is also acceptable if A knows both the relevant values & selection criteria. It can als be the case that
+both A & B know relevant values due to a hybrid split. In this case missing records need to have a value of ?. E.g. A
+has record 1,2,3 B has record 4,5,6 then the data needs to look as follows: A = [A1,A2,A3,?,?,?] B= [?,?,?,B1,B1,B1]
+Similarly the attribute used for the selection criteria may be split up as well.
 
 To use this method the following needs to be done:
 
 1) setPrecision (default 5)
-2) determineMinimumTimeInterval (can be skipped if you minimumTimeInterval are already known)
-3) setValues for the party who owns the relevant data
-4) sumRelevantValues
+2) sumRelevantValues
 
 ## Implemented methods:
 
@@ -33,22 +31,9 @@ keep everything alligned use setPrecisionCentral
 
 Sums the values based on the relevant individuals. Expected input:
 
-- Predictor to be summed
-- AttributeRequirement indicating the relevant time period
+- Predictor: the predicator to be summed
+- Requirements: list of attributeRequirement indicating the relevant individuals
 
-### Handling a Hybird split in the data
+### SOAPUI example project
 
-To handle a Hybrid split in your data include an attributecolumn in all relevant datasets named "locallyPresent" with "
-bool" as it's type. Locally available data should have the value "TRUE". Missing records are then inserted as a row that
-has the value "FALSE" for this attribute. This should be handled in a preprocessing step.
-
-Important to note; datasets still need to have the same ordering for their records. It is assumed that recordlinkage is
-handled in a preprocessing step as well.
-
-This functionality is only available in the java implementation.
-
-#### SOAPUI example project
-
-A SOAPUI example project is also present in this repository. Do be aware that the method "setValues" does not work
-straightforwardly as it requires also using the correct keys for the various encryptions. This isn't easily doable in
-SOAPUI. However, it serves as an example for the various requests
+A SOAPUI example project is also present in this repository.
