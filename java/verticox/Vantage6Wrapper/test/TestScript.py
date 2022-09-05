@@ -45,6 +45,16 @@ bins = False
 task = verticox.verticox(collaboration_id, commodity_node, [node1, node2], requirements, predictors   )
 
 done = False
+
+
+print(client.node.list(is_online=True))
+
+nodes = client.node.list(is_online=True)
+# TODO: Add pagination support
+nodes = nodes['data']
+xsad = [n['organization']['id'] for n in nodes]
+print(xsad)
+
 while(not done):
     for r in task['results']:
         updated = client.result.get(r['id'])

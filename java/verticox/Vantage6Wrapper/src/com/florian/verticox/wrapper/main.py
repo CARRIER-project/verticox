@@ -12,7 +12,7 @@ RETRY = 20
 IMAGE = 'harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox_predictors'
 
 
-def verticoxPredictors(client, data,nodes, requirements, predictors, *args, **kwargs):
+def verticoxPredictors(client, data, nodes, requirements, predictors, *args, **kwargs):
         """
     
         :param client:
@@ -23,8 +23,13 @@ def verticoxPredictors(client, data,nodes, requirements, predictors, *args, **kw
         """
         tasks = []
         info('Initializing nodes')
+        info('Dit is de nieuwste image')
+        i = 0
+        print(nodes)
         for node in nodes:
+            info('Node ' + str(i))
             tasks.append(_initEndpoints(client, [node]))
+            i = i+1
 
         # TODO: init commodity server on a different server?
         info('initializing commodity server')
@@ -106,11 +111,10 @@ def _setId(ip: str, id:str):
     r = requests.post(ip + "/setID?id="+id)
 
 def _initEndpoints(client, organizations):
+    print('Dit is in de init')
+    print(organizations)
     # start the various java endpoints for n2n
-    return client.post_task(
-        name="verticox_predictors_spring",
-        image=IMAGE,
-        collaboration_id=1,
+    return client.create_new_task(
         input_={'method': 'init'},
         organization_ids=organizations
     )
