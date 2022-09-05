@@ -14,8 +14,8 @@ class VerticoxPredictorsClient:
         self.client = client
 
     def verticox(self, collaboration, commodity_node, nodes, requirements,predictors):
-            return self.client.task.create(collaboration=collaboration,
-                                           organizations=[commodity_node],
-                                           name=NAME, image=IMAGE, description=NAME,
-                                           input={'method': 'verticoxPredictors', 'master': True,
-                                                  'args': [nodes, requirements, predictors]})
+        return self.client.task.create(collaboration=collaboration,
+                                       organizations=[commodity_node],
+                                       name=NAME, image=IMAGE, description=NAME,
+                                       input={'method': 'verticoxPredictors', 'master': True,
+                                              'args': [nodes, requirements, predictors]})
