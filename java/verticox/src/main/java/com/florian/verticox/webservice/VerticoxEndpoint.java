@@ -4,6 +4,7 @@ import com.florian.nscalarproduct.webservice.Server;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.verticox.webservice.domain.InitDataResponse;
 import com.florian.verticox.webservice.domain.SumPredictorInTimeFrameRequest;
+import com.florian.verticox.webservice.domain.SumZRequest;
 
 public class VerticoxEndpoint extends ServerEndpoint {
     public VerticoxEndpoint(Server server) {
@@ -27,6 +28,22 @@ public class VerticoxEndpoint extends ServerEndpoint {
             return ((VerticoxServer) (server)).initData(req);
         } else {
             return REST_TEMPLATE.postForEntity(serverUrl + "/initData", req, InitDataResponse.class).getBody();
+        }
+    }
+
+    public InitDataResponse initRt(SumZRequest req) {
+        if (testing) {
+            return ((VerticoxServer) (server)).initRt(req);
+        } else {
+            return REST_TEMPLATE.postForEntity(serverUrl + "/initData", req, InitDataResponse.class).getBody();
+        }
+    }
+
+    public void initZData(double[] z) {
+        if (testing) {
+            ((VerticoxServer) (server)).initZData(z);
+        } else {
+            REST_TEMPLATE.put(serverUrl + "/initZData", z);
         }
     }
 

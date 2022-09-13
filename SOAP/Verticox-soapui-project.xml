@@ -17,4 +17,22 @@
     "name": "x6"
   }],
   "predictor": "x4"
-}</con:request><con:originalUri>http://localhost/sumRelevantValues</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request></con:method></con:resource></con:interface><con:properties/><con:wssContainer/><con:oAuth2ProfileContainer/><con:oAuth1ProfileContainer/><con:sensitiveInformation/></con:soapui-project>
+}</con:request><con:originalUri>http://localhost/sumRelevantValues</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request></con:method></con:resource><con:resource name="initZData" path="/postZ" id="3f7c2537-f089-4afd-b638-318655e30728"><con:settings/><con:parameters/><con:method name="Method 1" id="53a6e9e4-acb4-4ae0-aecf-a67d54d4d823" method="POST"><con:settings/><con:parameters/><con:representation type="FAULT"><con:mediaType>application/json</con:mediaType><con:status>405 400</con:status><con:params/><con:element xmlns:pos="http://localhost/postZ">pos:Fault</con:element></con:representation><con:representation type="REQUEST"><con:mediaType>application/json</con:mediaType><con:params/></con:representation><con:representation type="RESPONSE"><con:mediaType xsi:nil="true"/><con:status>200</con:status><con:params/><con:element>data</con:element></con:representation><con:request name="Request 1" id="5f6aa92d-2088-45b0-85b4-8ffad34ee818" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:8080</con:endpoint><con:request>{
+  "endpoint" : "2",
+  "z" : [ 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 ]
+}</con:request><con:originalUri>http://localhost/postZ</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request></con:method></con:resource><con:resource name="sumZValues" path="/sumZValues" id="596c2088-325f-4f0f-afbb-39abfd88dca3"><con:settings/><con:parameters/><con:method name="Method 1" id="58b690c4-1218-4754-81a8-8a34a2d85672" method="POST"><con:settings/><con:parameters/><con:representation type="REQUEST"><con:mediaType>application/json</con:mediaType><con:params/></con:representation><con:representation type="RESPONSE"><con:mediaType>application/json</con:mediaType><con:status>200</con:status><con:params/></con:representation><con:request name="Request 1" id="89e8640b-df15-4602-b2b1-6d686d4f3d13" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:8080</con:endpoint><con:request>{
+  "requirements": [{
+    "value": {
+      "type": "numeric",
+      "value": "1",
+      "attributeName": "x6",
+      "id": null,
+      "uknown": false
+    },
+    "range": false,
+    "upperLimit": null,
+    "lowerLimit": null,
+    "name": "x6"
+  }],
+  "endpoint": "2"
+}</con:request><con:originalUri>http://localhost/sumZValues</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request></con:method></con:resource></con:interface><con:properties/><con:wssContainer/><con:oAuth2ProfileContainer/><con:oAuth1ProfileContainer/><con:sensitiveInformation/></con:soapui-project>
