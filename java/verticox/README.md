@@ -15,6 +15,8 @@ To use this method the following needs to be done:
 
 1) setPrecision (default 5)
 2) sumRelevantValues
+3) postZ
+4) sumZvalues
 
 ## Implemented methods:
 
@@ -32,6 +34,21 @@ keep everything alligned use setPrecisionCentral
 Sums the values based on the relevant individuals. Expected input:
 
 - Predictor: the predicator to be summed
+- Requirements: list of attributeRequirement indicating the relevant individuals
+
+### postZ:
+
+Updates the local z-values. Expected input:
+
+- z: array of doubles representing the z values
+- endpoint: name of the relevant server
+-
+
+### sumZValues:
+
+Sums the Z values based on the relevant individuals. Expected input:
+
+- endpoint: the endpoint containing the relevant z values
 - Requirements: list of attributeRequirement indicating the relevant individuals
 
 ### SOAPUI example project

@@ -214,6 +214,54 @@ public class VerticoxEndpointTest {
     }
 
     @Test
+    public void testValuesMultiplicationX3_SplitRequirements()
+            throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
+        VerticoxServer serverZ = new VerticoxServer("resources/smallK2Example_secondhalf.csv", "Z");
+        VerticoxEndpoint endpointZ = new VerticoxEndpoint(serverZ);
+
+        VerticoxServer server2 = new VerticoxServer("resources/smallK2Example_firsthalf.csv", "2");
+        VerticoxEndpoint endpoint2 = new VerticoxEndpoint(server2);
+
+        AttributeRequirement req = new AttributeRequirement();
+        AttributeRequirement req2 = new AttributeRequirement();
+        req.setValue(new Attribute(Attribute.AttributeType.numeric, "1", "x1"));
+        req2.setValue(new Attribute(Attribute.AttributeType.numeric, "1", "x3"));
+        //this selects individuals: 4,7, & 9
+
+
+        VerticoxServer secret = new VerticoxServer("3", Arrays.asList(endpointZ, endpoint2));
+        ServerEndpoint secretEnd = new ServerEndpoint(secret);
+
+        List<ServerEndpoint> all = new ArrayList<>();
+        all.add(endpointZ);
+        all.add(endpoint2);
+        all.add(secretEnd);
+        secret.setEndpoints(all);
+        serverZ.setEndpoints(all);
+        server2.setEndpoints(all);
+
+        VerticoxCentralServer central = new VerticoxCentralServer(true);
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
+
+        int precision = 4;
+
+        endpointZ.setPrecision(precision);
+        endpoint2.setPrecision(precision);
+        central.setPrecisionCentral(precision);
+        secret.setPrecision(precision);
+
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
+
+        SumPredictorInTimeFrameRequest request = new SumPredictorInTimeFrameRequest();
+        request.setRequirements(Arrays.asList(req, req2));
+        request.setPredictor("x4");
+        double result = central.sumRelevantValues(request);
+        int expected = 8;
+
+        assertEquals(result, expected);
+    }
+
+    @Test
     public void testValuesMultiplicationX3_Range_LargerThan1()
             throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
         VerticoxServer serverZ = new VerticoxServer("resources/smallK2Example_secondhalf.csv", "Z");

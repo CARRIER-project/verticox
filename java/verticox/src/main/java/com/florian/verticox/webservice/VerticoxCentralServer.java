@@ -4,9 +4,7 @@ import com.florian.nscalarproduct.station.CentralStation;
 import com.florian.nscalarproduct.webservice.CentralServer;
 import com.florian.nscalarproduct.webservice.Protocol;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
-import com.florian.verticox.webservice.domain.InitCentralServerRequest;
-import com.florian.verticox.webservice.domain.InitDataResponse;
-import com.florian.verticox.webservice.domain.SumPredictorInTimeFrameRequest;
+import com.florian.verticox.webservice.domain.*;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -87,6 +85,47 @@ public class VerticoxCentralServer extends CentralServer {
                 }
             }
         }
+
+        if (relevantEndpoints.size() == 1) {
+            // only one relevant party, make things easy and just sum stuff
+            return ((VerticoxEndpoint) relevantEndpoints.get(0)).getSum();
+        } else {
+
+            secretEndpoint.addSecretStation("start", relevantEndpoints.stream().map(x -> x.getServerId()).collect(
+                    Collectors.toList()), relevantEndpoints.get(0).getPopulation());
+
+            BigDecimal result = new BigDecimal(nparty(relevantEndpoints, secretEndpoint).toString());
+
+
+            return result.divide(divider).doubleValue();
+        }
+    }
+
+    @PostMapping ("postZ")
+    public void postZ(@RequestBody InitZRequest z) {
+        for (ServerEndpoint e : endpoints) {
+            if (e.getServerId().equals(z.getEndpoint())) {
+                ((VerticoxEndpoint) e).initZData(z.getZ());
+            }
+        }
+    }
+
+    @PostMapping ("sumZValues")
+    public double sumZValues(@RequestBody SumZRequest req) {
+        initEndpoints();
+
+        List<ServerEndpoint> relevantEndpoints = new ArrayList<>();
+        BigDecimal divider = BigDecimal.ONE;
+        for (ServerEndpoint endpoint : endpoints) {
+            InitDataResponse response = ((VerticoxEndpoint) endpoint).initRt(req);
+            if (response.isRelevant()) {
+                relevantEndpoints.add(endpoint);
+                if (response.isPredictorPresent()) {
+                    divider = divider.multiply(multiplier);
+                }
+            }
+        }
+
 
         if (relevantEndpoints.size() == 1) {
             // only one relevant party, make things easy and just sum stuff

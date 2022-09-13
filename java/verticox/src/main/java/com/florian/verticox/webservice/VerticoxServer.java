@@ -9,6 +9,7 @@ import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
 import com.florian.verticox.webservice.domain.InitDataResponse;
 import com.florian.verticox.webservice.domain.SumPredictorInTimeFrameRequest;
+import com.florian.verticox.webservice.domain.SumZRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,6 +30,7 @@ public class VerticoxServer extends Server {
     private int precision = DEFAULT_PRECISION; //precision for the n-party protocol since that works with integers
     private BigDecimal multiplier = BigDecimal.valueOf(Math.pow(TEN, precision));
     private final RSA rsa = new RSA();
+    private BigInteger[] z;
 
     private static final int MINIMUM_EVENT_POPULATION = 10;
 
@@ -84,13 +86,7 @@ public class VerticoxServer extends Server {
         }
 
         boolean predictorPresent = isLocallyPresent(request.getPredictor());
-        boolean requirementPresent = true;
-        for (AttributeRequirement r : request.getRequirements()) {
-            if (!isLocallyPresent(r.getName())) {
-                requirementPresent = false;
-                break;
-            }
-        }
+        boolean requirementPresent = isRequirementPresent(request.getRequirements());
 
         if (requirementPresent) {
             // If the time variable is locally present select individuals
@@ -126,6 +122,75 @@ public class VerticoxServer extends Server {
         return response;
     }
 
+    private boolean isRequirementPresent(
+            List<AttributeRequirement> requirements) {
+        boolean requirementPresent = false;
+        for (AttributeRequirement r : requirements) {
+            if (isLocallyPresent(r.getName())) {
+                // there can theoretically be multiple requirements, only care if at least 1 is locally present
+                requirementPresent = true;
+                break;
+            }
+        }
+        return requirementPresent;
+    }
+
+    @PostMapping ("initRt")
+    public InitDataResponse initRt(@RequestBody SumZRequest request) {
+        reset();
+        if (this.data == null) {
+            readData();
+        }
+        boolean zLocal = false;
+        if (request.getEndpoint().equals(this.getServerId())) {
+            zLocal = true;
+        }
+
+        boolean requirementPresent = isRequirementPresent(request.getRequirements());
+
+        if (requirementPresent) {
+            // If the time variable is locally present select individuals
+            selectIndividuals(request.getRequirements());
+        }
+        if (zLocal) {
+            // If z is locally present
+            if (requirementPresent) {
+                // Time variable was present, so multiply all selected population with the predictor value
+                for (int i = 0; i < population; i++) {
+                    // selected population currently has localData = 1
+                    // Not selected currently has localData = 0
+                    // This way if the criteria & data are in the same location only the applicable population is
+                    // selected
+                    localData[i] = localData[i].multiply(z[i]);
+                }
+            } else {
+                // Time variable was not present, so just insert the predictor value
+                localData = new BigInteger[population];
+                for (int i = 0; i < population; i++) {
+                    localData[i] = z[i];
+                }
+            }
+        }
+        if (zLocal || requirementPresent) {
+            this.population = localData.length;
+            this.dataStations.put("start", new DataStation(this.serverId, this.localData));
+        }
+
+        InitDataResponse response = new InitDataResponse();
+        response.setOutcomePresent(requirementPresent);
+        response.setPredictorPresent(zLocal);
+        return response;
+    }
+
+    @PutMapping ("initZData")
+    public void initZData(@RequestBody double[] z) {
+        reset();
+        this.z = new BigInteger[z.length];
+        for (int i = 0; i < z.length; i++) {
+            this.z[i] = new BigDecimal(String.valueOf(z[i])).multiply(multiplier).toBigIntegerExact();
+        }
+    }
+
     private BigInteger transForm(Attribute attribute) {
         if (attribute.isUknown()) {
             //if locally unknown set to 1, another party will set it to the correct value and 1xvalue=value
@@ -157,13 +222,15 @@ public class VerticoxServer extends Server {
         List<List<Attribute>> values = data.getData();
         for (AttributeRequirement req : reqs) {
             for (int i = 0; i < population; i++) {
-                Attribute a = values.get(data.getAttributeCollumn(req.getName())).get(i);
-                if (locallyUnknown(a)) {
-                    // attribute is locally unknown so ignore it in this vector, another party will correct this
-                    continue;
-                } else if (!req.checkRequirement(a)) {
-                    // attribute is locally
-                    localData[i] = BigInteger.ZERO;
+                if (isLocallyPresent(req.getName())) {
+                    Attribute a = values.get(data.getAttributeCollumn(req.getName())).get(i);
+                    if (locallyUnknown(a)) {
+                        // attribute is locally unknown so ignore it in this vector, another party will correct this
+                        continue;
+                    } else if (!req.checkRequirement(a)) {
+                        // attribute is locally known and the check fails
+                        localData[i] = BigInteger.ZERO;
+                    }
                 }
             }
         }
