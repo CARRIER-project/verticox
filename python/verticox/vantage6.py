@@ -143,6 +143,7 @@ def RPC_run_datanode(data: pd.DataFrame, feature_columns: List[str], event_time_
     info(f'Feature columns: {feature_columns}')
     info(f'Event time column: {event_time_column}')
     info(f'Event happened column: {event_happened_column}')
+
     # The current datanode might not have all the features
     feature_columns = [f for f in feature_columns if f in data.columns]
 
