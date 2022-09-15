@@ -1,7 +1,5 @@
 package com.florian.verticox.webservice;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.florian.nscalarproduct.data.Attribute;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
@@ -192,13 +190,6 @@ public class VerticoxEndpointZTest {
         request.setZ(z);
 
         central.postZ(request);
-
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(request));
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
 
 
         SumZRequest request2 = new SumZRequest();
