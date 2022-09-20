@@ -192,7 +192,7 @@ public class VerticoxServer extends Server {
     }
 
     private BigInteger transForm(Attribute attribute) {
-        if (attribute.isUknown()) {
+        if (attribute.isUnknown()) {
             //if locally unknown set to 1, another party will set it to the correct value and 1xvalue=value
             return BigDecimal.ONE.multiply(multiplier).toBigIntegerExact();
         } else {
@@ -242,7 +242,7 @@ public class VerticoxServer extends Server {
     }
 
     private boolean locallyUnknown(Attribute a) {
-        return a.isUknown();
+        return a.isUnknown();
     }
 
     private void readData() {
