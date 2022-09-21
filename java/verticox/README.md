@@ -36,6 +36,27 @@ Sums the values based on the relevant individuals. Expected input:
 - Predictor: the predicator to be summed
 - Requirements: list of attributeRequirement indicating the relevant individuals
 
+
+Example input:
+```json
+{
+    "requirements": [{
+        "value": {
+            "type": "numeric",
+            "value": "1",
+            "attributeName": "x6",
+            "id": null,
+            "uknown": false
+        },
+        "range": false,
+        "upperLimit": null,
+        "lowerLimit": null,
+        "name": "x6"
+    }],
+    "endpoint": "2"
+}
+```
+
 ### postZ:
 
 Updates the local z-values. Expected input:
@@ -50,6 +71,7 @@ Sums the Z values based on the relevant individuals. Expected input:
 
 - endpoint: the endpoint containing the relevant z values
 - Requirements: list of attributeRequirement indicating the relevant individuals
+
 
 ### SOAPUI example project
 
