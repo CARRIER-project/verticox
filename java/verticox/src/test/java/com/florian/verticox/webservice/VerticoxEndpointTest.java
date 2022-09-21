@@ -1,6 +1,5 @@
 package com.florian.verticox.webservice;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.florian.nscalarproduct.data.Attribute;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
@@ -597,8 +596,7 @@ public class VerticoxEndpointTest {
 
     @Test
     public void testValuesMultiplicationX6_SelectorHybridSplit_ThreeServers()
-            throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException,
-                   JsonProcessingException {
+            throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
         VerticoxServer serverZ = new VerticoxServer("resources/smallK2Example_secondhalf.csv", "Z");
         VerticoxEndpoint endpointZ = new VerticoxEndpoint(serverZ);
 
