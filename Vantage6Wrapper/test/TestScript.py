@@ -2,9 +2,9 @@ import vantage6.client as v6client
 
 from com.florian.verticox.wrapper.client import VerticoxPredictorsClient
 
-PRIVATE_KEY_DIR= "C:\Florian\GIT\KEY\CARRIERSurfKey.pem"
-USERNAME="florian"
-PASSWORD="IUkRf79Qm4f0Qqm6!"
+PRIVATE_KEY_DIR= ""
+USERNAME=""
+PASSWORD="!"
 
 
 HOST = 'https://v6server.carrier-mu.src.surf-hosted.nl'
