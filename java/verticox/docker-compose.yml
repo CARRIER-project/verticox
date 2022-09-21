@@ -1,0 +1,28 @@
+version: "3"
+
+services:
+  commodity:
+    image: openjdk
+    volumes:
+      - ${PWD}/$JARFILE:/app/application.jar
+      - ${PWD}/src/main/resources/application-commodity.properties:/app/application.properties
+    working_dir: /app
+    command: java -jar ./application.jar -DPROP_FILE=application.properties
+    ports:
+      - "8080:80"
+
+  datanode1:
+    image: openjdk
+    volumes:
+      - ${PWD}/$JARFILE:/app/application.jar
+      - ${PWD}/src/main/resources/application-datanode1.properties:/app/application.properties
+    working_dir: /app
+    command: java -jar ./application.jar -DPROP_FILE=application.properties
+
+  datanode2:
+    image: openjdk
+    volumes:
+      - ${PWD}/$JARFILE:/app/application.jar
+      - ${PWD}/src/main/resources/application-datanode2.properties:/app/application.properties
+    working_dir: /app
+    command: java -jar ./application.jar -DPROP_FILE=application.properties
