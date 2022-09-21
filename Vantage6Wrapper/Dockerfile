@@ -30,7 +30,7 @@ WORKDIR /build/verticox
 RUN git clone --branch verticox-improved git@github.com:CARRIER-project/verticox.git
 
 WORKDIR /build/verticox/verticox/java/verticox
-RUN mvn package -Dmaven.test.skip
+RUN mvn install -Dmaven.test.skip
 
 FROM openjdk:17-slim as runner
 
