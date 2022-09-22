@@ -47,7 +47,8 @@ RUN pip3 install --no-cache setuptools wheel poetry
 COPY --from=builder /build/verticox/verticox/java/verticox/target/verticox*.jar $JAR_PATH
 
 # install federated algorithm
-COPY . /app
+COPY /src/. /app/src
+COPY ./pyproject.toml /app/pyproject.toml
 
 
 WORKDIR /app
