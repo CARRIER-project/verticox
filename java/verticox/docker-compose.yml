@@ -6,6 +6,7 @@ services:
     volumes:
       - ${PWD}/$JARFILE:/app/application.jar
       - ${PWD}/src/main/resources/application-commodity.properties:/app/application.properties
+      - ${PWD}/resources/smallK2Example_firsthalf.csv:/data/data.csv
     working_dir: /app
     command: java -jar ./application.jar -DPROP_FILE=application.properties
     ports:
@@ -16,6 +17,7 @@ services:
     volumes:
       - ${PWD}/$JARFILE:/app/application.jar
       - ${PWD}/src/main/resources/application-datanode1.properties:/app/application.properties
+      - ${PWD}/resources/smallK2Example_secondhalf.csv:/data/data.csv
     working_dir: /app
     command: java -jar ./application.jar -DPROP_FILE=application.properties
 
@@ -24,5 +26,6 @@ services:
     volumes:
       - ${PWD}/$JARFILE:/app/application.jar
       - ${PWD}/src/main/resources/application-datanode2.properties:/app/application.properties
+      - ${PWD}/resources/smallK2Example_thirdhalf.csv:/data/data.csv
     working_dir: /app
     command: java -jar ./application.jar -DPROP_FILE=application.properties
