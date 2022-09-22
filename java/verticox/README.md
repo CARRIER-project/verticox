@@ -27,7 +27,7 @@ Set the precision to be used for double values for the product protocol. Expecte
 - An int indicating the precision
 
 Default precision used is 5. Always make sure to keep the precision the same across the various parties involved. To
-keep everything alligned use setPrecisionCentral
+keep everything aligned use setPrecisionCentral
 
 ### sumRelevantValues:
 
