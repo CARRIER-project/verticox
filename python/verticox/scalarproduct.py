@@ -1,6 +1,7 @@
 from typing import List
 
 import requests
+from requests.exceptions import ConnectionError
 import logging
 
 _DEFAULT_PRECISION = 5
@@ -28,23 +29,6 @@ class ScalarProductClient:
         self._init_datanodes(self._address, other_addresses)
         self._set_precision(precision)
 
-    def _init_datanodes(self, internal_address, other_addresses):
-        for address in other_addresses:
-            others = other_addresses.copy()
-            others.remove(address)
-            others.append(internal_address)
-            self.put_endpoints(address, others)
-
-    def _set_precision(self, precision):
-        params = {'precision': precision}
-        self._put(_SET_PRECISION, params=params)
-
-    def _init_central_server(self, central_server, other_nodes):
-        json={'secretServer': central_server, 'servers': other_nodes}
-        _logger.debug(f'Initializing central server with: {json}')
-        self._post(_INIT_CENTRAL_SERVER,
-                   json=json)
-
     # TODO: Make sure terminology is consistent over all code
     def sum_relevant_values(self, feature_name, time_name, time_value):
         parameters = {
@@ -65,6 +49,33 @@ class ScalarProductClient:
     def sum_z_values(self):
         pass
 
+    def kill_nodes(self):
+        nodes_to_kill = self.other_addresses + [self._address]
+
+        for n in nodes_to_kill:
+            try:
+                self._kill_endpoint(n)
+            except ConnectionError:
+                # A connection error means that the node has successfully shut down (most likely)
+                pass
+
+    def _init_datanodes(self, internal_address, other_addresses):
+        for address in other_addresses:
+            others = other_addresses.copy()
+            others.remove(address)
+            others.append(internal_address)
+            self._put_endpoints(address, others)
+
+    def _set_precision(self, precision):
+        params = {'precision': precision}
+        self._put(_SET_PRECISION, params=params)
+
+    def _init_central_server(self, central_server, other_nodes):
+        json = {'secretServer': central_server, 'servers': other_nodes}
+        _logger.debug(f'Initializing central server with: {json}')
+        self._post(_INIT_CENTRAL_SERVER,
+                   json=json)
+
     def _request(self, method, endpoint, **kwargs):
         url = self._get_url(endpoint)
         result = requests.request(method, url, **kwargs)
@@ -78,6 +89,7 @@ class ScalarProductClient:
 
     def _get(self, endpoint, **kwargs):
         return self._request('get', endpoint, **kwargs)
+
     def _put(self, endpoint, **kwargs):
         return self._request('put', endpoint, **kwargs)
 
@@ -91,7 +103,7 @@ class ScalarProductClient:
             address = self._address
         return f'{address}/{endpoint}'
 
-    def put_endpoints(self, targetUrl, others):
+    def _put_endpoints(self, targetUrl, others):
         payload = {"servers": others}
         url = f'{targetUrl}/{_SET_ENDPOINTS}'
         requests.post(url, json=payload, timeout=10)
@@ -102,10 +114,15 @@ class ScalarProductClient:
 
 def main():
     datanodes = ['datanode1', 'datanode2']
-
-    client = ScalarProductClient('commodity', datanodes)
+    commodity_node = 'commodity'
+    client = ScalarProductClient(commodity_node, datanodes)
 
     client.sum_relevant_values('x3', 'x6', 1)
+    # TODO: Implement postz and sumzvalues
+
+    client.kill_nodes()
+
+    _logger.info('All steps have run succesfully')
 
 
 if __name__ == '__main__':
