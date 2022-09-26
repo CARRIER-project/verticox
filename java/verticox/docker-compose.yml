@@ -29,3 +29,6 @@ services:
       - ${PWD}/resources/smallK2Example_thirdhalf.csv:/data/data.csv
     working_dir: /app
     command: java -jar ./application.jar -DPROP_FILE=application.properties
+
+  pythonnode:
+    image: continuumio/miniconda3
