@@ -1,5 +1,5 @@
 from collections import namedtuple
-from typing import List
+from typing import List, Optional
 
 import requests
 from requests.exceptions import ConnectionError
@@ -17,21 +17,21 @@ logging.basicConfig(level=logging.DEBUG)
 _logger = logging.getLogger(__name__)
 
 
-NPartyParameters = namedtuple('NPartyParameters',['commodity_address', 'other_addresses',
-                                                  'precision'])
-
+# TODO: Split up in datanode client and aggregator client
 class NPartyScalarProductClient:
 
-    def __init__(self, commodity_address: str = None, other_addresses: List[str] = None,
-                 precision=_DEFAULT_PRECISION, ):
+    def __init__(self, commodity_address: str, other_addresses: Optional[List[str]] = None,
+                 precision: Optional[int] = _DEFAULT_PRECISION, ):
         self._address = f'{_PROTOCOL}{commodity_address}'
 
         other_addresses = [f'{_PROTOCOL}{a}' for a in other_addresses]
         self.other_addresses = other_addresses
+        self.precision = precision
 
-        self._init_central_server(self._address, other_addresses)
-        self._init_datanodes(self._address, other_addresses)
-        self._set_precision(precision)
+    def initialize_servers(self):
+        self._init_central_server(self._address, self.other_addresses)
+        self._init_datanodes(self._address, self.other_addresses)
+        self._set_precision(self.precision)
 
     # TODO: Make sure terminology is consistent over all code
     def sum_relevant_values(self, numeric_feature, boolean_feature, boolean_value):
