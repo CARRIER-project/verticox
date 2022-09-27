@@ -25,7 +25,7 @@ class DataNode(DataNodeServicer):
                  event_times: Optional[np.array] = None,
                  event_happened: Optional[np.array] = None, name=None, server=None,
                  censor_name: Optional[str] = None, censor_value: bool = True,
-                 n_party_parameters: NPartyParameters = None):
+                 n_party_address: str = None):
         """
 
         Args:
@@ -43,7 +43,6 @@ class DataNode(DataNodeServicer):
         self.event_times = event_times
         self.event_happened = event_happened
         self.server = server
-        self.n_party_parameters = n_party_parameters
         # Parts that stay constant over iterations
         # Square all covariates and sum them together
         # The formula says for every patient, x needs to be multiplied by itself.
@@ -54,6 +53,7 @@ class DataNode(DataNodeServicer):
         self.num_samples = self.features.shape[0]
         self.censor_name = censor_name
         self.censor_value = censor_value
+        self.n_party_address = n_party_address
 
         self.rho = None
         self.beta = None
@@ -64,6 +64,7 @@ class DataNode(DataNodeServicer):
         self.Dt = None
         self.sum_Dt = None
         self.prepared = False
+
 
     @staticmethod
     @np.vectorize
@@ -100,9 +101,9 @@ class DataNode(DataNodeServicer):
 
     @staticmethod
     def compute_sum_Dt_n_party_scalar_product(local_feature_names, censor_feature,
-                                              censor_value, n_party_parameters):
+                                              censor_value, commodity_address):
         logger.debug('Computing sum Dt with n party scalar product')
-        client = NPartyScalarProductClient(*n_party_parameters)
+        client = NPartyScalarProductClient(commodity_address=commodity_address)
 
         result = np.zeros(len(local_feature_names))
 
