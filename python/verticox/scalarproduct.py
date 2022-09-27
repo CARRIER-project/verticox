@@ -1,3 +1,4 @@
+from collections import namedtuple
 from typing import List
 
 import requests
@@ -16,10 +17,13 @@ logging.basicConfig(level=logging.DEBUG)
 _logger = logging.getLogger(__name__)
 
 
-class ScalarProductClient:
+NPartyParameters = namedtuple('NPartyParameters',['commodity_address', 'other_addresses',
+                                                  'precision'])
 
-    def __init__(self, commodity_address: str, other_addresses: List[str],
-                 precision=_DEFAULT_PRECISION):
+class NPartyScalarProductClient:
+
+    def __init__(self, commodity_address: str = None, other_addresses: List[str] = None,
+                 precision=_DEFAULT_PRECISION, ):
         self._address = f'{_PROTOCOL}{commodity_address}'
 
         other_addresses = [f'{_PROTOCOL}{a}' for a in other_addresses]
@@ -30,17 +34,17 @@ class ScalarProductClient:
         self._set_precision(precision)
 
     # TODO: Make sure terminology is consistent over all code
-    def sum_relevant_values(self, feature_name, time_name, time_value):
+    def sum_relevant_values(self, numeric_feature, boolean_feature, boolean_value):
         parameters = {
             'requirements': [{
                 'value': {
                     'type': 'numeric',
-                    'value': time_value,
-                    'attributeName': time_name,
+                    'value': boolean_value,
+                    'attributeName': boolean_feature,
                 },
                 'range': False
             }],
-            'predictor': feature_name
+            'predictor': numeric_feature
         }
         _logger.debug(f'Sum relevant values parameters: {parameters}')
         result = self._post(_SUM_RELEVANT_VALUES, json=parameters)
@@ -115,7 +119,7 @@ class ScalarProductClient:
 def main():
     datanodes = ['datanode1', 'datanode2']
     commodity_node = 'commodity'
-    client = ScalarProductClient(commodity_node, datanodes)
+    client = NPartyScalarProductClient(commodity_node, datanodes)
 
     client.sum_relevant_values('x3', 'x6', 1)
     # TODO: Implement postz and sumzvalues
