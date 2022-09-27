@@ -12,6 +12,7 @@ from verticox.common import group_samples_on_event_time
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
     NumSamples, Empty, Beta, FeatureNames
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
+from verticox.scalarproduct import NPartyScalarProductClient, NPartyParameters
 
 logger = logging.getLogger(__name__)
 DEFAULT_PORT = 7777
@@ -22,7 +23,9 @@ TIMEOUT = 3600
 class DataNode(DataNodeServicer):
     def __init__(self, features: np.array = None, feature_names: Optional[List[str]] = None,
                  event_times: Optional[np.array] = None,
-                 event_happened: Optional[np.array] = None, name=None, server=None):
+                 event_happened: Optional[np.array] = None, name=None, server=None,
+                 censor_name: Optional[str] = None, censor_value: bool = True,
+                 n_party_parameters: NPartyParameters = None):
         """
 
         Args:
@@ -40,7 +43,7 @@ class DataNode(DataNodeServicer):
         self.event_times = event_times
         self.event_happened = event_happened
         self.server = server
-
+        self.n_party_parameters = n_party_parameters
         # Parts that stay constant over iterations
         # Square all covariates and sum them together
         # The formula says for every patient, x needs to be multiplied by itself.
@@ -49,6 +52,8 @@ class DataNode(DataNodeServicer):
         self.features_multiplied = DataNode._multiply_features(features)
 
         self.num_samples = self.features.shape[0]
+        self.censor_name = censor_name
+        self.censor_value = censor_value
 
         self.rho = None
         self.beta = None
@@ -71,7 +76,11 @@ class DataNode(DataNodeServicer):
         self.beta = np.full((self.num_features,), request.beta)
         self.rho = request.rho
         self.Dt = group_samples_on_event_time(self.event_times, self.event_happened)
-        self.sum_Dt = self.compute_sum_Dt(self.Dt, self.features)
+        #self.sum_Dt = self.compute_sum_Dt(self.Dt, self.features)
+        self.sum_Dt = self.compute_sum_Dt_n_party_scalar_product(self.feature_names,
+                                                                 self.censor_name,
+                                                                 self.censor_value,
+                                                                 self.n_party_parameters)
 
         self.prepared = True
 
@@ -79,12 +88,27 @@ class DataNode(DataNodeServicer):
 
     @staticmethod
     def compute_sum_Dt(Dt, features):
+        logger.debug('Computing sum dt locally')
         # TODO: I think this can be simpler but for debugging's sake I will follow the paper
         result = np.zeros((features.shape[1]))
 
         for t, indices in Dt.items():
             for i in indices:
                 result = result + features[i]
+
+        return result
+
+    @staticmethod
+    def compute_sum_Dt_n_party_scalar_product(local_feature_names, censor_feature,
+                                              censor_value, n_party_parameters):
+        logger.debug('Computing sum Dt with n party scalar product')
+        client = NPartyScalarProductClient(*n_party_parameters)
+
+        result = np.zeros(len(local_feature_names))
+
+        for feature_idx, feature_name in enumerate(local_feature_names):
+            result[feature_idx] = client.sum_relevant_values(local_feature_names, censor_feature,
+                                                   censor_value)
 
         return result
 
