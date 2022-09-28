@@ -12,7 +12,7 @@ from verticox.common import group_samples_on_event_time
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
     NumSamples, Empty, Beta, FeatureNames
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
-from verticox.scalarproduct import NPartyScalarProductClient, NPartyParameters
+from verticox.scalarproduct import NPartyScalarProductClient
 
 logger = logging.getLogger(__name__)
 DEFAULT_PORT = 7777
@@ -22,10 +22,9 @@ TIMEOUT = 3600
 
 class DataNode(DataNodeServicer):
     def __init__(self, features: np.array = None, feature_names: Optional[List[str]] = None,
-                 event_times: Optional[np.array] = None,
-                 event_happened: Optional[np.array] = None, name=None, server=None,
-                 censor_name: Optional[str] = None, censor_value: bool = True,
-                 n_party_address: str = None):
+                 name=None, server=None, include_column: Optional[str] = None,
+                 include_value: bool = True,
+                 commodity_address: str = None):
         """
 
         Args:
@@ -40,8 +39,7 @@ class DataNode(DataNodeServicer):
         self.features = features
         self.feature_names = feature_names
         self.num_features = self.features.shape[1]
-        self.event_times = event_times
-        self.event_happened = event_happened
+
         self.server = server
         # Parts that stay constant over iterations
         # Square all covariates and sum them together
@@ -51,9 +49,9 @@ class DataNode(DataNodeServicer):
         self.features_multiplied = DataNode._multiply_features(features)
 
         self.num_samples = self.features.shape[0]
-        self.censor_name = censor_name
-        self.censor_value = censor_value
-        self.n_party_address = n_party_address
+        self.censor_name = include_column
+        self.censor_value = include_value
+        self.n_party_address = commodity_address
 
         self.rho = None
         self.beta = None
@@ -64,7 +62,6 @@ class DataNode(DataNodeServicer):
         self.Dt = None
         self.sum_Dt = None
         self.prepared = False
-
 
     @staticmethod
     @np.vectorize
@@ -77,7 +74,7 @@ class DataNode(DataNodeServicer):
         self.beta = np.full((self.num_features,), request.beta)
         self.rho = request.rho
         self.Dt = group_samples_on_event_time(self.event_times, self.event_happened)
-        #self.sum_Dt = self.compute_sum_Dt(self.Dt, self.features)
+        # self.sum_Dt = self.compute_sum_Dt(self.Dt, self.features)
         self.sum_Dt = self.compute_sum_Dt_n_party_scalar_product(self.feature_names,
                                                                  self.censor_name,
                                                                  self.censor_value,
@@ -109,7 +106,7 @@ class DataNode(DataNodeServicer):
 
         for feature_idx, feature_name in enumerate(local_feature_names):
             result[feature_idx] = client.sum_relevant_values(local_feature_names, censor_feature,
-                                                   censor_value)
+                                                             censor_value)
 
         return result
 
@@ -219,12 +216,14 @@ class DataNode(DataNodeServicer):
         return DataNode._compute_sigma(beta, features), beta
 
 
-def serve(features=None, feature_names=None, event_times=None, event_happened=None,
-          port=DEFAULT_PORT, timeout=TIMEOUT):
+def serve(features=None, feature_names=None, include_column=None, include_value=True,
+          commodity_address=None, port=DEFAULT_PORT,
+          timeout=TIMEOUT):
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
     add_DataNodeServicer_to_server(
-        DataNode(features=features, feature_names=feature_names, event_times=event_times,
-                 event_happened=event_happened, server=server), server)
+        DataNode(features=features, feature_names=feature_names, include_column=include_column,
+                 include_value=include_value, commodity_address=commodity_address, server=server),
+        server)
     server.add_insecure_port(f'[::]:{port}')
     info(f'Starting datanode on port {port} with timeout {timeout}')
     before = time.time()
