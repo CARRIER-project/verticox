@@ -3,6 +3,7 @@ FROM openjdk:17-slim as runner
 # This is a placeholder that should be overloaded by invoking
 # docker build with '--build-arg PKG_NAME=...'
 ARG PKG_NAME="verticox"
+ARG JAR_PATH="/app/verticox.jar"
 ENV SERVER_PORT=8888
 
 RUN apt update && apt install -y python3 python3-pip python3-dev g++ musl-dev libffi-dev \

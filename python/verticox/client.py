@@ -90,7 +90,6 @@ Result = namedtuple('Result', ['organization_id', 'content'])
 
 
 class Task:
-
     def __init__(self, client: Client, task_data):
         self._raw_data = task_data
         self.client = client

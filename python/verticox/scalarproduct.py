@@ -21,7 +21,14 @@ _logger = logging.getLogger(__name__)
 class NPartyScalarProductClient:
 
     def __init__(self, commodity_address: str, other_addresses: Optional[List[str]] = None,
-                 precision: Optional[int] = _DEFAULT_PRECISION, ):
+                 precision: Optional[int] = _DEFAULT_PRECISION ):
+        """
+
+        Args:
+            commodity_address:
+            other_addresses:
+            precision:
+        """
         self._address = f'{_PROTOCOL}{commodity_address}'
 
         other_addresses = [f'{_PROTOCOL}{a}' for a in other_addresses]
