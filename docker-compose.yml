@@ -9,10 +9,9 @@ services:
       - ${PWD}/resources/smallK2Example_firsthalf.csv:/data/data.csv
     working_dir: /app
     command: java -jar ./application.jar -DPROP_FILE=application.properties
-    ports:
-      - "8080:80"
 
-  datanode1:
+
+  javanode1:
     image: openjdk
     volumes:
       - ${PWD}/$JARFILE:/app/application.jar
@@ -21,7 +20,7 @@ services:
     working_dir: /app
     command: java -jar ./application.jar -DPROP_FILE=application.properties
 
-  datanode2:
+  javanode2:
     image: openjdk
     volumes:
       - ${PWD}/$JARFILE:/app/application.jar
@@ -30,5 +29,5 @@ services:
     working_dir: /app
     command: java -jar ./application.jar -DPROP_FILE=application.properties
 
-  pythonnode:
-    image: continuumio/miniconda3
+  pythonnode1:
+    build:
