@@ -73,12 +73,11 @@ class DataNode(DataNodeServicer):
         self.z = np.full((self.num_samples,), request.z)
         self.beta = np.full((self.num_features,), request.beta)
         self.rho = request.rho
-        self.Dt = group_samples_on_event_time(self.event_times, self.event_happened)
         # self.sum_Dt = self.compute_sum_Dt(self.Dt, self.features)
         self.sum_Dt = self.compute_sum_Dt_n_party_scalar_product(self.feature_names,
                                                                  self.censor_name,
                                                                  self.censor_value,
-                                                                 self.n_party_parameters)
+                                                                 self.n_party_address)
 
         self.prepared = True
 

@@ -41,13 +41,14 @@ class VerticoxClient:
         task = self._run_task('column_names', organizations=active_nodes, master=False)
         return task
 
-    def compute(self, feature_columns, outcome_time_column, right_censor_column, data_nodes,
+    def compute(self, feature_columns, outcome_time_column, right_censor_column, datanodes,
                 central_node, precision=_DEFAULT_PRECISION):
         input_params = {
             'feature_columns': feature_columns,
             'event_times_column': outcome_time_column,
             'event_happened_column': right_censor_column,
-            'datanode_ids': data_nodes,
+            'datanode_ids': datanodes,
+            'central_node_id': central_node,
             'precision': precision
         }
 
@@ -96,9 +97,9 @@ class Task:
 
         self.result_ids = [r['id'] for r in task_data['results']]
 
-    def get_result(self):
+    def get_result(self, timeout=_TIMEOUT):
         results = []
-        max_retries = _TIMEOUT // _SLEEP
+        max_retries = timeout // _SLEEP
         retries = 0
         result_ids = set(self.result_ids)
         results_complete = set()
@@ -108,6 +109,7 @@ class Task:
             for missing in results_missing:
                 result = self.client.result.get(missing)
                 if result['finished_at'] is not None:
+                    print('Received a result')
                     organization_id = result['organization']['id']
                     result_content = result['result']
                     results.append(Result(organization_id, result_content))
@@ -118,7 +120,7 @@ class Task:
             retries += 1
             time.sleep(_SLEEP)
 
-        raise VerticoxClientException(f'Timeout after {_TIMEOUT} seconds')
+        raise VerticoxClientException(f'Timeout after {timeout} seconds')
 
 
 class VerticoxClientException(Exception):

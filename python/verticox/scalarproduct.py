@@ -12,6 +12,7 @@ _INIT_CENTRAL_SERVER = 'initCentralServer'
 _PROTOCOL = 'http://'
 _OK = 200
 _SET_ENDPOINTS = 'setEndpoints'
+_LONG_TIMEOUT = 60
 
 logging.basicConfig(level=logging.DEBUG)
 _logger = logging.getLogger(__name__)
@@ -29,9 +30,7 @@ class NPartyScalarProductClient:
             other_addresses:
             precision:
         """
-        self._address = f'{_PROTOCOL}{commodity_address}'
-
-        other_addresses = [f'{_PROTOCOL}{a}' for a in other_addresses]
+        self._address =commodity_address
         self.other_addresses = other_addresses
         self.precision = precision
 
@@ -85,7 +84,7 @@ class NPartyScalarProductClient:
         json = {'secretServer': central_server, 'servers': other_nodes}
         _logger.debug(f'Initializing central server with: {json}')
         self._post(_INIT_CENTRAL_SERVER,
-                   json=json)
+                   json=json, timeout=_LONG_TIMEOUT)
 
     def _request(self, method, endpoint, **kwargs):
         url = self._get_url(endpoint)

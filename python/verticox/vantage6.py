@@ -2,6 +2,9 @@ import os
 import subprocess
 import time
 from typing import List, Tuple, Any, Dict
+
+from vantage6.common import debug
+
 from verticox.scalarproduct import NPartyScalarProductClient
 import grpc
 import pandas as pd
@@ -20,7 +23,7 @@ DATANODE_TIMEOUT = None
 DATA_LIMIT = 10
 DEFAULT_PRECISION = 1e-3
 DEFAULT_RHO = 0.5
-COMMODITY_PROPERTIES = [f'server.port={PORT}']
+COMMODITY_PROPERTIES = [f'--server.port={PORT}']
 _PROTOCOL = 'http://'
 
 
@@ -30,12 +33,14 @@ def _limit_data(data):
 
 def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[str],
              event_times_column: str, event_happened_column: str, include_value=True,
+             central_node_id: int = None,
              datanode_ids: List[int] = None,
              precision: float = DEFAULT_PRECISION, rho=DEFAULT_RHO,
              *_args, **_kwargs):
     '''
     TODO: Describe precision parameter
     Args:
+        central_node_id:
         include_value:
         client:
         data:
@@ -55,7 +60,7 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     event_times = data[event_times_column].values
     event_happened = data[event_happened_column]
 
-    commodity_address = _run_java_nodes(client, datanode_ids)
+    commodity_address = _run_java_nodes(client, central_node_id, datanode_ids)
 
     datanode_input = {
         'method': 'run_datanode',
@@ -96,22 +101,18 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     return betas
 
 
-def _run_java_nodes(client: ContainerClient, datanode_ids: List[int]) -> str:
-    # The current organization is the one that needs to function as commodity node
-    my_organization = client.whoami.organization_id
-
+def _run_java_nodes(client: ContainerClient, current_organization, datanode_ids: List[int]) -> str:
     # Kick off java nodes
     java_node_input = {'method': 'run_java_server'}
 
     # First dispatch just the commodity node, otherwise we don't know which address belongs to
     # this node
-    address = _start_containers(client, java_node_input, my_organization)
-    commodity_uri = _construct_uri(address[0])
+    _start_local_java()
+    commodity_uri = f'{_PROTOCOL}localhost:{PORT}'
 
-    organization_ids = [n['organization']['id'] for n in other_nodes if n != my_organization]
-
-    datanode_addresses = _start_containers(client, java_node_input, organization_ids)
+    datanode_addresses = _start_containers(client, java_node_input, datanode_ids)
     datanode_uris = [_construct_uri(a) for a in datanode_addresses]
+
     # Do initial setup for nodes
     scalar_product_client = NPartyScalarProductClient(commodity_address=commodity_uri,
                                                       other_addresses=datanode_uris)
@@ -121,8 +122,19 @@ def _run_java_nodes(client: ContainerClient, datanode_ids: List[int]) -> str:
     return commodity_uri
 
 
+def _start_local_java():
+    command = _get_java_command()
+    process = subprocess.Popen(command)
+
+    return process
+
+
+def _get_java_command():
+    return ['java', '-jar', _get_jar_path()] + COMMODITY_PROPERTIES
+
+
 def _construct_uri(result_address: Dict[str, Any]):
-    return f'{_PROTOCOL}:{result_address["ip"]}:{result_address["port"]}'
+    return f'{_PROTOCOL}{result_address["ip"]}:{result_address["port"]}'
 
 
 def _start_containers(client, input, org_ids) -> List[Dict[str, Any]]:
@@ -137,7 +149,7 @@ def _start_containers(client, input, org_ids) -> List[Dict[str, Any]]:
 
     """
     task = client.create_new_task(input, organization_ids=org_ids)
-    addresses = _get_algorithm_addresses(client, 1, task['id'])
+    addresses = _get_algorithm_addresses(client, len(org_ids), task['id'])
     return addresses
 
 
@@ -227,8 +239,10 @@ def RPC_column_names(data: pd.DataFrame, *args, **kwargs):
 
 def RPC_run_java_server(_data, *_args, **_kwargs):
     info('Starting java server')
-    # TODO: Create properties file
-    subprocess.run(['java', '-jar', _get_jar_path()] + COMMODITY_PROPERTIES)
+
+    command = _get_java_command()
+    debug(f'Running command: {command}')
+    subprocess.run(command)
 
 
 def _get_jar_path():
