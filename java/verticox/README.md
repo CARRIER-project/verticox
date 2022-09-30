@@ -27,7 +27,7 @@ Set the precision to be used for double values for the product protocol. Expecte
 - An int indicating the precision
 
 Default precision used is 5. Always make sure to keep the precision the same across the various parties involved. To
-keep everything alligned use setPrecisionCentral
+keep everything aligned use setPrecisionCentral
 
 ### sumRelevantValues:
 
@@ -35,6 +35,27 @@ Sums the values based on the relevant individuals. Expected input:
 
 - Predictor: the predicator to be summed
 - Requirements: list of attributeRequirement indicating the relevant individuals
+
+
+Example input:
+```json
+{
+    "requirements": [{
+        "value": {
+            "type": "numeric",
+            "value": "1",
+            "attributeName": "x6",
+            "id": null,
+            "uknown": false
+        },
+        "range": false,
+        "upperLimit": null,
+        "lowerLimit": null,
+        "name": "x6"
+    }],
+    "endpoint": "2"
+}
+```
 
 ### postZ:
 
@@ -50,6 +71,7 @@ Sums the Z values based on the relevant individuals. Expected input:
 
 - endpoint: the endpoint containing the relevant z values
 - Requirements: list of attributeRequirement indicating the relevant individuals
+
 
 ### SOAPUI example project
 
