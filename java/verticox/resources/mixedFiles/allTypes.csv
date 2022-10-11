@@ -1,0 +1,12 @@
+numeric,numeric,real,string,bool
+ID,numeric_csv,real_csv,string_csv,bool_csv
+1,1,1,0,FALSE
+2,2,1,1,FALSE
+3,3,0,0,FALSE
+4,4,1,1,FALSE
+5,5,0,0,FALSE
+6,6,0,1,FALSE
+7,7,1,1,FALSE
+8,8,0,0,FALSE
+9,9,1,1,FALSE
+10,10,0,0,FALSE

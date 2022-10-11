@@ -645,6 +645,55 @@ public class VerticoxEndpointTest {
     }
 
     @Test
+    public void testAllFileTypes()
+            throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
+        VerticoxServer serverZ = new VerticoxServer("resources/mixedFiles/allTypes.csv", "Z");
+        VerticoxEndpoint endpointZ = new VerticoxEndpoint(serverZ);
+
+        VerticoxServer server2 = new VerticoxServer("resources/mixedFiles/allTypes.arff", "2");
+        VerticoxEndpoint endpoint2 = new VerticoxEndpoint(server2);
+
+        VerticoxServer server3 = new VerticoxServer("resources/mixedFiles/allTypes.parquet", "3");
+        VerticoxEndpoint endpoint3 = new VerticoxEndpoint(server3);
+
+        AttributeRequirement req = new AttributeRequirement();
+        req.setValue(new Attribute(Attribute.AttributeType.real, "1", "real_arff"));
+        //selects record 1,2,4,7,9
+
+        VerticoxServer secret = new VerticoxServer("secret", Arrays.asList(endpointZ, endpoint2, endpoint3));
+        ServerEndpoint secretEnd = new ServerEndpoint(secret);
+
+        List<ServerEndpoint> all = new ArrayList<>();
+        all.add(endpointZ);
+        all.add(endpoint2);
+        all.add(endpoint3);
+        all.add(secretEnd);
+        secret.setEndpoints(all);
+        serverZ.setEndpoints(all);
+        server2.setEndpoints(all);
+        server3.setEndpoints(all);
+
+        VerticoxCentralServer central = new VerticoxCentralServer(true);
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2, endpoint3), secretEnd);
+
+        int precision = 5;
+        endpointZ.setPrecision(precision);
+        endpoint2.setPrecision(precision);
+        central.setPrecisionCentral(precision);
+        secret.setPrecision(precision);
+
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2, endpoint3), secretEnd);
+
+        SumPredictorInTimeFrameRequest request = new SumPredictorInTimeFrameRequest();
+        request.setRequirements(Arrays.asList(req));
+        request.setPredictor("numeric_parquet");
+        double result = central.sumRelevantValues(request);
+        int expected = 23;
+
+        assertEquals(result, expected);
+    }
+
+    @Test
     public void testinitCentralServerRequest() {
 
         VerticoxCentralServer central = new VerticoxCentralServer(true);
