@@ -3,6 +3,7 @@ package com.florian.verticox.webservice;
 import com.florian.nscalarproduct.data.Attribute;
 import com.florian.nscalarproduct.data.Data;
 import com.florian.nscalarproduct.encryption.RSA;
+import com.florian.nscalarproduct.error.InvalidDataFormatException;
 import com.florian.nscalarproduct.station.DataStation;
 import com.florian.nscalarproduct.webservice.Server;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import javax.crypto.NoSuchPaddingException;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -21,7 +23,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 
-import static com.florian.nscalarproduct.data.Parser.parseCsv;
+import static com.florian.nscalarproduct.data.Parser.parseData;
+
 
 @RestController
 public class VerticoxServer extends Server {
@@ -250,7 +253,13 @@ public class VerticoxServer extends Server {
             // Check if running in vantage6 by looking for system env, if yes change to database_uri system env for path
             this.path = System.getenv("DATABASE_URI");
         }
-        this.data = parseCsv(path, 0);
+        try {
+            this.data = parseData(path, 0);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InvalidDataFormatException e) {
+            e.printStackTrace();
+        }
         this.population = data.getNumberOfIndividuals();
     }
 
