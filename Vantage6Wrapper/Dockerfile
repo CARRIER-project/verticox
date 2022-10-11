@@ -14,10 +14,11 @@ RUN echo "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa && \
 # make sure your domain is accepted
 RUN touch /root/.ssh/known_hosts
 RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
+RUN apk add --no-cache gcompat
 
 # Build n-scalar-product protocol
 WORKDIR /build
-RUN git clone --branch 2.1-stable git@github.com:MaastrichtU-CDS/n-scalar-product-protocol.git
+RUN git clone --branch 2.2-stable git@github.com:MaastrichtU-CDS/n-scalar-product-protocol.git
 
 WORKDIR /build/n-scalar-product-protocol/java
 RUN mvn install
