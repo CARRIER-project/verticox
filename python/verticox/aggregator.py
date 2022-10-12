@@ -66,7 +66,7 @@ class Aggregator:
         self.sigma = np.zeros(self.num_samples)
 
         self.num_iterations = 0
-
+        logger.debug(f'Institution stubs: {self.institutions}')
         self.prepare_datanodes(GAMMA, Z, BETA, self.rho)
 
     @staticmethod
