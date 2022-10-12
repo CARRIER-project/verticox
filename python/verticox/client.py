@@ -12,6 +12,7 @@ _TIMEOUT = 5 * 60  # 5 minutes
 _DEFAULT_PRECISION = 1e-5
 
 
+
 class VerticoxClient:
 
     def __init__(self, v6client: Client, collaboration=None, log_level=logging.INFO,
@@ -87,7 +88,7 @@ class VerticoxClient:
         return Task(self._v6client, task)
 
 
-Result = namedtuple('Result', ['organization_id', 'content'])
+Result = namedtuple('Result', ['organization', 'content', 'log'])
 
 
 class Task:
@@ -112,7 +113,8 @@ class Task:
                     print('Received a result')
                     organization_id = result['organization']['id']
                     result_content = result['result']
-                    results.append(Result(organization_id, result_content))
+                    result_log = result['log']
+                    results.append(Result(organization_id, result_content, result_log))
                     results_complete.add(missing)
 
             if len(results) >= len(self.result_ids):

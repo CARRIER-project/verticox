@@ -1,10 +1,14 @@
+# syntax = docker/dockerfile:1.2
+
 FROM openjdk:17-slim as runner
 
-# This is a placeholder that should be overloaded by invoking
-# docker build with '--build-arg PKG_NAME=...'
 ARG PKG_NAME="verticox"
 ENV JAR_PATH="/app/verticox.jar"
 
+EXPOSE 8888
+LABEL p8888=python
+EXPOSE 9999
+LABEL p9999=java
 
 RUN apt update && apt install -y python3 python3-pip python3-dev g++ musl-dev libffi-dev \
     libssl-dev git
@@ -17,7 +21,10 @@ COPY java/verticox/target/verticox*.jar $JAR_PATH
 COPY python/ /app/
 
 WORKDIR /app
-RUN poetry install
+RUN --mount=type=cache,target=/root/.cache/pypoetry/cache \
+    --mount=type=cache,target=/root/.cache/pypoetry/artifacts \
+    poetry install
+
 # TODO: When parquet support has been released, update the pyproject.toml with the proper
 # vantage6-client version and remove the following two lines:
 RUN poetry run pip install pip install git+https://github.com/CARRIER-project/vantage6.git@337-feature-request-docker-wrapper-for-parquet-files#subdirectory=vantage6-common

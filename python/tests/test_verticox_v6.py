@@ -30,7 +30,11 @@ def run_verticox_v6(host, port, user, password, private_key, tag='latest'):
     task = verticox_client.compute(feature_columns, 'event_time', 'event_happened',
                                    datanodes=datanodes, central_node=central_node)
 
-    print(task.get_result(timeout=10 * 60))
+    results = task.get_result(timeout=10 * 60)
+    for result in results:
+        print(f'Organization: {result.organization}')
+        print(f'Log: {result.log}')
+        print(f'Content: {result.content}')
 
 
 if __name__ == '__main__':
