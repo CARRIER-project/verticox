@@ -39,7 +39,7 @@ class NPartyScalarProductClient:
         debug(f'Initializing N party client with:\n'
               f'Internal commodity address: {self._internal_address}\n'
               f'External commodity address: {self._external_commodity_address}\n'
-              f'Datanode addresses: {self.other_addresses}\n'
+              f'Scalar product Datanode addresses: {self.other_addresses}\n'
               f'Precision: {self.precision}')
 
     def initialize_servers(self):

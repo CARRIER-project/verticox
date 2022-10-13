@@ -51,7 +51,7 @@ class ContainerAddresses:
 
         for addr in v6_container_addresses:
             label = addr['label']
-            uri = f'http://{addr["ip"]}:{addr["port"]}'
+            uri = f'{addr["ip"]}:{addr["port"]}'
 
             if label == _PYTHON:
                 python_addresses.append(uri)
@@ -90,7 +90,7 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
 
     '''
     start_time = time.time()
-    external_commodity_address = _get_current_address(client, datanode_ids[0])
+    external_commodity_address = _PROTOCOL + _get_current_address(client, datanode_ids[0])
 
     event_times = data[event_times_column].values
     event_happened = data[event_happened_column]
@@ -98,21 +98,11 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     info('Running java nodes')
     _run_java_nodes(client, datanode_ids, external_commodity_address=external_commodity_address)
 
-    datanode_input = {
-        'method': 'run_datanode',
-        'kwargs': {
-            'feature_columns': feature_columns,
-            'event_time_column': event_times_column,
-            'include_column': event_happened_column,
-            'include_value': include_value,
-            'commodity_address': external_commodity_address
-        }
-    }
+    addresses = _start_python_containers(client, datanode_ids, event_happened_column,
+                                         event_times_column, external_commodity_address,
+                                         feature_columns, include_value)
 
-    # create a new task for all organizations in the collaboration.
-    info('Dispatching python datanode tasks')
-
-    addresses = _start_containers(client, datanode_input, datanode_ids)
+    info(f'Python datanode addresses: {addresses}')
 
     stubs = []
     # Create gRPC stubs
@@ -133,8 +123,27 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     return betas
 
 
+def _start_python_containers(client, datanode_ids, event_happened_column, event_times_column,
+                             external_commodity_address, feature_columns, include_value):
+    datanode_input = {
+        'method': 'run_datanode',
+        'kwargs': {
+            'feature_columns': feature_columns,
+            'event_time_column': event_times_column,
+            'include_column': event_happened_column,
+            'include_value': include_value,
+            'external_commodity_address': external_commodity_address
+        }
+    }
+    # create a new task for all organizations in the collaboration.
+    info('Dispatching python datanode tasks')
+    addresses = _start_containers(client, datanode_input, datanode_ids)
+    return addresses
+
+
 def _run_java_nodes(client: ContainerClient, datanode_ids: List[int], external_commodity_address) -> \
         str:
+    external_commodity_address = _PROTOCOL + external_commodity_address
     # Kick off java nodes
     java_node_input = {'method': 'run_java_server'}
 
@@ -148,7 +157,9 @@ def _run_java_nodes(client: ContainerClient, datanode_ids: List[int], external_c
     info(f'Running java nodes on organizations {datanode_ids}')
     datanode_addresses = _start_containers(client, java_node_input, datanode_ids)
 
-    debug(f'Addresses: {datanode_addresses}')
+    info(f'Addresses: {datanode_addresses}')
+
+    datanode_addresses = [_PROTOCOL + a for a in datanode_addresses.java]
 
     # Wait for a bit for the containers to start up
     time.sleep(WAIT_CONTAINER_STARTUP)
@@ -156,7 +167,7 @@ def _run_java_nodes(client: ContainerClient, datanode_ids: List[int], external_c
     # Do initial setup for nodes
     scalar_product_client = \
         NPartyScalarProductClient(commodity_address=commodity_uri,
-                                  other_addresses=datanode_addresses.java,
+                                  other_addresses=datanode_addresses,
                                   external_commodity_address=external_commodity_address)
 
     scalar_product_client.initialize_servers()
@@ -189,7 +200,7 @@ def _get_current_address(client: ContainerClient, some_id):
     Returns:
 
     """
-    input_ = {'method': 'run_datanode'}
+    input_ = {'method': 'no_op'}
     task = client.create_new_task(input_, organization_ids=[some_id])
 
     my_task_id = task['id'] - 1
@@ -324,7 +335,7 @@ def RPC_run_java_server(_data, *_args, **_kwargs):
     info('Starting java server')
 
     command = _get_java_command()
-    debug(f'Running command: {command}')
+    info(f'Running command: {command}')
     subprocess.run(command)
 
 
