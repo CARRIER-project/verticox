@@ -1,10 +1,7 @@
-from collections import namedtuple
 from typing import List, Optional
 
 import requests
 from requests.exceptions import ConnectionError
-import logging
-
 from vantage6.common import debug
 from vantage6.tools.util import info
 
@@ -58,21 +55,26 @@ class NPartyScalarProductClient:
         debug('Done setting precision')
 
     # TODO: Make sure terminology is consistent over all code
-    def sum_relevant_values(self, numeric_feature, boolean_feature, boolean_value):
-        parameters = {
-            'requirements': [{
-                'value': {
-                    'type': 'numeric',
-                    'value': boolean_value,
-                    'attributeName': boolean_feature,
-                },
-                'range': False
-            }],
-            'predictor': numeric_feature
-        }
-        debug(f'Sum relevant values parameters: {parameters}')
-        result = self._post(_SUM_RELEVANT_VALUES, json=parameters)
-        return result
+    def sum_relevant_values(self, numeric_features: List[str], boolean_feature, boolean_value) \
+            -> List[int]:
+        all_sums = []
+        for feature in numeric_features:
+            parameters = {
+                'requirements': [{
+                    'value': {
+                        'type': 'numeric',
+                        'value': boolean_value,
+                        'attributeName': boolean_feature,
+                    },
+                    'range': False
+                }],
+                'predictor': feature
+            }
+            info(f'Sum relevant values with parameters: {parameters}')
+            result = self._post(_SUM_RELEVANT_VALUES, json=parameters)
+            all_sums.append(result)
+
+        return all_sums
 
     def sum_z_values(self):
         pass
@@ -88,7 +90,7 @@ class NPartyScalarProductClient:
                 pass
 
     def _init_datanodes(self, commodity_address, other_addresses):
-        for address in other_addresses:
+        for idx, address in enumerate(other_addresses):
             others = other_addresses.copy()
             others.remove(address)
             others.append(commodity_address)
@@ -99,7 +101,8 @@ class NPartyScalarProductClient:
         self._put(_SET_PRECISION, params=params)
 
     def _init_central_server(self, internal_address, other_nodes):
-        json = {'secretServer': internal_address, 'servers': other_nodes}
+        other_nodes = [f'{_PROTOCOL}{n}' for n in other_nodes]
+        json = {'secretServer': f'{_PROTOCOL}{internal_address}', 'servers': other_nodes}
         debug(f'Initializing central server with: {json}')
         self._post(_INIT_CENTRAL_SERVER,
                    json=json, timeout=_LONG_TIMEOUT)
@@ -129,12 +132,13 @@ class NPartyScalarProductClient:
     def _get_url(self, endpoint, address=None):
         if address is None:
             address = self._internal_address
-        return f'{address}/{endpoint}'
+        return f'{_PROTOCOL}{address}/{endpoint}'
 
     def _put_endpoints(self, targetUrl, others):
+        others = [f'{_PROTOCOL}{o}' for o in others]
         payload = {"servers": others}
         debug(f'Setting endpoints with: {payload}')
-        url = f'{targetUrl}/{_SET_ENDPOINTS}'
+        url = f'{_PROTOCOL}{targetUrl}/{_SET_ENDPOINTS}'
         requests.post(url, json=payload, timeout=10)
 
     def _kill_endpoint(self, target):
