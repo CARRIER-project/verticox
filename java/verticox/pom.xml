@@ -77,6 +77,9 @@
                         </goals>
                         <configuration>
                             <failOnWarning>true</failOnWarning>
+                            <usedDependencies>
+                                <usedDependency>org.springframework:spring-core</usedDependency>
+                            </usedDependencies>
                         </configuration>
                     </execution>
                 </executions>
