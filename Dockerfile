@@ -27,8 +27,8 @@ RUN --mount=type=cache,target=/root/.cache/pypoetry/cache \
 
 # TODO: When parquet support has been released, update the pyproject.toml with the proper
 # vantage6-client version and remove the following two lines:
-RUN poetry run pip install pip install git+https://github.com/CARRIER-project/vantage6.git@337-feature-request-docker-wrapper-for-parquet-files#subdirectory=vantage6-common
-RUN poetry run pip install pip install git+https://github.com/CARRIER-project/vantage6.git@337-feature-request-docker-wrapper-for-parquet-files#subdirectory=vantage6-client
+RUN poetry run pip install pip install git+https://github.com/vantage6/vantage6.git@dev3#subdirectory=vantage6-common
+RUN poetry run pip install pip install git+https://github.com/vantage6/vantage6.git@dev3#subdirectory=vantage6-client
 
 ENV PKG_NAME=${PKG_NAME}
 

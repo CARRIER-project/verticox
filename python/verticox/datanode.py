@@ -46,6 +46,7 @@ class DataNode(DataNodeServicer):
         # The formula says for every patient, x needs to be multiplied by itself.
         # Squaring all covariates with themselves comes down to the same thing since x_nk is
         # supposed to be one-dimensional
+        info(f'Multiplying features {features}')
         self.features_multiplied = DataNode._multiply_features(features)
 
         self.num_samples = self.features.shape[0]
@@ -98,16 +99,13 @@ class DataNode(DataNodeServicer):
     @staticmethod
     def compute_sum_Dt_n_party_scalar_product(local_feature_names, censor_feature,
                                               censor_value, commodity_address):
-        logger.debug('Computing sum Dt with n party scalar product')
+        logger.info('Computing sum Dt with n party scalar product')
         client = NPartyScalarProductClient(commodity_address=commodity_address)
 
-        result = np.zeros(len(local_feature_names))
+        result = client.sum_relevant_values(local_feature_names, censor_feature,
+                                            censor_value)
 
-        for feature_idx, feature_name in enumerate(local_feature_names):
-            result[feature_idx] = client.sum_relevant_values(local_feature_names, censor_feature,
-                                                             censor_value)
-
-        return result
+        return np.array(result, dtype=float)
 
     def fit(self, request, context=None):
         if not self.prepared:
