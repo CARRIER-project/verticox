@@ -12,7 +12,9 @@ _INIT_CENTRAL_SERVER = 'initCentralServer'
 _PROTOCOL = 'http://'
 _OK = 200
 _SET_ENDPOINTS = 'setEndpoints'
+_SET_ID = 'setID'
 _LONG_TIMEOUT = 60
+_COMMODITY_ID = 'commodity'
 
 
 # TODO: Split up in datanode client and aggregator client
@@ -33,11 +35,11 @@ class NPartyScalarProductClient:
         self.other_addresses = other_addresses
         self.precision = precision
 
-        debug(f'Initializing N party client with:\n'
-              f'Internal commodity address: {self._internal_address}\n'
-              f'External commodity address: {self._external_commodity_address}\n'
-              f'Scalar product Datanode addresses: {self.other_addresses}\n'
-              f'Precision: {self.precision}')
+        info(f'Initializing N party client with:\n'
+             f'Internal commodity address: {self._internal_address}\n'
+             f'External commodity address: {self._external_commodity_address}\n'
+             f'Scalar product Datanode addresses: {self.other_addresses}\n'
+             f'Precision: {self.precision}')
 
     def initialize_servers(self):
         self._init_central_server(self._internal_address, self.other_addresses)
@@ -62,7 +64,7 @@ class NPartyScalarProductClient:
             parameters = {
                 'requirements': [{
                     'value': {
-                        'type': 'numeric',
+                        'type': 'bool',
                         'value': boolean_value,
                         'attributeName': boolean_feature,
                     },
@@ -91,6 +93,10 @@ class NPartyScalarProductClient:
 
     def _init_datanodes(self, commodity_address, other_addresses):
         for idx, address in enumerate(other_addresses):
+            # Set id first
+            datanode_id = f'datanode_{idx}'
+            set_id_endpoint = f'http://{address}/{_SET_ID}'
+            requests.post(set_id_endpoint, params={'id': datanode_id})
             others = other_addresses.copy()
             others.remove(address)
             others.append(commodity_address)
@@ -106,6 +112,8 @@ class NPartyScalarProductClient:
         debug(f'Initializing central server with: {json}')
         self._post(_INIT_CENTRAL_SERVER,
                    json=json, timeout=_LONG_TIMEOUT)
+
+        self._post(_SET_ID, params={'id': _COMMODITY_ID})
 
     def _request(self, method, endpoint, **kwargs):
         url = self._get_url(endpoint)
@@ -137,7 +145,7 @@ class NPartyScalarProductClient:
     def _put_endpoints(self, targetUrl, others):
         others = [f'{_PROTOCOL}{o}' for o in others]
         payload = {"servers": others}
-        debug(f'Setting endpoints with: {payload}')
+        debug(f'Setting endpoints for {targetUrl} with: {payload}')
         url = f'{_PROTOCOL}{targetUrl}/{_SET_ENDPOINTS}'
         requests.post(url, json=payload, timeout=10)
 

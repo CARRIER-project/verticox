@@ -2,8 +2,9 @@ import os
 import subprocess
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Any, Dict
-
+import traceback as tb
 import grpc
 import pandas as pd
 from vantage6.client import ContainerClient
@@ -13,6 +14,10 @@ from verticox import datanode
 from verticox.aggregator import Aggregator
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 from verticox.scalarproduct import NPartyScalarProductClient
+import sys
+import shutil
+
+DATABASE_URI = 'DATABASE_URI'
 
 PYTHON_PORT = 8888
 JAVA_PORT = 9999
@@ -29,6 +34,7 @@ WAIT_CONTAINER_STARTUP = 10
 _PYTHON = 'python'
 _JAVA = 'java'
 _SOME_ID = 1
+_WORKAROUND_DATABASE_URI = 'default.parquet'
 
 
 @dataclass
@@ -93,9 +99,10 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     event_times = data[event_times_column].values
     event_happened = data[event_happened_column]
 
-    info('Running java nodes')
+    info('Starting java containers')
     _run_java_nodes(client, datanode_ids, external_commodity_address=external_commodity_address)
 
+    info('Starting python containers')
     addresses = _start_python_containers(client, datanode_ids, event_happened_column,
                                          event_times_column, external_commodity_address,
                                          feature_columns, include_value)
@@ -171,14 +178,26 @@ def _run_java_nodes(client: ContainerClient, datanode_ids: List[int], external_c
 
 
 def _start_local_java():
+    target_uri = _move_parquet_file()
     command = _get_java_command()
-    process = subprocess.Popen(command)
+    process = subprocess.Popen(command, env=_get_workaround_sysenv(target_uri))
 
     return process
 
 
 def _get_java_command():
     return ['java', '-jar', _get_jar_path()] + COMMODITY_PROPERTIES
+
+
+# TODO: Remove this ugly workaround!
+def _move_parquet_file():
+    current_location = os.environ[DATABASE_URI]
+    current_location = Path(current_location)
+
+    target = current_location.parent / _WORKAROUND_DATABASE_URI
+    shutil.copy(current_location, target)
+
+    return str(target.absolute())
 
 
 def _get_current_address(client: ContainerClient, some_id):
@@ -294,15 +313,20 @@ def RPC_run_datanode(data: pd.DataFrame,
     info(f'Feature columns: {feature_columns}')
     info(f'Event time column: {event_time_column}')
     info(f'Censor column: {include_column}')
+    try:
+        # The current datanode might not have all the features
+        feature_columns = [f for f in feature_columns if f in data.columns]
 
-    # The current datanode might not have all the features
-    feature_columns = [f for f in feature_columns if f in data.columns]
+        features = data[feature_columns].values
 
-    features = data[feature_columns].values
-    datanode.serve(features, feature_columns, port=PYTHON_PORT, include_column=include_column,
-                   include_value=include_value, timeout=DATANODE_TIMEOUT,
-                   commodity_address=external_commodity_address)
-
+        datanode.serve(features, feature_columns, port=PYTHON_PORT, include_column=include_column,
+                       include_value=include_value, timeout=DATANODE_TIMEOUT,
+                       commodity_address=external_commodity_address)
+    except Exception as e:
+        ex_type, ex_value, ex_tb = sys.exc_info()
+        info('Some exception happened')
+        info(tb.format_tb(ex_tb))
+        raise (e)
     return None
 
 
@@ -327,7 +351,14 @@ def RPC_run_java_server(_data, *_args, **_kwargs):
 
     command = _get_java_command()
     info(f'Running command: {command}')
-    subprocess.run(command)
+    target_uri = _move_parquet_file()
+    subprocess.run(command, env=_get_workaround_sysenv(target_uri))
+
+
+def _get_workaround_sysenv(target_uri):
+    env = os.environ
+    env[DATABASE_URI] = target_uri
+    return env
 
 
 def _get_jar_path():
