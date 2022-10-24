@@ -28,7 +28,7 @@ def run_verticox_v6(host, port, user, password, private_key, tag='latest'):
     feature_columns = ['afb', 'age', 'gender']
 
     task = verticox_client.compute(feature_columns, 'event_time', 'event_happened',
-                                   datanodes=datanodes, central_node=central_node)
+                                   datanodes=datanodes, central_node=central_node, precision=1e-2)
 
     results = task.get_result(timeout=10 * 60)
     for result in results:
