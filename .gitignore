@@ -12,3 +12,4 @@ env.sh
 /Vantage6Wrapper/pushF.sh
 /Vantage6Wrapper/pushFNoCache.sh
 /java/verticox/*.iml
+.env
