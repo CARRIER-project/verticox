@@ -16,7 +16,7 @@ services:
     volumes:
       - $JARFILE:/app/application.jar
       - ${PWD}/application-datanode1.properties:/app/application.properties
-      - ${PWD}/data/data_1.parquet:/data/data.csv
+      - ${PWD}/data/data_1.parquet:/data/data.parquet
     working_dir: /app
     command: java -jar ./application.jar -DPROP_FILE=application.properties
 
@@ -25,7 +25,7 @@ services:
     volumes:
       - $JARFILE:/app/application.jar
       - ${PWD}/application-datanode2.properties:/app/application.properties
-      - ${PWD}/data/data_2.parquet:/data/data.csv
+      - ${PWD}/data/data_2.parquet:/data/data.parquet
     working_dir: /app
     command: java -jar ./application.jar -DPROP_FILE=application.properties
 

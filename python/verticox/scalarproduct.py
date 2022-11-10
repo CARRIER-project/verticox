@@ -57,8 +57,8 @@ class NPartyScalarProductClient:
         debug('Done setting precision')
 
     # TODO: Make sure terminology is consistent over all code
-    def sum_relevant_values(self, numeric_features: List[str], boolean_feature, boolean_value) \
-            -> List[int]:
+    def sum_relevant_values(self, numeric_features: List[str], boolean_feature: str,
+                            boolean_value: bool) -> List[int]:
         all_sums = []
         for feature in numeric_features:
             parameters = {

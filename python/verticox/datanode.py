@@ -105,6 +105,8 @@ class DataNode(DataNodeServicer):
         result = client.sum_relevant_values(local_feature_names, censor_feature,
                                             censor_value)
 
+        assert len(result) == len(local_feature_names)
+
         return np.array(result, dtype=float)
 
     def fit(self, request, context=None):
