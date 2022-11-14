@@ -32,7 +32,8 @@ def main():
 
     local_feature_names = data_1.columns
     n_party_sum_Dt = DataNode.compute_sum_Dt_n_party_scalar_product(local_feature_names,
-                                                                    CENSOR_FEATURE, CENSOR_VALUE,
+                                                                    CENSOR_FEATURE,
+                                                                    CENSOR_VALUE,
                                                                     COMMODITY_ADDRESS)
 
     print(f'N party sum dt: {n_party_sum_Dt}')
