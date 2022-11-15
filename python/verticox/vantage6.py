@@ -77,7 +77,6 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     '''
     TODO: Describe precision parameter
     Args:
-        central_node_id:
         include_value:
         client:
         data:
@@ -93,6 +92,8 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     Returns:
 
     '''
+
+    info(f'Start running verticox on features: {feature_columns}')
     start_time = time.time()
     external_commodity_address = _get_current_java_address(client, datanode_ids[0])
 
@@ -113,6 +114,8 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     # Create gRPC stubs
     for a in addresses.python:
         stubs.append(_get_stub(a))
+
+    info(f'Created {len(stubs)} RPC stubs')
 
     aggregator = Aggregator(stubs, event_times, event_happened, convergence_precision=precision,
                             rho=rho)
@@ -323,12 +326,14 @@ def RPC_run_datanode(data: pd.DataFrame,
 
     """
     info(f'Feature columns: {feature_columns}')
+    info(f'All columns: {data.columns}')
     info(f'Event time column: {event_time_column}')
     info(f'Censor column: {include_column}')
     try:
         # The current datanode might not have all the features
         feature_columns = [f for f in feature_columns if f in data.columns]
 
+        info(f'Feature columns after filtering: {feature_columns}')
         features = data[feature_columns].values
 
         datanode.serve(features, feature_columns, port=PYTHON_PORT, include_column=include_column,
