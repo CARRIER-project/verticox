@@ -35,15 +35,15 @@ class VerticoxClient:
         nodes = nodes['data']
         return [n['organization']['id'] for n in nodes]
 
-    def get_column_names(self):
+    def get_column_names(self, **kwargs):
         active_nodes = self.get_active_node_organizations()
         self._logger.debug(f'There are currently {len(active_nodes)} active nodes')
 
-        task = self._run_task('column_names', organizations=active_nodes, master=False)
+        task = self._run_task('column_names', organizations=active_nodes, master=False, **kwargs)
         return task
 
     def compute(self, feature_columns, outcome_time_column, right_censor_column, datanodes,
-                central_node, precision=_DEFAULT_PRECISION):
+                central_node, precision=_DEFAULT_PRECISION, database='default'):
         input_params = {
             'feature_columns': feature_columns,
             'event_times_column': outcome_time_column,
@@ -53,7 +53,8 @@ class VerticoxClient:
             'precision': precision
         }
 
-        return self._run_task('verticox', True, [central_node], kwargs=input_params)
+        return self._run_task('verticox', True, [central_node], kwargs=input_params,
+                              database=database)
 
     def _run_task(self, method, master, organizations: List[int], kwargs=None,
                   database='default'):

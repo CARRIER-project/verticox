@@ -4,6 +4,7 @@ from clize import run
 from verticox.client import VerticoxClient
 
 IMAGE = 'harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox'
+DATABASE = 'parquet'
 
 
 def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest'):
@@ -22,14 +23,18 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest
 
     verticox_client = VerticoxClient(client, image=image)
 
-    task = verticox_client.get_column_names()
+    task = verticox_client.get_column_names(database=DATABASE)
 
-    print(task.get_result())
+    column_name_results = task.get_result()
 
-    feature_columns = ['age']
+    for r in column_name_results:
+        print(f'organization: {r.organization}, columns: {r.content}')
+
+    feature_columns = ['age', ' sysbp']
 
     task = verticox_client.compute(feature_columns, 'event_time', 'event_happened',
-                                   datanodes=datanodes, central_node=central_node, precision=1e-2)
+                                   datanodes=datanodes, central_node=central_node, precision=1e-2,
+                                   database=DATABASE)
 
     results = task.get_result(timeout=10 * 60)
     for result in results:
