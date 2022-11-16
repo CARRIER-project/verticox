@@ -21,10 +21,10 @@ These are the components:
 
 <!--![Selection_180](https://user-images.githubusercontent.com/131889/165753100-6563d7d2-c10e-4a73-93fd-2a77d981e8ab.png) -->
 
-_Component 1:_ $\sum \limits_{n \in E} \mathbf{x}_{nk}$ (for datanodes)
+**Component 1:** $\sum \limits_{n \in E} \mathbf{x}_{nk}$ (for datanodes)
 Where $E$ is the collection of samples that are NOT right-censored.
 
-_Component 2:_ $\sum \limits_{j \in R_t} exp(K \overline{z}_j)$ for the central node
+**Component 2:** $\sum \limits_{j \in R_t} exp(K \overline{z}_j)$ for the central node
 
 ## How to use
 ### Prerequisites
