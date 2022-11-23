@@ -2,9 +2,7 @@ package com.florian.verticox.webservice;
 
 import com.florian.nscalarproduct.webservice.Server;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
-import com.florian.verticox.webservice.domain.InitDataResponse;
-import com.florian.verticox.webservice.domain.SumPredictorInTimeFrameRequest;
-import com.florian.verticox.webservice.domain.SumZRequest;
+import com.florian.verticox.webservice.domain.*;
 
 public class VerticoxEndpoint extends ServerEndpoint {
     public VerticoxEndpoint(Server server) {
@@ -23,11 +21,28 @@ public class VerticoxEndpoint extends ServerEndpoint {
         }
     }
 
+    public Integer getCount() {
+        if (testing) {
+            return ((VerticoxServer) (server)).getCount();
+        } else {
+            return REST_TEMPLATE.getForEntity(serverUrl + "/getCount", Integer.class).getBody();
+        }
+    }
+
     public InitDataResponse initData(SumPredictorInTimeFrameRequest req) {
         if (testing) {
             return ((VerticoxServer) (server)).initData(req);
         } else {
             return REST_TEMPLATE.postForEntity(serverUrl + "/initData", req, InitDataResponse.class).getBody();
+        }
+    }
+
+    public UniqueValueResponse getUniqueValues(RelevantValueRequest req) {
+        if (testing) {
+            return ((VerticoxServer) (server)).getUniqueValues(req);
+        } else {
+            return REST_TEMPLATE.postForEntity(serverUrl + "/getUniqueValues", req, UniqueValueResponse.class)
+                    .getBody();
         }
     }
 

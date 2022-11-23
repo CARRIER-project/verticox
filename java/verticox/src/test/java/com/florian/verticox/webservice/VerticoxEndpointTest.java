@@ -3,8 +3,7 @@ package com.florian.verticox.webservice;
 import com.florian.nscalarproduct.data.Attribute;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
-import com.florian.verticox.webservice.domain.InitCentralServerRequest;
-import com.florian.verticox.webservice.domain.SumPredictorInTimeFrameRequest;
+import com.florian.verticox.webservice.domain.*;
 import org.junit.jupiter.api.Test;
 
 import javax.crypto.Cipher;
@@ -16,6 +15,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class VerticoxEndpointTest {
 
@@ -162,6 +162,128 @@ public class VerticoxEndpointTest {
         int expected = 4;
 
         assertEquals(result, expected);
+    }
+
+    @Test
+    public void testRelevantValues()
+            throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
+        VerticoxServer serverZ = new VerticoxServer("resources/bigK2Example_secondhalf.csv", "Z");
+        VerticoxEndpoint endpointZ = new VerticoxEndpoint(serverZ);
+
+        VerticoxServer server2 = new VerticoxServer("resources/bigK2Example_firsthalf.csv", "2");
+        VerticoxEndpoint endpoint2 = new VerticoxEndpoint(server2);
+        VerticoxServer secret = new VerticoxServer("3", Arrays.asList(endpointZ, endpoint2));
+        ServerEndpoint secretEnd = new ServerEndpoint(secret);
+
+        List<ServerEndpoint> all = new ArrayList<>();
+        all.add(endpointZ);
+        all.add(endpoint2);
+        all.add(secretEnd);
+        secret.setEndpoints(all);
+        serverZ.setEndpoints(all);
+        server2.setEndpoints(all);
+
+        VerticoxCentralServer central = new VerticoxCentralServer(true);
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
+
+        int precision = 5;
+
+        endpointZ.setPrecision(precision);
+        endpoint2.setPrecision(precision);
+        central.setPrecisionCentral(precision);
+        secret.setPrecision(precision);
+
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
+
+        RelevantValueRequest request = new RelevantValueRequest();
+        request.setAttribute("x4");
+
+        RelevantValuesResponse result = central.getRelevantValues(request);
+        assertEquals(result.getRelevantValues().size(), 3);
+
+        // 3 bins: 0-1, 1-2, 2-18 check these exist
+        boolean found_01 = false;
+        boolean found_12 = false;
+        boolean found_218 = false;
+        for (Bin bin : result.getRelevantValues()) {
+            if (bin.getLower().equals("0")) {
+                assertEquals(bin.getUpper(), "1");
+                found_01 = true;
+            } else if (bin.getLower().equals("1")) {
+                assertEquals(bin.getUpper(), "2");
+                found_12 = true;
+            } else if (bin.getLower().equals("2")) {
+                assertEquals(bin.getUpper(), "18");
+                found_218 = true;
+            }
+        }
+
+        assertTrue(found_01);
+        assertTrue(found_12);
+        assertTrue(found_218);
+    }
+
+    @Test
+    public void testRelevantValuesHybridSplit()
+            throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
+        VerticoxServer serverZ = new VerticoxServer("resources/bigK2Example_secondhalf_hybrid_1.csv", "Z");
+        VerticoxEndpoint endpointZ = new VerticoxEndpoint(serverZ);
+
+        VerticoxServer server2 = new VerticoxServer("resources/bigK2Example_firsthalf.csv", "2");
+        VerticoxEndpoint endpoint2 = new VerticoxEndpoint(server2);
+
+        VerticoxServer server3 = new VerticoxServer("resources/bigK2Example_secondhalf_hybrid_2.csv", "4");
+        VerticoxEndpoint endpoint3 = new VerticoxEndpoint(server3);
+        VerticoxServer secret = new VerticoxServer("3", Arrays.asList(endpointZ, endpoint2, endpoint3));
+        ServerEndpoint secretEnd = new ServerEndpoint(secret);
+
+        List<ServerEndpoint> all = new ArrayList<>();
+        all.add(endpointZ);
+        all.add(endpoint2);
+        all.add(secretEnd);
+        all.add(endpoint3);
+        secret.setEndpoints(all);
+        serverZ.setEndpoints(all);
+        server2.setEndpoints(all);
+        server3.setEndpoints(all);
+
+        VerticoxCentralServer central = new VerticoxCentralServer(true);
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2, endpoint3), secretEnd);
+
+        int precision = 5;
+
+        endpointZ.setPrecision(precision);
+        endpoint2.setPrecision(precision);
+        central.setPrecisionCentral(precision);
+        secret.setPrecision(precision);
+
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2, endpoint3), secretEnd);
+
+        RelevantValueRequest request = new RelevantValueRequest();
+        request.setAttribute("x4");
+        RelevantValuesResponse result = central.getRelevantValues(request);
+        assertEquals(result.getRelevantValues().size(), 3);
+
+        // 3 bins: 0-1, 1-2, 2-18 check these exist
+        boolean found_01 = false;
+        boolean found_12 = false;
+        boolean found_218 = false;
+        for (Bin bin : result.getRelevantValues()) {
+            if (bin.getLower().equals("0")) {
+                assertEquals(bin.getUpper(), "1");
+                found_01 = true;
+            } else if (bin.getLower().equals("1")) {
+                assertEquals(bin.getUpper(), "2");
+                found_12 = true;
+            } else if (bin.getLower().equals("2")) {
+                assertEquals(bin.getUpper(), "18");
+                found_218 = true;
+            }
+        }
+
+        assertTrue(found_01);
+        assertTrue(found_12);
+        assertTrue(found_218);
     }
 
     @Test

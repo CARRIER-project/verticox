@@ -8,9 +8,7 @@ import com.florian.nscalarproduct.station.DataStation;
 import com.florian.nscalarproduct.webservice.Server;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
-import com.florian.verticox.webservice.domain.InitDataResponse;
-import com.florian.verticox.webservice.domain.SumPredictorInTimeFrameRequest;
-import com.florian.verticox.webservice.domain.SumZRequest;
+import com.florian.verticox.webservice.domain.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
@@ -79,6 +77,28 @@ public class VerticoxServer extends Server {
             sum = sum.add(d);
         }
         return new BigDecimal(sum).divide(multiplier).doubleValue();
+    }
+
+    @GetMapping ("getCount")
+    public Integer getCount() {
+        BigInteger sum = BigInteger.ZERO;
+        for (BigInteger d : this.localData) {
+            sum = sum.add(d);
+        }
+        return sum.intValue();
+    }
+
+    @PostMapping ("getUniqueValues")
+    public UniqueValueResponse getUniqueValues(@RequestBody RelevantValueRequest req) {
+        UniqueValueResponse res = new UniqueValueResponse();
+        if (this.data == null) {
+            readData();
+        }
+        if (data.getAttributeCollumn(req.getAttribute()) != null) {
+            res.setUnique(data.getUniqueValues(data.getAttributeValues(req.getAttribute())));
+            res.setType(data.getAttributeType(req.getAttribute()));
+        }
+        return res;
     }
 
     @PostMapping ("initData")
