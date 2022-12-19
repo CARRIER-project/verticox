@@ -24,7 +24,7 @@ These are the components:
 $\sum \limits_{n \in E} \mathbf{x}_{nk}$ (for datanodes)
 Where $E$ is the collection of samples that are NOT right-censored.
 
-$\sum \limits_{j \in R_t} exp(K \overline{z}_j)$
+$\sum \limits_{j \in R_t} exp(K \overline{z}_j)$ (at the central server)
 
 ## How to use
 ### Prerequisites
