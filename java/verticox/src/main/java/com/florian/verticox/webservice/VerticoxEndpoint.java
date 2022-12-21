@@ -41,7 +41,7 @@ public class VerticoxEndpoint extends ServerEndpoint {
         if (testing) {
             return ((VerticoxServer) (server)).containsAttribute(req);
         } else {
-            return REST_TEMPLATE.getForEntity(serverUrl + "/containsAttribute", Boolean.class).getBody();
+            return REST_TEMPLATE.postForEntity(serverUrl + "/containsAttribute", req, Boolean.class).getBody();
         }
     }
 
@@ -58,7 +58,7 @@ public class VerticoxEndpoint extends ServerEndpoint {
         if (testing) {
             return ((VerticoxServer) (server)).initRt(req);
         } else {
-            return REST_TEMPLATE.postForEntity(serverUrl + "/initData", req, InitDataResponse.class).getBody();
+            return REST_TEMPLATE.postForEntity(serverUrl + "/initRt", req, InitDataResponse.class).getBody();
         }
     }
 

@@ -69,7 +69,7 @@ public class VerticoxEndpointZTest {
         InitZRequest request = new InitZRequest();
         request.setZ(z);
         request.setAttribute("x1");
-        
+
         central.postZ(request);
 
         SumZRequest request2 = new SumZRequest();
@@ -201,7 +201,7 @@ public class VerticoxEndpointZTest {
 
         assertEquals(result, expected);
     }
-
+    
     @Test
     public void testValuesMultiplication_ZMultipleRequirements()
             throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
