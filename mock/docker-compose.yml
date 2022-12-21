@@ -33,7 +33,7 @@ services:
     build: ../
     volumes:
       - .:/test
-      - ../python:/verticox
+      - ../python:/app
     depends_on:
       - commodity
       - javanode1
@@ -41,4 +41,4 @@ services:
 
     environment:
       - DATA_DIR=/test/data
-    command: "poetry run python /test/compare_n_party_no_v7.py"
+    command: "poetry run python /test/test_integration_n_party.py"

@@ -1,4 +1,6 @@
-from typing import List, Optional
+import json
+import sys
+from typing import List, Optional, Union
 
 import requests
 from requests.exceptions import ConnectionError
@@ -15,6 +17,7 @@ _SET_ENDPOINTS = 'setEndpoints'
 _SET_ID = 'setID'
 _LONG_TIMEOUT = 60
 _COMMODITY_ID = 'commodity'
+_MAX_T_VALUE = 'inf'
 
 
 # TODO: Split up in datanode client and aggregator client
@@ -78,7 +81,45 @@ class NPartyScalarProductClient:
 
         return all_sums
 
-    def sum_z_values(self):
+    def sum_records_at_risk(self, values: List[Union[float]], t: float, t_column: str) -> \
+            float:
+        """
+        n-scalar version of the following component of the central computation:
+
+        1. `value` will be sent to the java commodity server
+        2. n-scalar protocol will be used to sum all z values belonging to a record that is at
+            risk at time t. This is done by only including records with a event time >= t.
+
+        Args:
+            t_column:
+            t:
+            z:
+
+        Returns:
+
+        """
+        print(f't: {t}')
+
+        # TODO: Send z values
+        post_z_params= {'z': values, 'attribute': t_column}
+        print(f'Post z params: {[post_z_params]}')
+        self._post('postZ', json=post_z_params)
+
+        # TODO: Compute sum of z values
+        parameters = {
+            "requirements": [{
+                "range": True,
+                "upperLimit": {'type': 'real', 'value': 'inf', 'attributeName': t_column},
+                "lowerLimit": {'type': 'real', 'value': t, 'attributeName': t_column}}
+            ],
+        }
+
+        print(f'Sum z parameters: {parameters}')
+        result =  self._post('sumZValues', json=parameters)
+
+        return float(result)
+
+    def get_relevant_values(self):
         pass
 
     def kill_nodes(self):
