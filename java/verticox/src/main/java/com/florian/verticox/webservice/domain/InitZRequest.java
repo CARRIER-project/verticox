@@ -1,7 +1,16 @@
 package com.florian.verticox.webservice.domain;
 
 public class InitZRequest {
-    private String endpoint;
+    private String attribute;
+
+    public String getAttribute() {
+        return attribute;
+    }
+
+    public void setAttribute(String attribute) {
+        this.attribute = attribute;
+    }
+
     private double[] z;
 
     public double[] getZ() {
@@ -10,13 +19,5 @@ public class InitZRequest {
 
     public void setZ(double[] z) {
         this.z = z;
-    }
-
-    public String getEndpoint() {
-        return endpoint;
-    }
-
-    public void setEndpoint(String endpoint) {
-        this.endpoint = endpoint;
     }
 }

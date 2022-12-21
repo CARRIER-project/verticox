@@ -37,6 +37,14 @@ public class VerticoxEndpoint extends ServerEndpoint {
         }
     }
 
+    public boolean containsAttribute(InitZRequest req) {
+        if (testing) {
+            return ((VerticoxServer) (server)).containsAttribute(req);
+        } else {
+            return REST_TEMPLATE.getForEntity(serverUrl + "/containsAttribute", Boolean.class).getBody();
+        }
+    }
+
     public UniqueValueResponse getUniqueValues(RelevantValueRequest req) {
         if (testing) {
             return ((VerticoxServer) (server)).getUniqueValues(req);
