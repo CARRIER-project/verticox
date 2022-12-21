@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
@@ -210,7 +211,10 @@ public class VerticoxServer extends Server {
         reset();
         this.z = new BigInteger[z.length];
         for (int i = 0; i < z.length; i++) {
-            this.z[i] = new BigDecimal(String.valueOf(z[i])).multiply(multiplier).toBigIntegerExact();
+
+            this.z[i] = new BigDecimal(String.valueOf(z[i])).multiply(multiplier).setScale(0, RoundingMode.HALF_UP)
+                    .toBigIntegerExact();
+
         }
     }
 
@@ -289,8 +293,11 @@ public class VerticoxServer extends Server {
         secretStations = new HashMap<>();
     }
 
-    @GetMapping ("containsAttribute")
-    public boolean containsAttribute(InitZRequest req) {
+    @PostMapping ("containsAttribute")
+    public boolean containsAttribute(@RequestBody InitZRequest req) {
+        if (this.data == null) {
+            readData();
+        }
         return data.getAttributeCollumn(req.getAttribute()) != null;
     }
 }
