@@ -23,6 +23,8 @@ public class VerticoxCentralServer extends CentralServer {
     private ServerEndpoint secretEndpoint;
     private boolean testing;
 
+    private String zServer;
+
     private static final int DEFAULT_PRECISION = 5; //checkstyle's a bitch
     private static final int TEN = 10; //checkstyle's a bitch
     private int precision = DEFAULT_PRECISION; //precision for the n-party protocol since that works with integers
@@ -108,8 +110,9 @@ public class VerticoxCentralServer extends CentralServer {
     @PostMapping ("postZ")
     public void postZ(@RequestBody InitZRequest z) {
         for (ServerEndpoint e : endpoints) {
-            if (e.getServerId().equals(z.getEndpoint())) {
+            if (((VerticoxEndpoint) e).containsAttribute(z)) {
                 ((VerticoxEndpoint) e).initZData(z.getZ());
+                zServer = e.getServerId();
             }
         }
     }
@@ -201,6 +204,7 @@ public class VerticoxCentralServer extends CentralServer {
 
         List<ServerEndpoint> relevantEndpoints = new ArrayList<>();
         BigDecimal divider = BigDecimal.ONE;
+        req.setEndpoint(zServer);
         for (ServerEndpoint endpoint : endpoints) {
             InitDataResponse response = ((VerticoxEndpoint) endpoint).initRt(req);
             if (response.isRelevant()) {

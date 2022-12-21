@@ -67,13 +67,12 @@ public class VerticoxEndpointZTest {
         central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
 
         InitZRequest request = new InitZRequest();
-        request.setEndpoint("2");
         request.setZ(z);
-
+        request.setAttribute("x1");
+        
         central.postZ(request);
 
         SumZRequest request2 = new SumZRequest();
-        request2.setEndpoint("2");
         request2.setRequirements(Arrays.asList(req));
 
 
@@ -127,13 +126,13 @@ public class VerticoxEndpointZTest {
         central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
 
         InitZRequest request = new InitZRequest();
-        request.setEndpoint("2");
         request.setZ(z);
+        request.setAttribute("x1");
+
 
         central.postZ(request);
 
         SumZRequest request2 = new SumZRequest();
-        request2.setEndpoint("2");
         request2.setRequirements(Arrays.asList(req));
 
 
@@ -186,14 +185,14 @@ public class VerticoxEndpointZTest {
         central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
 
         InitZRequest request = new InitZRequest();
-        request.setEndpoint("2");
         request.setZ(z);
+        request.setAttribute("x3");
+
 
         central.postZ(request);
 
 
         SumZRequest request2 = new SumZRequest();
-        request2.setEndpoint("2");
         request2.setRequirements(Arrays.asList(req));
 
 
@@ -249,13 +248,12 @@ public class VerticoxEndpointZTest {
         central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
 
         InitZRequest request = new InitZRequest();
-        request.setEndpoint("2");
         request.setZ(z);
+        request.setAttribute("x2");
 
         central.postZ(request);
 
         SumZRequest request2 = new SumZRequest();
-        request2.setEndpoint("2");
         request2.setRequirements(Arrays.asList(req, req2));
 
 
@@ -311,13 +309,12 @@ public class VerticoxEndpointZTest {
         central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
 
         InitZRequest request = new InitZRequest();
-        request.setEndpoint("2");
         request.setZ(z);
+        request.setAttribute("x3");
 
         central.postZ(request);
 
         SumZRequest request2 = new SumZRequest();
-        request2.setEndpoint("2");
         request2.setRequirements(Arrays.asList(req, req2));
 
 

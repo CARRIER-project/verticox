@@ -288,4 +288,9 @@ public class VerticoxServer extends Server {
         dataStations = new HashMap<>();
         secretStations = new HashMap<>();
     }
+
+    @GetMapping ("containsAttribute")
+    public boolean containsAttribute(InitZRequest req) {
+        return data.getAttributeCollumn(req.getAttribute()) != null;
+    }
 }

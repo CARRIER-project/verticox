@@ -1,13 +1,13 @@
 @relation allTypes
 
 @attribute ID numeric
-@attribute bool_arff {FALSE,TRUE}
-@attribute string_arff {0,1}
-@attribute real_arff real
+
 @attribute numeric_arff numeric
+@attribute real_arff real
+@attribute string_arff {0,1}
+@attribute bool_arff {FALSE,TRUE}
 
 @data
-ID,numeric_arff,real_arff,string_arff,bool_arff
 1,1,1,0,FALSE
 2,2,1,1,FALSE
 3,3,0,0,FALSE
