@@ -34,15 +34,16 @@ based on the event time of the current patient.
 ### First-order derivative
 In the first order derivative, the part that we have to make privacy-preserving is
 
-$   \sum \limits_{t=1}^{t_u} \left[ d_t \frac{ K exp( Kz_{\overline{u}})}{\sum \limits_{j \in R_t} exp(K \overline{z}_j)} \right] $
+$$\sum \limits_{t=1}^{t_u} \left[ d_t \frac{ K exp( Kz_{\overline{u}})}{\sum \limits_{j \in R_t} exp(K \overline{z}_j)} \right]$$
 
 We can rewrite this to:
 
-$K exp(Kz_u) \dot \sum \limits_{t=1}^{t_u} \left[ \frac{d_t}{\sum \limits_{j \in R_t} exp(K \overline{z}_j) \right]
+$$K \cdot exp(Kz_u) \cdot \sum \limits_{t=1}^{t_u} \left[ \frac{d_t}{\sum \limits_{j \in R_t} exp(K \overline{z}_j)} \right] $$
 
 We will do this in the following steps
 1. Compute $\sum \limits_{j \in R_t} exp(K \overline{z}_j)$ ( component 2 )
-2. For every 
+2. For every sample index, ask datanode that contains outcome data to compute
+$$ K \cdot exp(Kz_u) \cdot \sum \limits_{t=1}^{t_u} \left[ \frac{d_t}{component2_t} \right] $$
 
 
 
