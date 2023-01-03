@@ -43,6 +43,7 @@ $$K \cdot exp(Kz_u) \cdot \sum \limits_{t=1}^{t_u} \left[ \frac{d_t}{\sum \limit
 We will do this in the following steps
 1. Compute $\sum \limits_{j \in R_t} exp(K \overline{z}_j)$ ( component 2 )
 2. For every sample index, ask datanode that contains outcome data to compute
+
 $$ K \cdot exp(Kz_u) \cdot \sum \limits_{t=1}^{t_u} \left[ \frac{d_t}{component2_t} \right] $$
 
 
