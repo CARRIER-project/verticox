@@ -33,7 +33,8 @@ based on the event time of the current patient.
 ## New algorithms
 ### First-order derivative
 In the first order derivative, the part that we have to make privacy-preserving is
-$\sum \limits_{t=1}^{t_u} \left[ d_t \frac{ K exp( Kz_u )}{\sum \limits_{j \in R_t} exp(K \overline{z}_j) \right]
+
+$   \sum \limits_{t=1}^{t_u} \left[ d_t \frac{ K exp( Kz_{\overline{u}})}{\sum \limits_{j \in R_t} exp(K \overline{z}_j)} \right] $
 
 We can rewrite this to:
 
