@@ -26,6 +26,25 @@ Where $E$ is the collection of samples that are NOT right-censored.
 
 $\sum \limits_{j \in R_t} exp(K \overline{z}_j)$ (at the central server)
 
+## Other solutions
+Besides the fact that we have to take care of component 1 and 2 we also have to perform a sum
+based on the event time of the current patient.
+
+## New algorithms
+### First-order derivative
+In the first order derivative, the part that we have to make privacy-preserving is
+$\sum \limits_{t=1}^{t_u} \left[ d_t \frac{ K exp( Kz_u )}{\sum \limits_{j \in R_t} exp(K \overline{z}_j) \right]
+
+We can rewrite this to:
+
+$K exp(Kz_u) \dot \sum \limits_{t=1}^{t_u} \left[ \frac{d_t}{\sum \limits_{j \in R_t} exp(K \overline{z}_j) \right]
+
+We will do this in the following steps
+1. Compute $\sum \limits_{j \in R_t} exp(K \overline{z}_j)$ ( component 2 )
+2. For every 
+
+
+
 ## How to use
 ### Prerequisites
 You will need to have the [vantage6](https://vantage6.ai) infrastructure setup to be able to use
