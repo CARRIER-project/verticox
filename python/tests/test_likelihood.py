@@ -22,7 +22,7 @@ SIGMA = Z
 RHO = 2.
 DT = {t: np.array([t], dtype=int) for t in EVENT_TIMES}
 EPSILON = 1e-5
-DEATHS_PER_T = {t: len(l) for t, l in DT.items()}
+DEATHS_PER_T = {t: 1 for t in EVENT_TIMES}
 RELEVANT_EVENT_TIMES = {k: np.array([t for t in RT.keys() if t <= k]) for k in RT.keys()}
 
 
@@ -60,7 +60,7 @@ def get_typed_deaths_per_t():
     return typed_deaths_per_t
 
 
-PARAMS = Parameters(GAMMA, SIGMA, RHO, get_typed_Rt(), K, EVENT_TIMES, get_typed_Dt(),
+PARAMS = Parameters(GAMMA, SIGMA, RHO, get_typed_Rt(), K, EVENT_TIMES,
                     get_typed_deaths_per_t(), get_typed_relevant_t())
 
 
@@ -126,8 +126,7 @@ def test_problematic_jacobian_not_nan():
     params = Parameters(gamma=array([-2.38418579e-07, 3.81469727e-06, 8.99999809e+00]),
                         sigma=array([-7255.40722656, -7255.40722656, -5700.67675781]), rho=1,
                         Rt={1.0: array([0, 1, 2]), 297.0: array([0, 2]), 1496.0: array([2])},
-                        K=1, event_times=array([2.970e+02, 1.000e+00, 1.496e+03]),
-                        Dt={2.970e+02: [0], 1.000e+00: [1], 1.496e+03: [2]})
+                        K=1, event_times=array([2.970e+02, 1.000e+00, 1.496e+03]))
     x = np.array([-7253.769531488418579, -7253.7695274353027344, -5699.390626907348633])
 
     jac = jacobian_parametrized(x, params)

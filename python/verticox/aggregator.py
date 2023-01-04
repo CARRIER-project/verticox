@@ -64,6 +64,7 @@ class Aggregator:
         self.z_old = self.z
         self.gamma = np.ones(self.num_samples)
         self.sigma = np.zeros(self.num_samples)
+        # TODO: Retrieve unique event times with getRelevantValues
 
         self.num_iterations = 0
         logger.debug(f'Institution stubs: {self.institutions}')
@@ -72,6 +73,16 @@ class Aggregator:
     @staticmethod
     def _group_relevant_event_times(unique_event_times) -> \
             types.DictType(types.float64, types.float64[:]):
+        """
+        Groups the list of unique event times so that every event time maps to a list of event times
+        that are equal or larger to that specific event time. This is needed to select records that
+        belong to $R_t$.
+        Args:
+            unique_event_times:
+
+        Returns:
+
+        """
         result = typed.Dict.empty(types.float64, types.float64[:])
 
         for current_t in unique_event_times:

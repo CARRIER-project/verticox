@@ -47,7 +47,6 @@ We will do this in the following steps
 $$ K \cdot exp(Kz_u) \cdot \sum \limits_{t=1}^{t_u} \left[ \frac{d_t}{component2_t} \right] $$
 
 
-
 ## How to use
 ### Prerequisites
 You will need to have the [vantage6](https://vantage6.ai) infrastructure setup to be able to use

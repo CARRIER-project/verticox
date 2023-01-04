@@ -15,7 +15,6 @@ spec = [
     ('sigma', types.float64[:]),
     ('Rt', types.DictType(types.float64, types.int64[:])),
     ('event_times', types.float64[:]),
-    ('Dt', types.DictType(types.float64, types.int64[:])),
     ('deaths_per_t', types.DictType(types.float64, types.int64)),
     ('relevant_event_times', types.DictType(types.float64, types.float64[:]))
 ]
@@ -29,11 +28,11 @@ class Parameters:
     Rt: Dict[float, np.ndarray]
     K: int
     event_times: np.ndarray
-    Dt: Dict[float, np.ndarray]
+
     deaths_per_t: Dict[float, int]
     relevant_event_times: Dict[float, np.ndarray]
 
-    def __init__(self, gamma, sigma, rho, Rt, K, event_times, Dt, deaths_per_t,
+    def __init__(self, gamma, sigma, rho, Rt, K, event_times, deaths_per_t,
                  relevant_event_times):
         self.gamma = gamma
         self.sigma = sigma
@@ -41,7 +40,6 @@ class Parameters:
         self.Rt = Rt
         self.K = K
         self.event_times = event_times
-        self.Dt = Dt
         self.deaths_per_t = deaths_per_t
         self.relevant_event_times = relevant_event_times
 
@@ -86,7 +84,7 @@ def find_z(gamma: ArrayLike, sigma: ArrayLike, rho: float,
            deaths_per_t: types.DictType(types.float64, types.int64),
            relevant_event_times: types.DictType(types.float64, types.float64[:]),
            eps: float = EPSILON):
-    params = Parameters(gamma, sigma, rho, Rt, K, event_times, Dt, deaths_per_t,
+    params = Parameters(gamma, sigma, rho, Rt, K, event_times, deaths_per_t,
                         relevant_event_times)
 
     minimum = minimize_newton_raphson(z_start,
@@ -171,7 +169,7 @@ def derivative_2_diagonal(z: types.float64, params: Parameters, u: int) -> types
 @numba.njit()
 def derivative_2_off_diagonal(z: ArrayLike, params, u, v):
     min_event_time = min(params.event_times[u], params.event_times[v])
-    relevant_event_times = params.relevant_event_times[min_event_time]
+    relevant_event_times = params.distinct_event_times[min_event_time]
 
     elements = np.zeros(relevant_event_times.shape[0])
     K_squared = params.K * params.K
