@@ -26,6 +26,21 @@ Where $E$ is the collection of samples that are NOT right-censored.
 
 $\sum \limits_{j \in R_t} exp(K \overline{z}_j)$ (at the central server)
 
+## Encryption
+Communication over the vpn network needs an extra layer of encryption so that the vpn server cannot
+inspect the traffic.
+
+If we are going to use TLS we will need to generate certificates and place them at the nodes.
+Questions:
+
+- Do we only need server side certificates, or also client side?
+  - We have our encryption when we have server side certificates, but maybe we want the client side 
+    certificates to be sure the client is who he says he is? However, we didn't really care about this
+    before now so is this really within the scope of this particular functionality?
+
+- What will be our CA (Certificate Authority)? The vantage6 server has a tls certificate. Could that
+  be the root certificate?
+
 ## How to use
 ### Prerequisites
 You will need to have the [vantage6](https://vantage6.ai) infrastructure setup to be able to use
