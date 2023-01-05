@@ -40,6 +40,8 @@ Questions:
 
 - What will be our CA (Certificate Authority)? The vantage6 server has a tls certificate. Could that
   be the root certificate?
+- Is the distribution of certificates really something that needs to be picked up by the algorithm,
+  isn't it better if the v6 infrastructure would provide the certificates?
 
 ## How to use
 ### Prerequisites
