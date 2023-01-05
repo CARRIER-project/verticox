@@ -11,10 +11,10 @@ import grpc
 import numpy as np
 import pandas as pd
 from numba import types
-from sksurv.datasets import load_whas500
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 
 from verticox.aggregator import Aggregator
+from verticox.common import get_test_dataset
 from verticox.datanode import DataNode
 from verticox.grpc.datanode_pb2 import Empty
 from verticox.grpc.datanode_pb2_grpc import add_DataNodeServicer_to_server, DataNodeStub
@@ -33,45 +33,6 @@ PORTS = tuple(range(FIRST_PORT, FIRST_PORT + NUM_INSTITUTIONS))
 DECIMAL_PRECISION = 3  # The precision to use when comparing results to target results
 CONVERGENCE_PRECISION = 1e-4  # When difference between outer iterations falls below this, stop
 NEWTON_RAPHSON_PRECISION = 1e-4  # Stopping condition for Newton-Raphson (epsilon)
-
-
-def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True):
-    features, events = load_whas500()
-
-    if not include_right_censored:
-        features = features[uncensored(events)]
-        events = events[uncensored(events)]
-    if include_right_censored and limit:
-        # Make sure there's both right censored and non-right censored data
-        # Since the behavior should be deterministic we will still just take the first samples we
-        # that meets the requirements.
-        non_censored = uncensored(events)
-        non_censored_idx = np.argwhere(non_censored).flatten()
-        right_censored_idx = np.argwhere(~non_censored).flatten()
-
-        limit_per_type = limit // 2
-
-        non_censored_idx = non_censored_idx[:limit_per_type]
-        right_censored_idx = right_censored_idx[:(limit - limit_per_type)]
-
-        all_idx = np.concatenate([non_censored_idx, right_censored_idx])
-
-        events = events[all_idx]
-        features = features.iloc[all_idx]
-
-    numerical_columns = features.columns[features.dtypes == float]
-
-    features = features[numerical_columns]
-
-    if limit:
-        features = features.head(limit)
-        events = events[:limit]
-
-    features = features.values.astype(float)
-    if feature_limit:
-        features = features[:, :feature_limit]
-        numerical_columns = numerical_columns[:feature_limit]
-    return features, events, list(numerical_columns)
 
 
 def run_datanode_grpc_server(features, feature_names, event_times, right_censored, port, name):
