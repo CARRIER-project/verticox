@@ -1,11 +1,13 @@
 version: "3"
 
 services:
-  ca:
-    build: ../
-    command: "poetry run python -m verticox."
   server:
     build: ../
-
+    volumes:
+      - .:/cert-test
+    command: "poetry run ./datanode --port 8080 --private-key-path /cert-test/server.key --cert-chain-path /cert-test/server.crt"
   client:
     build: ../
+    volumes:
+      - .:/cert-test
+    command: "poetry run python"

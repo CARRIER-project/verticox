@@ -26,5 +26,8 @@ echo "Create signed certificate from request"
 openssl x509 -req -in $SERVER_NAME.csr -CA $CA_NAME.pem -CAkey $CA_NAME.key \
 -CAcreateserial -out $SERVER_NAME.crt -days 825 -sha256 -extfile $SERVER_NAME.ext
 
+echo "Create cert chain"
+cat $CA_NAME.pem >> chain.pem
+cat $SERVER_NAME.crt >> chain.pem
 
 echo "Done"
