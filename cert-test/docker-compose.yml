@@ -1,0 +1,11 @@
+version: "3"
+
+services:
+  ca:
+    build: ../
+    command: "poetry run python -m verticox."
+  server:
+    build: ../
+
+  client:
+    build: ../
