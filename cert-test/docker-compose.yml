@@ -10,4 +10,6 @@ services:
     build: ../
     volumes:
       - .:/cert-test
-    command: "poetry run python"
+    command: "poetry run /cert-test/client.py server:8080 /cert-test/chain.pem"
+    depends_on:
+      - server
