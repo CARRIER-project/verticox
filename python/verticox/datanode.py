@@ -8,9 +8,9 @@ import grpc
 import numpy as np
 from vantage6.tools.util import info
 
-from verticox.common import group_samples_on_event_time
+from verticox.crypto import DHCryptor
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
-    NumSamples, Empty, Beta, FeatureNames
+    NumSamples, Empty, Beta, FeatureNames, DHExchange
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
 from verticox.scalarproduct import NPartyScalarProductClient
 
@@ -53,6 +53,7 @@ class DataNode(DataNodeServicer):
         self.censor_name = include_column
         self.censor_value = include_value
         self.n_party_address = commodity_address
+        self._cryptor = None
 
         self.rho = None
         self.beta = None
@@ -214,6 +215,14 @@ class DataNode(DataNodeServicer):
 
         return DataNode._compute_sigma(beta, features), beta
 
+    def exchangeKeys(self, exchange: DHExchange, context=None):
+        p = exchange.paramP
+        q = exchange.paramQ
+
+        public_key = exchange.publicKey
+
+        self._cryptor = DHCryptor(p, q)
+        self._cryptor.exchange(public_key)
 
 def serve(features=None, feature_names=None, include_column=None, include_value=True,
           commodity_address=None, port=DEFAULT_PORT,
@@ -230,6 +239,10 @@ def serve(features=None, feature_names=None, include_column=None, include_value=
     server.wait_for_termination(timeout=timeout)
     total_time = time.time() - before
     info(f'Stopped datanode after {total_time} seconds')
+
+
+
+
 
 
 if __name__ == '__main__':
