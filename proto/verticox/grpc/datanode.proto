@@ -10,6 +10,7 @@ service DataNode{
   rpc prepare(InitialValues) returns (Empty){};
   rpc kill(Empty) returns (Empty){};
   rpc getFeatureNames(Empty) returns (FeatureNames){};
+  rpc exchangeKeys(DHExchange) returns (PublicKey){};
 }
 
 message InitialValues{
@@ -45,6 +46,17 @@ message Beta{
 
 message FeatureNames{
   repeated string names = 1;
+}
+
+message DHExchange{
+  int32 paramP = 1;
+  int32 paramG = 2;
+  bytes publicKey = 3;
+}
+
+message PublicKey{
+  bytes value = 1;
+
 }
 
 message Empty{}
