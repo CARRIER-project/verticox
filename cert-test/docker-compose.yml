@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+  server:
+    build: ../
+    volumes:
+      - .:/cert-test
+    command: "poetry run ./datanode --port 8080 --private-key-path /cert-test/server.key --cert-chain-path /cert-test/server.crt"
+  client:
+    build: ../
+    volumes:
+      - .:/cert-test
+    command: "poetry run /cert-test/client.py server:8080 /cert-test/chain.pem"
+    depends_on:
+      - server
