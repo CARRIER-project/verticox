@@ -1,11 +1,28 @@
+from multiprocessing import Process
+from time import sleep
 from unittest.mock import MagicMock
 
 import numpy as np
-from verticox.datanode import DataNode
+import pytest
+
+import verticox.ssl
+from verticox.datanode import DataNode, serve
 from verticox.grpc.datanode_pb2 import Empty
 
 NUM_PATIENTS = 3
 NUM_FEATURES = 5
+PORT = 9999
+
+
+@pytest.fixture()
+def test_data():
+    return test_data_nofixture()
+
+def test_data_nofixture():
+    data = np.arange(4).reshape((2, 2))
+    feature_names = ['piet', 'henk']
+
+    return data, feature_names
 
 
 def test_sum_covariates_returns_one_dim_array():
@@ -51,20 +68,54 @@ def test_get_num_features_returns_num_features():
     assert datanode.getNumFeatures(Empty()).numFeatures == NUM_FEATURES
 
 
-def test_get_feature_names_gives_names_if_they_exist():
-    data = np.arange(4).reshape((2, 2))
-    datanode = DataNode(features=data, feature_names=['piet', 'henk'])
-
+def test_get_feature_names_gives_names_if_they_exist(test_data):
+    features, feature_names = test_data
+    datanode = DataNode(features=features, feature_names=feature_names)
     result = datanode.getFeatureNames(request=Empty(), context=None)
 
     assert result.names == ['piet', 'henk']
 
 
-def test_get_feature_names_aborts_if_not_exist():
-    data = np.arange(4).reshape((2, 2))
+def test_get_feature_names_aborts_if_not_exist(test_data):
+    data, _ = test_data
     datanode = DataNode(features=data, )
 
     mock_context = MagicMock()
     datanode.getFeatureNames(request=Empty(), context=mock_context)
 
     mock_context.abort.assert_called_once()
+
+# Because this test is juggling multiple processes it doesn't go well with the pytest runner.
+@pytest.mark.skip
+def test_can_make_secure_connection_with_datanode(test_data):
+    features, feature_names = test_data
+    port = PORT
+    server_process = Process(target=serve,
+                             kwargs={'features': features, 'feature_names': feature_names,
+                                     'port': port, 'address': '127.0.0.1'})
+    server_process.start()
+
+    # Wait until server has started
+    print(f'Waiting for server to start...')
+    sleep(5)
+    print('Continuing....')
+    def get_feature_names():
+        host = '127.0.0.1'
+        stub = verticox.ssl.get_secure_stub(host, port)
+
+        names = stub.getFeatureNames(Empty())
+
+        if list(names.names) != feature_names:
+            raise Exception('Result is not as expected')
+
+    client_process = Process(target=get_feature_names)
+
+    client_process.start()
+    client_process.join()
+
+    client_process.kill()
+    server_process.join()
+    server_process.kill()
+
+if __name__ == '__main__':
+    test_can_make_secure_connection_with_datanode(test_data_nofixture())
