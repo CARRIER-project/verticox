@@ -3,16 +3,15 @@ import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Any, Dict
+from typing import List
 import traceback as tb
-import grpc
 import pandas as pd
 from vantage6.client import ContainerClient
 from vantage6.tools.util import info
 
 from verticox import datanode
 from verticox.aggregator import Aggregator
-from verticox.grpc.datanode_pb2_grpc import DataNodeStub
+from verticox.ssl import get_secure_stub
 from verticox.scalarproduct import NPartyScalarProductClient
 import sys
 import shutil
@@ -24,7 +23,7 @@ PYTHON_PORT = 8888
 JAVA_PORT = 9999
 PORTS_PER_CONTAINER = 2
 MAX_RETRIES = 20
-GRPC_OPTIONS = [('wait_for_ready', True)]
+
 SLEEP = 5
 DATANODE_TIMEOUT = None
 DATA_LIMIT = 10
@@ -37,6 +36,8 @@ _JAVA = 'java'
 _SOME_ID = 1
 _WORKAROUND_DATABASE_URI = 'default.parquet'
 
+# Methods
+NO_OP = 'no_op'
 
 @dataclass
 class ContainerAddresses:
@@ -63,6 +64,16 @@ class ContainerAddresses:
                 java_addresses.append(uri)
 
         return ContainerAddresses(python_addresses, java_addresses)
+
+def _get_node_ip(client: ContainerClient, organization_id: int):
+    params = {'method': 'no_op'}
+
+    task = client.create_new_task(params, [organization_id])
+    addresses = _get_algorithm_addresses(client, 1, task['id'])
+
+    address = addresses.python[0]
+    return address.split(':')[0]
+
 
 
 def _limit_data(data):
@@ -112,8 +123,10 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
 
     stubs = []
     # Create gRPC stubs
-    for a in addresses.python:
-        stubs.append(_get_stub(a))
+    for a in addresses:
+        # TODO: This part is stupid, it should be separate host and port in the first place.
+        host, port = tuple(a.split(':'))
+        stubs.append(get_secure_stub(host, port))
 
     info(f'Created {len(stubs)} RPC stubs')
 
@@ -133,19 +146,32 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
 
 def _start_python_containers(client, datanode_ids, event_happened_column, event_times_column,
                              external_commodity_address, feature_columns, include_value):
-    datanode_input = {
-        'method': 'run_datanode',
-        'kwargs': {
-            'feature_columns': feature_columns,
-            'event_time_column': event_times_column,
-            'include_column': event_happened_column,
-            'include_value': include_value,
-            'external_commodity_address': external_commodity_address
+
+    addresses = []
+
+    for id in datanode_ids:
+        # First run a no-op task to retrieve the address
+        ip = _get_node_ip(client, id)
+
+        info(f'Address: {ip}')
+
+        datanode_input = {
+            'method': 'run_datanode',
+            'kwargs': {
+                'feature_columns': feature_columns,
+                'event_time_column': event_times_column,
+                'include_column': event_happened_column,
+                'include_value': include_value,
+                'external_commodity_address': external_commodity_address,
+                'address': ip
+            }
         }
-    }
-    # create a new task for all organizations in the collaboration.
-    info('Dispatching python datanode tasks')
-    addresses = _start_containers(client, datanode_input, datanode_ids)
+        # create a new task for all organizations in the collaboration.
+        info('Dispatching python datanode task')
+        task = client.create_new_task(datanode_input, organization_ids=[id])
+        address = _get_algorithm_addresses(client, 1, task['id'])
+
+        addresses += address.python
     return addresses
 
 
@@ -259,22 +285,6 @@ def _start_containers(client, input, org_ids) -> ContainerAddresses:
     return addresses
 
 
-def _get_stub(uri):
-    '''
-    Get gRPC client for the datanode.
-
-    Args:
-        ip:
-        port:
-
-    Returns:
-
-    '''
-    info(f'Connecting to datanode at {uri}')
-    channel = grpc.insecure_channel(f'{uri}', options=GRPC_OPTIONS)
-    return DataNodeStub(channel)
-
-
 def _get_algorithm_addresses(client: ContainerClient,
                              expected_amount: int, task_id) \
         -> ContainerAddresses:
@@ -305,6 +315,7 @@ def RPC_run_datanode(data: pd.DataFrame,
                      event_time_column: str = None,
                      include_column: str = None, include_value: bool = None,
                      external_commodity_address=None,
+                     address=None,
                      *_args,
                      **_kwargs):
     """
@@ -336,14 +347,16 @@ def RPC_run_datanode(data: pd.DataFrame,
         info(f'Feature columns after filtering: {feature_columns}')
         features = data[feature_columns].values
 
-        datanode.serve(features, feature_columns, port=PYTHON_PORT, include_column=include_column,
+        datanode.serve(features=features, feature_names=feature_columns, port=PYTHON_PORT,
+                       include_column=include_column,
                        include_value=include_value, timeout=DATANODE_TIMEOUT,
-                       commodity_address=external_commodity_address)
+                       commodity_address=external_commodity_address,
+                       address=address)
     except Exception as e:
         ex_type, ex_value, ex_tb = sys.exc_info()
         info('Some exception happened')
-        info(tb.format_tb(ex_tb))
-        raise (e)
+        info(str(tb.format_tb(ex_tb)))
+        raise e
     return None
 
 

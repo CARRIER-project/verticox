@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from vantage6.tools.util import info
 
+import verticox.ssl
 from verticox.common import get_test_dataset
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
     NumSamples, Empty, Beta, FeatureNames
@@ -221,7 +222,7 @@ class DataNode(DataNodeServicer):
 def serve(*, features=DEFAULT_DATA, feature_names=None,
           include_column=None, include_value=True,
           commodity_address=None, port=DEFAULT_PORT,
-          timeout=TIMEOUT, private_key_path=None, cert_chain_path=None):
+          timeout=TIMEOUT, secure=True, address=None):
     logging.basicConfig(level=logging.DEBUG)
 
     if features == DEFAULT_DATA:
@@ -235,14 +236,9 @@ def serve(*, features=DEFAULT_DATA, feature_names=None,
 
     server_endpoint = f'[::]:{port}'
 
-    if private_key_path is not None and cert_chain_path is not None:
-        with open(private_key_path, 'rb') as f:
-            private_key = f.read()
-
-        with open(cert_chain_path, 'rb') as f:
-            certificate_chain = f.read()
-
-        server_credentials = grpc.ssl_server_credentials(((private_key, certificate_chain),))
+    if secure:
+        private_key, cert_chain = verticox.ssl.generate_self_signed_certificate(address)
+        server_credentials = grpc.ssl_server_credentials(((private_key, cert_chain),))
 
         server.add_secure_port(server_endpoint, server_credentials)
 

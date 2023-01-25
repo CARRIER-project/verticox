@@ -107,3 +107,4 @@ def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True
         features = features[:, :feature_limit]
         numerical_columns = numerical_columns[:feature_limit]
     return features, events, list(numerical_columns)
+
