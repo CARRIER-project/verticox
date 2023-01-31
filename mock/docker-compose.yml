@@ -1,0 +1,44 @@
+version: "3"
+
+services:
+  commodity:
+    image: openjdk
+    volumes:
+      - $JARFILE:/app/application.jar
+      - ${PWD}/application-commodity.properties:/app/application.properties
+    working_dir: /app
+    command: java -jar ./application.jar -DPROP_FILE=application.properties
+    ports:
+      - "8080:80"
+
+  javanode1:
+    image: openjdk
+    volumes:
+      - $JARFILE:/app/application.jar
+      - ${PWD}/application-datanode1.properties:/app/application.properties
+      - ${PWD}/data/data_1.parquet:/data/data.parquet
+    working_dir: /app
+    command: java -jar ./application.jar -DPROP_FILE=application.properties
+
+  javanode2:
+    image: openjdk
+    volumes:
+      - $JARFILE:/app/application.jar
+      - ${PWD}/application-datanode2.properties:/app/application.properties
+      - ${PWD}/data/data_2.parquet:/data/data.parquet
+    working_dir: /app
+    command: java -jar ./application.jar -DPROP_FILE=application.properties
+
+  python:
+    build: ../
+    volumes:
+      - .:/test
+      - ../python:/verticox
+    depends_on:
+      - commodity
+      - javanode1
+      - javanode2
+
+    environment:
+      - DATA_DIR=/test/data
+    command: "poetry run python /test/compare_n_party_no_v7.py"

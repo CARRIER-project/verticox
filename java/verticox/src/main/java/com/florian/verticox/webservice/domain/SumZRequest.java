@@ -4,16 +4,16 @@ import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
 
 import java.util.List;
 
-public class SumRelevantValuesRequest {
-    private List<String> valueServers;
+public class SumZRequest {
+    private String endpoint;
     private List<AttributeRequirement> requirements;
 
-    public List<String> getValueServer() {
-        return valueServers;
+    public String getEndpoint() {
+        return endpoint;
     }
 
-    public void setValueServer(List<String> valueServers) {
-        this.valueServers = valueServers;
+    public void setEndpoint(String endpoint) {
+        this.endpoint = endpoint;
     }
 
     public List<AttributeRequirement> getRequirements() {

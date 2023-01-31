@@ -1,17 +1,8 @@
 package com.florian.verticox.webservice;
 
-import com.florian.nscalarproduct.data.Attribute;
 import com.florian.nscalarproduct.webservice.Server;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
-import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
-import com.florian.nscalarproduct.webservice.domain.AttributeRequirementsRequest;
-import com.florian.verticox.webservice.domain.MinimumPeriodRequest;
-import com.florian.verticox.webservice.domain.PublicKeyResponse;
-import com.florian.verticox.webservice.domain.SetValuesRequest;
-
-import javax.crypto.NoSuchPaddingException;
-import java.security.NoSuchAlgorithmException;
-import java.util.List;
+import com.florian.verticox.webservice.domain.*;
 
 public class VerticoxEndpoint extends ServerEndpoint {
     public VerticoxEndpoint(Server server) {
@@ -22,30 +13,60 @@ public class VerticoxEndpoint extends ServerEndpoint {
         super(url);
     }
 
-    public void setValues(SetValuesRequest req) throws NoSuchPaddingException, NoSuchAlgorithmException {
+    public Double getSum() {
         if (testing) {
-            ((VerticoxServer) (server)).setValues(req);
+            return ((VerticoxServer) (server)).getSum();
         } else {
-            REST_TEMPLATE.put(serverUrl + "/setZValues", req);
+            return REST_TEMPLATE.getForEntity(serverUrl + "/getSum", Double.class).getBody();
         }
     }
 
-    public PublicKeyResponse getPublicKey() {
+    public Integer getCount() {
         if (testing) {
-            return ((VerticoxServer) (server)).getPublicKey();
+            return ((VerticoxServer) (server)).getCount();
         } else {
-            return REST_TEMPLATE.getForEntity(serverUrl + "/getPublicKey", PublicKeyResponse.class).getBody();
+            return REST_TEMPLATE.getForEntity(serverUrl + "/getCount", Integer.class).getBody();
         }
     }
 
-
-    public void initData(List<AttributeRequirement> requirements) {
-        AttributeRequirementsRequest req = new AttributeRequirementsRequest();
-        req.setRequirements(requirements);
+    public InitDataResponse initData(SumPredictorInTimeFrameRequest req) {
         if (testing) {
-            ((VerticoxServer) (server)).initValueData(req);
+            return ((VerticoxServer) (server)).initData(req);
         } else {
-            REST_TEMPLATE.put(serverUrl + "/initData", req, Void.class);
+            return REST_TEMPLATE.postForEntity(serverUrl + "/initData", req, InitDataResponse.class).getBody();
+        }
+    }
+
+    public boolean containsAttribute(InitZRequest req) {
+        if (testing) {
+            return ((VerticoxServer) (server)).containsAttribute(req);
+        } else {
+            return REST_TEMPLATE.postForEntity(serverUrl + "/containsAttribute", req, Boolean.class).getBody();
+        }
+    }
+
+    public UniqueValueResponse getUniqueValues(RelevantValueRequest req) {
+        if (testing) {
+            return ((VerticoxServer) (server)).getUniqueValues(req);
+        } else {
+            return REST_TEMPLATE.postForEntity(serverUrl + "/getUniqueValues", req, UniqueValueResponse.class)
+                    .getBody();
+        }
+    }
+
+    public InitDataResponse initRt(SumZRequest req) {
+        if (testing) {
+            return ((VerticoxServer) (server)).initRt(req);
+        } else {
+            return REST_TEMPLATE.postForEntity(serverUrl + "/initRt", req, InitDataResponse.class).getBody();
+        }
+    }
+
+    public void initZData(double[] z) {
+        if (testing) {
+            ((VerticoxServer) (server)).initZData(z);
+        } else {
+            REST_TEMPLATE.put(serverUrl + "/initZData", z);
         }
     }
 
@@ -54,27 +75,6 @@ public class VerticoxEndpoint extends ServerEndpoint {
             ((VerticoxServer) (server)).setPrecision(precision);
         } else {
             REST_TEMPLATE.put(serverUrl + "/setPrecision?precision=" + precision, Void.class);
-        }
-    }
-
-    public AttributeRequirement determineMinimumPeriod(Attribute lower) {
-        MinimumPeriodRequest req = new MinimumPeriodRequest();
-        req.setLowerLimit(lower);
-        if (testing) {
-            return ((VerticoxServer) (server)).determineMinimumPeriod(req);
-        } else {
-            return REST_TEMPLATE.postForEntity(serverUrl + "/determineMinimumPeriod", req, AttributeRequirement.class)
-                    .getBody();
-        }
-    }
-
-    public void selectIndividuals(List<AttributeRequirement> requirements) {
-        AttributeRequirementsRequest req = new AttributeRequirementsRequest();
-        req.setRequirements(requirements);
-        if (testing) {
-            ((VerticoxServer) (server)).selectIndividuals(req);
-        } else {
-            REST_TEMPLATE.put(serverUrl + "/selectIndividuals", req);
         }
     }
 

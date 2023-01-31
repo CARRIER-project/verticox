@@ -1,4 +1,4 @@
-# verticox
+# verticox+
 This repository contains the components for running vertical cox proportional hazards analysis in a
 setting where the data is vertically partitioned.
 
@@ -21,10 +21,27 @@ These are the components:
 
 <!--![Selection_180](https://user-images.githubusercontent.com/131889/165753100-6563d7d2-c10e-4a73-93fd-2a77d981e8ab.png) -->
 
-**Component 1:** $\sum \limits_{n \in E} \mathbf{x}_{nk}$ (for datanodes)
+$\sum \limits_{n \in E} \mathbf{x}_{nk}$ (for datanodes)
 Where $E$ is the collection of samples that are NOT right-censored.
 
-**Component 2:** $\sum \limits_{j \in R_t} exp(K \overline{z}_j)$ for the central node
+$\sum \limits_{j \in R_t} exp(K \overline{z}_j)$ (at the central server)
+
+## Encryption
+Communication over the vpn network needs an extra layer of encryption so that the vpn server cannot
+inspect the traffic.
+
+If we are going to use TLS we will need to generate certificates and place them at the nodes.
+Questions:
+
+- Do we only need server side certificates, or also client side?
+  - We have our encryption when we have server side certificates, but maybe we want the client side 
+    certificates to be sure the client is who he says he is? However, we didn't really care about this
+    before now so is this really within the scope of this particular functionality?
+
+- What will be our CA (Certificate Authority)? The vantage6 server has a tls certificate. Could that
+  be the root certificate?
+- Is the distribution of certificates really something that needs to be picked up by the algorithm,
+  isn't it better if the v6 infrastructure would provide the certificates?
 
 ## How to use
 ### Prerequisites

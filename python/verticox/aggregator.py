@@ -66,7 +66,7 @@ class Aggregator:
         self.sigma = np.zeros(self.num_samples)
 
         self.num_iterations = 0
-
+        logger.debug(f'Institution stubs: {self.institutions}')
         self.prepare_datanodes(GAMMA, Z, BETA, self.rho)
 
     @staticmethod
@@ -239,10 +239,12 @@ class Aggregator:
     def get_betas(self) -> List[Tuple[str, float]]:
         betas = []
         names = []
+        info(f'Getting betas from {len(self.institutions)} institutions')
         for institution in self.institutions:
             current_betas = institution.getBeta(Empty()).beta
             try:
                 current_names = institution.getFeatureNames(Empty()).names
+                info(f'Current names: {current_names}')
             except Exception as e:
                 current_names = [None] * len(current_betas)
             betas += current_betas

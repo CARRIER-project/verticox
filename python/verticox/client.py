@@ -12,6 +12,7 @@ _TIMEOUT = 5 * 60  # 5 minutes
 _DEFAULT_PRECISION = 1e-5
 
 
+
 class VerticoxClient:
 
     def __init__(self, v6client: Client, collaboration=None, log_level=logging.INFO,
@@ -34,24 +35,26 @@ class VerticoxClient:
         nodes = nodes['data']
         return [n['organization']['id'] for n in nodes]
 
-    def get_column_names(self):
+    def get_column_names(self, **kwargs):
         active_nodes = self.get_active_node_organizations()
         self._logger.debug(f'There are currently {len(active_nodes)} active nodes')
 
-        task = self._run_task('column_names', organizations=active_nodes, master=False)
+        task = self._run_task('column_names', organizations=active_nodes, master=False, **kwargs)
         return task
 
-    def compute(self, feature_columns, outcome_time_column, right_censor_column, data_nodes,
-                central_node, precision=_DEFAULT_PRECISION):
+    def compute(self, feature_columns, outcome_time_column, right_censor_column, datanodes,
+                central_node, precision=_DEFAULT_PRECISION, database='default'):
         input_params = {
             'feature_columns': feature_columns,
             'event_times_column': outcome_time_column,
             'event_happened_column': right_censor_column,
-            'datanode_ids': data_nodes,
+            'datanode_ids': datanodes,
+            'central_node_id': central_node,
             'precision': precision
         }
 
-        return self._run_task('verticox', True, [central_node], kwargs=input_params)
+        return self._run_task('verticox', True, [central_node], kwargs=input_params,
+                              database=database)
 
     def _run_task(self, method, master, organizations: List[int], kwargs=None,
                   database='default'):
@@ -86,20 +89,19 @@ class VerticoxClient:
         return Task(self._v6client, task)
 
 
-Result = namedtuple('Result', ['organization_id', 'content'])
+Result = namedtuple('Result', ['organization', 'content', 'log'])
 
 
 class Task:
-
     def __init__(self, client: Client, task_data):
         self._raw_data = task_data
         self.client = client
 
         self.result_ids = [r['id'] for r in task_data['results']]
 
-    def get_result(self):
+    def get_result(self, timeout=_TIMEOUT):
         results = []
-        max_retries = _TIMEOUT // _SLEEP
+        max_retries = timeout // _SLEEP
         retries = 0
         result_ids = set(self.result_ids)
         results_complete = set()
@@ -109,9 +111,11 @@ class Task:
             for missing in results_missing:
                 result = self.client.result.get(missing)
                 if result['finished_at'] is not None:
+                    print('Received a result')
                     organization_id = result['organization']['id']
                     result_content = result['result']
-                    results.append(Result(organization_id, result_content))
+                    result_log = result['log']
+                    results.append(Result(organization_id, result_content, result_log))
                     results_complete.add(missing)
 
             if len(results) >= len(self.result_ids):
@@ -119,7 +123,7 @@ class Task:
             retries += 1
             time.sleep(_SLEEP)
 
-        raise VerticoxClientException(f'Timeout after {_TIMEOUT} seconds')
+        raise VerticoxClientException(f'Timeout after {timeout} seconds')
 
 
 class VerticoxClientException(Exception):

@@ -1,7 +1,0 @@
-# This is an example of a properties file if you want to use just the spring-boot project for testing purposes
-servers=<list of ip-adresses of other spring servers>
-#  uit enviroment variable  DATABASE_URI halen
-datapath=<path to local data>
-secretServer=<ip-adress of the server playing the role of commodity server>
-server.port=<port this spring server is hosted on>
-server=<server id>

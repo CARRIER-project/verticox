@@ -1,0 +1,47 @@
+import vantage6.client as v6client
+from clize import run
+
+from verticox.client import VerticoxClient
+
+IMAGE = 'harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox'
+DATABASE = 'parquet'
+
+
+def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest'):
+    image = f'{IMAGE}:{tag}'
+
+    client = v6client.Client(host, port)
+
+    client.authenticate(user, password)
+    client.setup_encryption(private_key)
+    nodes = client.node.list(is_online=True)
+
+    orgs = [n['id'] for n in nodes['data']]
+    orgs = sorted(orgs)
+    central_node = orgs[0]
+    datanodes = orgs[1:]
+
+    verticox_client = VerticoxClient(client, image=image)
+
+    task = verticox_client.get_column_names(database=DATABASE)
+
+    column_name_results = task.get_result()
+
+    for r in column_name_results:
+        print(f'organization: {r.organization}, columns: {r.content}')
+
+    feature_columns = ['age', 'sysbp']
+
+    task = verticox_client.compute(feature_columns, 'event_time', 'event_happened',
+                                   datanodes=datanodes, central_node=central_node, precision=1e-2,
+                                   database=DATABASE)
+
+    results = task.get_result(timeout=10 * 60)
+    for result in results:
+        print(f'Organization: {result.organization}')
+        print(f'Log: {result.log}')
+        print(f'Content: {result.content}')
+
+
+if __name__ == '__main__':
+    run(run_verticox_v6)

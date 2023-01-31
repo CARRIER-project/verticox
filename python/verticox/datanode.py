@@ -2,27 +2,33 @@ import json
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, List
+from typing import Optional, List, Union
 
+import clize
 import grpc
 import numpy as np
+import pandas as pd
 from vantage6.tools.util import info
 
-from verticox.common import group_samples_on_event_time
+import verticox.ssl
+from verticox.common import get_test_dataset
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
     NumSamples, Empty, Beta, FeatureNames
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
+from verticox.scalarproduct import NPartyScalarProductClient
 
 logger = logging.getLogger(__name__)
 DEFAULT_PORT = 7777
 GRACE = 30
 TIMEOUT = 3600
+DEFAULT_DATA = 'whas500'
 
 
 class DataNode(DataNodeServicer):
     def __init__(self, features: np.array = None, feature_names: Optional[List[str]] = None,
-                 event_times: Optional[np.array] = None,
-                 event_happened: Optional[np.array] = None, name=None, server=None):
+                 name=None, server=None, include_column: Optional[str] = None,
+                 include_value: bool = True,
+                 commodity_address: str = None):
         """
 
         Args:
@@ -37,18 +43,20 @@ class DataNode(DataNodeServicer):
         self.features = features
         self.feature_names = feature_names
         self.num_features = self.features.shape[1]
-        self.event_times = event_times
-        self.event_happened = event_happened
-        self.server = server
 
+        self.server = server
         # Parts that stay constant over iterations
         # Square all covariates and sum them together
         # The formula says for every patient, x needs to be multiplied by itself.
         # Squaring all covariates with themselves comes down to the same thing since x_nk is
         # supposed to be one-dimensional
+        info(f'Multiplying features {features}')
         self.features_multiplied = DataNode._multiply_features(features)
 
         self.num_samples = self.features.shape[0]
+        self.censor_name = include_column
+        self.censor_value = include_value
+        self.n_party_address = commodity_address
 
         self.rho = None
         self.beta = None
@@ -70,8 +78,11 @@ class DataNode(DataNodeServicer):
         self.z = np.full((self.num_samples,), request.z)
         self.beta = np.full((self.num_features,), request.beta)
         self.rho = request.rho
-        self.Dt = group_samples_on_event_time(self.event_times, self.event_happened)
-        self.sum_Dt = self.compute_sum_Dt(self.Dt, self.features)
+        # self.sum_Dt = self.compute_sum_Dt(self.Dt, self.features)
+        self.sum_Dt = self.compute_sum_Dt_n_party_scalar_product(self.feature_names,
+                                                                 self.censor_name,
+                                                                 self.censor_value,
+                                                                 self.n_party_address)
 
         self.prepared = True
 
@@ -79,6 +90,7 @@ class DataNode(DataNodeServicer):
 
     @staticmethod
     def compute_sum_Dt(Dt, features):
+        logger.debug('Computing sum dt locally')
         # TODO: I think this can be simpler but for debugging's sake I will follow the paper
         result = np.zeros((features.shape[1]))
 
@@ -87,6 +99,19 @@ class DataNode(DataNodeServicer):
                 result = result + features[i]
 
         return result
+
+    @staticmethod
+    def compute_sum_Dt_n_party_scalar_product(local_feature_names, censor_feature,
+                                              censor_value, commodity_address):
+        logger.info('Computing sum Dt with n party scalar product')
+        client = NPartyScalarProductClient(commodity_address=commodity_address)
+
+        result = client.sum_relevant_values(local_feature_names, censor_feature,
+                                            censor_value)
+
+        assert len(result) == len(local_feature_names)
+
+        return np.array(result, dtype=float)
 
     def fit(self, request, context=None):
         if not self.prepared:
@@ -194,13 +219,31 @@ class DataNode(DataNodeServicer):
         return DataNode._compute_sigma(beta, features), beta
 
 
-def serve(features=None, feature_names=None, event_times=None, event_happened=None,
-          port=DEFAULT_PORT, timeout=TIMEOUT):
+def serve(*, features=DEFAULT_DATA, feature_names=None,
+          include_column=None, include_value=True,
+          commodity_address=None, port=DEFAULT_PORT,
+          timeout=TIMEOUT, secure=True, address=None):
+    logging.basicConfig(level=logging.DEBUG)
+
+    if features == DEFAULT_DATA:
+        features, _, feature_names = get_test_dataset()
+
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
     add_DataNodeServicer_to_server(
-        DataNode(features=features, feature_names=feature_names, event_times=event_times,
-                 event_happened=event_happened, server=server), server)
-    server.add_insecure_port(f'[::]:{port}')
+        DataNode(features=features, feature_names=feature_names, include_column=include_column,
+                 include_value=include_value, commodity_address=commodity_address, server=server),
+        server)
+
+    server_endpoint = f'[::]:{port}'
+
+    if secure:
+        private_key, cert_chain = verticox.ssl.generate_self_signed_certificate(address)
+        server_credentials = grpc.ssl_server_credentials(((private_key, cert_chain),))
+
+        server.add_secure_port(server_endpoint, server_credentials)
+
+    else:
+        server.add_insecure_port(server_endpoint)
     info(f'Starting datanode on port {port} with timeout {timeout}')
     before = time.time()
     server.start()
@@ -209,6 +252,5 @@ def serve(features=None, feature_names=None, event_times=None, event_happened=No
     info(f'Stopped datanode after {total_time} seconds')
 
 
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
-    serve()
+def serve_standalone():
+    clize.run(serve)
