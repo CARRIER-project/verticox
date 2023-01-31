@@ -60,9 +60,9 @@ jobs:
           context: ./python
           # Note: tags has to be all lower-case
           tags: |
-#            ${{ env.HARBOR_HOST }}/carrier/verticox:${{env.VERTICOX_VERSION}}
-#            ${{ env.HARBOR_HOST }}/carrier/verticox
-            ${{ env.HARBOR_HOST }}/carrier/verticox:test
+            #            ${{ env.HARBOR_HOST }}/carrier/verticox:${{env.VERTICOX_VERSION}}
+            #            ${{ env.HARBOR_HOST }}/carrier/verticox
+                  ${{ env.HARBOR_HOST }}/carrier/verticox:test
 
           # build on feature branches, push only on main branch
           push: true
