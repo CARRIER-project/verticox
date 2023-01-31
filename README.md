@@ -1,4 +1,4 @@
-# verticox
+# verticox+
 This repository contains the components for running vertical cox proportional hazards analysis in a
 setting where the data is vertically partitioned.
 
