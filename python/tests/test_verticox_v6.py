@@ -30,7 +30,7 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest
     for r in column_name_results:
         print(f'organization: {r.organization}, columns: {r.content}')
 
-    feature_columns = ['age', 'los']
+    feature_columns = ['age', 'sysbp']
 
     task = verticox_client.compute(feature_columns, 'event_time', 'event_happened',
                                    datanodes=datanodes, central_node=central_node, precision=1e-2,
