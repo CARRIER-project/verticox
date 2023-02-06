@@ -78,4 +78,11 @@ public class VerticoxEndpoint extends ServerEndpoint {
         }
     }
 
+    public void setActiveRecords(ActiveRecordRequest request) {
+        if (testing) {
+            ((VerticoxServer) (server)).setActiveRecords(request);
+        } else {
+            REST_TEMPLATE.postForEntity(serverUrl + "/setActiveRecords", request, void.class);
+        }
+    }
 }

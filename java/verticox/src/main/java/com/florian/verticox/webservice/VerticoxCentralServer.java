@@ -7,10 +7,7 @@ import com.florian.nscalarproduct.webservice.Protocol;
 import com.florian.nscalarproduct.webservice.ServerEndpoint;
 import com.florian.nscalarproduct.webservice.domain.AttributeRequirement;
 import com.florian.verticox.webservice.domain.*;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -74,6 +71,11 @@ public class VerticoxCentralServer extends CentralServer {
         this.precision = precision;
         multiplier = BigDecimal.valueOf(Math.pow(TEN, precision));
         endpoints.stream().forEach(x -> ((VerticoxEndpoint) x).setPrecision(precision));
+    }
+
+    @GetMapping ("activateFold")
+    protected void activateFold(ActiveRecordRequest req) {
+        endpoints.stream().forEach(x -> ((VerticoxEndpoint) x).setActiveRecords(req));
     }
 
     @PostMapping ("sumRelevantValues")

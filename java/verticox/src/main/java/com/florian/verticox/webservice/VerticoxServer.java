@@ -41,6 +41,7 @@ public class VerticoxServer extends Server {
 
     @Value ("${datapath}")
     private String path;
+    private boolean[] activeRecords;
 
     public VerticoxServer() throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
         super();
@@ -139,7 +140,9 @@ public class VerticoxServer extends Server {
         if (predictorPresent || requirementPresent) {
             this.population = localData.length;
             this.dataStations.put("start", new DataStation(this.serverId, this.localData));
+            markActiveRecords(localData);
         }
+
         InitDataResponse response = new InitDataResponse();
         response.setOutcomePresent(requirementPresent);
         response.setPredictorPresent(predictorPresent);
@@ -199,6 +202,7 @@ public class VerticoxServer extends Server {
             this.population = localData.length;
             this.dataStations.put("start", new DataStation(this.serverId, this.localData));
         }
+        markActiveRecords(localData);
 
         InitDataResponse response = new InitDataResponse();
         response.setOutcomePresent(requirementPresent);
@@ -211,10 +215,8 @@ public class VerticoxServer extends Server {
         reset();
         this.z = new BigInteger[z.length];
         for (int i = 0; i < z.length; i++) {
-
             this.z[i] = new BigDecimal(String.valueOf(z[i])).multiply(multiplier).setScale(0, RoundingMode.HALF_UP)
                     .toBigIntegerExact();
-
         }
     }
 
@@ -299,5 +301,24 @@ public class VerticoxServer extends Server {
             readData();
         }
         return data.getAttributeCollumn(req.getAttribute()) != null;
+    }
+
+    @PostMapping ("setActiveRecords")
+    public void setActiveRecords(@RequestBody ActiveRecordRequest req) {
+        this.activeRecords = req.getActiveRecords();
+    }
+
+    private void markActiveRecords(BigInteger[] localData) {
+        if (activeRecords != null && activeRecords.length > 0) {
+            for (int i = 0; i < localData.length; i++) {
+                if (!recordIsActive(i)) {
+                    localData[i] = BigInteger.ZERO;
+                }
+            }
+        }
+    }
+
+    protected boolean recordIsActive(int record) {
+        return activeRecords[record];
     }
 }

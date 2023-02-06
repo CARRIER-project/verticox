@@ -71,6 +71,81 @@ public class VerticoxEndpointTest {
     }
 
     @Test
+    public void testValuesMultiplicationX2_PredictorAndOutComeLocal_TestFold()
+            throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
+        VerticoxServer serverZ = new VerticoxServer("resources/smallK2Example_secondhalf.csv", "Z");
+        VerticoxEndpoint endpointZ = new VerticoxEndpoint(serverZ);
+
+        VerticoxServer server2 = new VerticoxServer("resources/smallK2Example_firsthalf.csv", "2");
+        VerticoxEndpoint endpoint2 = new VerticoxEndpoint(server2);
+
+        AttributeRequirement req = new AttributeRequirement();
+        req.setValue(new Attribute(Attribute.AttributeType.numeric, "1", "x1"));
+        //this selects individuals: 1,2,4,7, & 9
+
+        ActiveRecordRequest active = new ActiveRecordRequest();
+        // only activate the odd ones, resuling in 1,7 & 9
+        active.setActiveRecords(
+                new boolean[] {true, false, true, false, true, false, true, false, true, false});
+
+
+        VerticoxServer secret = new VerticoxServer("3", Arrays.asList(endpointZ, endpoint2));
+        ServerEndpoint secretEnd = new ServerEndpoint(secret);
+
+        List<ServerEndpoint> all = new ArrayList<>();
+        all.add(endpointZ);
+        all.add(endpoint2);
+        all.add(secretEnd);
+        secret.setEndpoints(all);
+        serverZ.setEndpoints(all);
+        server2.setEndpoints(all);
+
+        VerticoxCentralServer central = new VerticoxCentralServer(true);
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
+        central.activateFold(active);
+
+        int precision = 5;
+
+        endpointZ.setPrecision(precision);
+        endpoint2.setPrecision(precision);
+        central.setPrecisionCentral(precision);
+        secret.setPrecision(precision);
+
+        central.initEndpoints(Arrays.asList(endpointZ, endpoint2), secretEnd);
+
+        SumPredictorInTimeFrameRequest request = new SumPredictorInTimeFrameRequest();
+        request.setRequirements(Arrays.asList(req));
+        request.setPredictor("x2");
+        double result = central.sumRelevantValues(request);
+        int expected = 2;
+
+        assertEquals(result, expected);
+
+        // only activate the even ones, resuling in 2,4
+        active.setActiveRecords(
+                new boolean[] {false, true, false, true, false, true, false, true, false, true});
+        central.activateFold(active);
+        request = new SumPredictorInTimeFrameRequest();
+        request.setRequirements(Arrays.asList(req));
+        request.setPredictor("x2");
+        result = central.sumRelevantValues(request);
+        expected = 2;
+
+        assertEquals(result, expected);
+        // only activate the the first 7, resulting in 1,2,4,7
+        active.setActiveRecords(
+                new boolean[] {true, true, true, true, true, true, true, false, false, false});
+        central.activateFold(active);
+        request = new SumPredictorInTimeFrameRequest();
+        request.setRequirements(Arrays.asList(req));
+        request.setPredictor("x2");
+        result = central.sumRelevantValues(request);
+        expected = 3;
+
+        assertEquals(result, expected);
+    }
+
+    @Test
     public void testValuesMultiplicationX2_RequirementRange()
             throws NoSuchPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
         VerticoxServer serverZ = new VerticoxServer("resources/smallK2Example_secondhalf.csv", "Z");
