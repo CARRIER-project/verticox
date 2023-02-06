@@ -72,6 +72,19 @@ Sums the Z values based on the relevant individuals. Expected input:
 - endpoint: the endpoint containing the relevant z values
 - Requirements: list of attributeRequirement indicating the relevant individuals
 
+### cross-fold validation
+It is possible to include k-fold crossvalidation.
+This can be done by setting the active records (i.e. the records present in the current fold) via the "activateFold" endpoint.
+The request looks as follows:
+```
+{
+  "activeRecords" : [ true, true, true, true, true, true, true, false, false, false ]
+}
+```
+It is important to note that user should never have the ability to manually generate folds. If folds can be manually generated it becomes possible to deduce the true data by repeatedly quering (e.g. set only 1 record to active and you get that specific value).
+As such the libraries should be centrally generated, outside of the control of any potential users.
+However, using this function properly is something that needs to covered by projects using this library.
+
 
 ### SOAPUI example project
 

@@ -135,6 +135,7 @@ public class VerticoxEndpointTest {
         // only activate the the first 7, resulting in 1,2,4,7
         active.setActiveRecords(
                 new boolean[] {true, true, true, true, true, true, true, false, false, false});
+
         central.activateFold(active);
         request = new SumPredictorInTimeFrameRequest();
         request.setRequirements(Arrays.asList(req));

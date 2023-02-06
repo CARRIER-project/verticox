@@ -201,8 +201,9 @@ public class VerticoxServer extends Server {
         if (zLocal || requirementPresent) {
             this.population = localData.length;
             this.dataStations.put("start", new DataStation(this.serverId, this.localData));
+            markActiveRecords(localData);
         }
-        markActiveRecords(localData);
+
 
         InitDataResponse response = new InitDataResponse();
         response.setOutcomePresent(requirementPresent);
