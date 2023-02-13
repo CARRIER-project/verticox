@@ -36,24 +36,26 @@ Sums the values based on the relevant individuals. Expected input:
 - Predictor: the predicator to be summed
 - Requirements: list of attributeRequirement indicating the relevant individuals
 
-
 Example input:
+
 ```json
 {
-    "requirements": [{
-        "value": {
-            "type": "numeric",
-            "value": "1",
-            "attributeName": "x6",
-            "id": null,
-            "uknown": false
-        },
-        "range": false,
-        "upperLimit": null,
-        "lowerLimit": null,
-        "name": "x6"
-    }],
-    "endpoint": "2"
+  "requirements": [
+    {
+      "value": {
+        "type": "numeric",
+        "value": "1",
+        "attributeName": "x6",
+        "id": null,
+        "uknown": false
+      },
+      "range": false,
+      "upperLimit": null,
+      "lowerLimit": null,
+      "name": "x6"
+    }
+  ],
+  "endpoint": "2"
 }
 ```
 
@@ -73,19 +75,26 @@ Sums the Z values based on the relevant individuals. Expected input:
 - Requirements: list of attributeRequirement indicating the relevant individuals
 
 ### cross-fold validation
-It is possible to include k-fold crossvalidation.
-This can be done by setting the active records (i.e. the records present in the current fold) via the "activateFold" endpoint.
-The request looks as follows:
+
+It is possible to include k-fold crossvalidation. This can be done by setting the active records (i.e. the records
+present in the current fold) via the "activateFold" endpoint. The request looks as follows:
+
 ```
 {
   "activeRecords" : [ true, true, true, true, true, true, true, false, false, false ]
 }
 ```
-It is important to note that user should never have the ability to manually generate folds. If folds can be manually generated it becomes possible to deduce the true data by repeatedly quering (e.g. set only 1 record to active and you get that specific value).
-As such the libraries should be centrally generated, outside of the control of any potential users.
-However, using this function properly is something that needs to covered by projects using this library.
 
+It is important to note that user should never have the ability to manually generate folds. If folds can be manually
+generated it becomes possible to deduce the true data by repeatedly quering (e.g. set only 1 record to active and you
+get that specific value). As such the libraries should be centrally generated, outside of the control of any potential
+users. However, using this function properly is something that needs to covered by projects using this library.
 
 ### SOAPUI example project
 
 A SOAPUI example project is also present in this repository.
+
+### Download jar from github:
+
+A maven settings.xml is included in this project that contains a bot for downloading jar files from github packages.
+Unfortunatly it is not possible to download packages without a valid token, even when the project is public

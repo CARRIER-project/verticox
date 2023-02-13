@@ -157,4 +157,11 @@
         </plugins>
     </build>
 
+    <repositories>
+        <repository>
+            <id>gitBot</id>
+            <url>https://maven.pkg.github.com/MaastrichtU-CDS/*</url>
+        </repository>
+    </repositories>
+
 </project>
