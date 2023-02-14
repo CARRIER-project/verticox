@@ -1,6 +1,6 @@
 name: Build java package
 on:
-  workflow-call:
+  workflow_call:
     outputs:
       jarpath:
         description: "Path of the created jar file"
