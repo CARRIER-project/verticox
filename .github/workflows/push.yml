@@ -19,8 +19,6 @@ jobs:
         run: echo ${{ needs.job1.outputs.jarpath }}
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: test other workflow
-
       # setup Docker build action
       - name: Set up Docker Buildx
         id: buildx
