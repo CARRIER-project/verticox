@@ -1,0 +1,33 @@
+name: Build java package
+on:
+  workflow-call:
+    outputs:
+      jarpath:
+        description: "Path of the created jar file"
+        value: java/target/${{jobs.build.outputs.jarfile}}
+defaults:
+  run:
+    working-directory: java
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      jarfile: ${{steps.jarpath.outputs}}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          java-version: '15'
+          distribution: 'adopt'
+      - name: Build
+        run: mvn package
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: "Get jar file path"
+        id: "jarfile"
+        shell: echo JARPATH=java/target/$(ls -1|grep .jar|head|sed -e "s/[\t]*//") >> $GITHUB_OUTPUT
+
+
