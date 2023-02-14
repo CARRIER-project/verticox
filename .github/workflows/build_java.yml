@@ -28,6 +28,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Get jar file path"
         id: "jarfile"
-        shell: echo JARPATH=java/target/$(ls -1|grep .jar|head|sed -e "s/[\t]*//") >> $GITHUB_OUTPUT
+        run: echo JARPATH=java/target/$(ls -1|grep .jar|head|sed -e "s/[\t]*//") >> $GITHUB_OUTPUT
 
 
