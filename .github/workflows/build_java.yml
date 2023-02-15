@@ -23,6 +23,7 @@ jobs:
           java-version: '15'
           distribution: 'adopt'
       - name: Build
+
         run: mvn package
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
