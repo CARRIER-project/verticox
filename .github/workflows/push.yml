@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - main
-      - 60-add-java-to-ci
 
 jobs:
   job1:

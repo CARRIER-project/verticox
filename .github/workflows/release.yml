@@ -13,20 +13,28 @@ env:
 on:
   release:
     types: [ published ]
+  branches:
+    - 60-add-java-to-ci
+
 permissions:
   contents: write
 
 jobs:
-  deploy:
-
+  job1:
+    uses: ./.github/workflows/build_java.yml
+  build-and-push:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v3
         with:
           python-version: '3.x'
+      - name: Download jar file
+        uses: actions/download-artifact@v3
+        with:
+          name: jarfile
+          path: java/verticox/target
       - name: Run Dunamai to get version
         uses: mtkennerly/dunamai-action@v1.1.0
         with:
