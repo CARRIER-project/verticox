@@ -11,8 +11,6 @@ env:
   HARBOR_HOST: harbor.carrier-mu.src.surf-hosted.nl
 
 on:
-  push:
-    branches: [ 60-add-java-to-ci ]
   release:
     types: [ published ]
 permissions:
