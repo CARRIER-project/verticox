@@ -3,7 +3,7 @@ on:
   workflow_call:
 defaults:
   run:
-    working-directory: java/verticox
+    working-directory: java
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,12 +25,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Get jar file path"
         id: "jarfile"
-        run: echo JARFILE=$(ls -1|grep .jar|head|sed -e "s/[\t]*//") >> $GITHUB_OUTPUT
+        run: echo JARFILE=$(ls -1 target|grep .jar|head|sed -e "s/[\t]*//") >> $GITHUB_OUTPUT
       - name: Print jarfile
         run: echo ${{ steps.jarfile.outputs.JARFILE }}
       - name: "Upload jar file as artifact"
         uses: actions/upload-artifact@v3
         with:
           name: jarfile
-          path: "java/target/${{ steps.jarfile.outputs.JARFILE }}"
+          path: "target/${{ steps.jarfile.outputs.JARFILE }}"
 
