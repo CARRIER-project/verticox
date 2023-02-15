@@ -1,10 +1,6 @@
 name: Build java package
 on:
   workflow_call:
-    outputs:
-      jarpath:
-        description: "Path of the created jar file"
-        value: java/target/${{jobs.build.outputs.jarfile}}
 defaults:
   run:
     working-directory: java/verticox
@@ -29,6 +25,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Get jar file path"
         id: "jarfile"
-        run: echo JARPATH=java/target/$(ls -1|grep .jar|head|sed -e "s/[\t]*//") >> $GITHUB_OUTPUT
-
+        run: echo JARFILE=$(ls -1|grep .jar|head|sed -e "s/[\t]*//") >> $GITHUB_OUTPUT
+      - name: "Upload jar file as artifact"
+        uses: actions/upload-artifact@v3
+        with:
+          name: jarfile
+          path: "java/target/${{ steps.jarfile.outputs.JARFILE }}"
 
