@@ -24,7 +24,7 @@ jobs:
           distribution: 'adopt'
       - name: Build
 
-        run: mvn package
+        run: mvn --settings settings.xml package
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Get jar file path"
