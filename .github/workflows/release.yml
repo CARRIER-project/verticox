@@ -25,6 +25,7 @@ jobs:
   job1:
     uses: ./.github/workflows/build_java.yml
   build-and-push:
+    needs: job1
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
