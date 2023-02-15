@@ -17,11 +17,13 @@ jobs:
           distribution: 'adopt'
       - name: Build
         working-directory: java/verticox
-        run: mvn --settings settings.xml package
+        run: |
+          mvn --settings settings.xml package
+          ls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Get jar file path"
-        working-directory: java/target
+        working-directory: java/verticox/target
         id: "jarfile"
         run: echo JARFILE=$(ls -1 |grep .jar|head|sed -e "s/[\t]*//") >> $GITHUB_OUTPUT
       - name: Print jarfile
@@ -30,5 +32,5 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: jarfile
-          path: "java/target/${{ steps.jarfile.outputs.JARFILE }}"
+          path: "java/verticox/target/${{ steps.jarfile.outputs.JARFILE }}"
 
