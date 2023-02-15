@@ -26,6 +26,8 @@ jobs:
       - name: "Get jar file path"
         id: "jarfile"
         run: echo JARFILE=$(ls -1|grep .jar|head|sed -e "s/[\t]*//") >> $GITHUB_OUTPUT
+      - name: Print jarfile
+        run: echo ${{ steps.jarfile.outputs.JARFILE }}
       - name: "Upload jar file as artifact"
         uses: actions/upload-artifact@v3
         with:
