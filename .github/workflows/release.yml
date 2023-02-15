@@ -13,9 +13,6 @@ env:
 on:
   release:
     types: [ published ]
-  push:
-    branches:
-      - 60-add-java-to-ci
 
 permissions:
   contents: write
@@ -68,9 +65,9 @@ jobs:
           # relative path to the place where source code with Dockerfile is located
           context: .
           # Note: tags has to be all lower-case
-          tags: ${{ env.HARBOR_HOST }}/carrier/verticox:test
-            #            ${{ env.HARBOR_HOST }}/carrier/verticox:${{env.VERTICOX_VERSION}}
-            #            ${{ env.HARBOR_HOST }}/carrier/verticox
+          tags: |
+            ${{ env.HARBOR_HOST }}/carrier/verticox:${{env.VERTICOX_VERSION}}
+            ${{ env.HARBOR_HOST }}/carrier/verticox
 
 
           # build on feature branches, push only on main branch
