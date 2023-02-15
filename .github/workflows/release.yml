@@ -13,8 +13,9 @@ env:
 on:
   release:
     types: [ published ]
-  branches:
-    - 60-add-java-to-ci
+  push:
+    branches:
+      - 60-add-java-to-ci
 
 permissions:
   contents: write
