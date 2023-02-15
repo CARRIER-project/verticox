@@ -18,14 +18,14 @@ jobs:
       - name: Build
         working-directory: java/verticox
         run: |
-          mvn --settings settings.xml package
+          mvn --settings settings.xml clean package
           ls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Get jar file path"
         working-directory: java/verticox/target
         id: "jarfile"
-        run: echo JARFILE=$(ls -1 |grep .jar|head|sed -e "s/[\t]*//") >> $GITHUB_OUTPUT
+        run: echo JARFILE=$(ls -1 |grep -e ".jar$"|head|sed -e "s/[\t]*//") >> $GITHUB_OUTPUT
       - name: Print jarfile
         run: echo ${{ steps.jarfile.outputs.JARFILE }}
       - name: "Upload jar file as artifact"
