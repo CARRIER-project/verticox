@@ -13,7 +13,7 @@ from vantage6.tools.util import info
 import verticox.ssl
 from verticox.common import get_test_dataset
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
-    NumSamples, Empty, Beta, FeatureNames, RecordLevelSigma
+    NumSamples, Empty, Beta, FeatureNames, RecordLevelSigma, AverageSigma
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
 from verticox.scalarproduct import NPartyScalarProductClient
 
@@ -180,7 +180,8 @@ class DataNode(DataNodeServicer):
         else:
             context.abort(grpc.StatusCode.NOT_FOUND, 'This datanode does not have feature names')
 
-    def getRecordLevelSigma(self, request, context: grpc.ServicerContext = None) -> RecordLevelSigma:
+    def getRecordLevelSigma(self, request,
+                            context: grpc.ServicerContext = None) -> RecordLevelSigma:
         """
         Get the sigma value for every record. Sigma is defined as :math: `\beta_k \cdot x`
 
@@ -188,12 +189,24 @@ class DataNode(DataNodeServicer):
         :param context:
         :return:
         """
-        sigmas = np.zeros(self.features.shape[0])
 
-        for idx in range(self.features.shape[0]):
-            sigmas[idx] = np.dot(self.beta, self.features[idx])
+        sigmas = np.tensordot(self.features, self.beta, (1, 0))
 
         return RecordLevelSigma(sigma=sigmas)
+
+    def getAverageSigma(self, request: Empty, context=None) -> AverageSigma:
+        """
+        Get sigma value averaged over all records.
+        :param request:
+        :param context:
+        :return:
+        """
+        # TODO: We need to select a subpopulation
+
+        sigmas = np.tensordot(self.features, self.beta, (1, 0))
+        average = np.average(sigmas, axis=0)
+
+        return AverageSigma(sigma=average)
 
     @staticmethod
     def _sum_covariates(covariates: np.array):

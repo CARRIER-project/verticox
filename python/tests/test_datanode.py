@@ -135,5 +135,17 @@ def test_get_record_level_sigma(test_data):
     assert_array_almost_equal(target, result)
 
 
+def test_get_average_sigma(test_data):
+    features, _ = test_data
+    beta = np.array([0.1, 0.2])
+
+    datanode = DataNode(features=features, beta=beta)
+
+    result = datanode.getAverageSigma(Empty()).sigma
+
+    target = 0.5
+    np.testing.assert_almost_equal(target, result)
+
+
 if __name__ == '__main__':
     test_can_make_secure_connection_with_datanode(test_data_nofixture())
