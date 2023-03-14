@@ -10,6 +10,7 @@ service DataNode{
   rpc prepare(InitialValues) returns (Empty){};
   rpc kill(Empty) returns (Empty){};
   rpc getFeatureNames(Empty) returns (FeatureNames){};
+  rpc getFinalSigmas(Empty) returns (FinalSigmas){};
 }
 
 message InitialValues{
@@ -47,4 +48,8 @@ message FeatureNames{
   repeated string names = 1;
 }
 
+message FinalSigmas{
+  repeated float recordLevelSigma = 1;
+  float averageSigma = 2;
+}
 message Empty{}
