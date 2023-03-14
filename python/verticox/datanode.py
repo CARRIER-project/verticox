@@ -13,7 +13,7 @@ from vantage6.tools.util import info
 import verticox.ssl
 from verticox.common import get_test_dataset
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
-    NumSamples, Empty, Beta, FeatureNames
+    NumSamples, Empty, Beta, FeatureNames, RecordLevelSigma
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
 from verticox.scalarproduct import NPartyScalarProductClient
 
@@ -28,7 +28,8 @@ class DataNode(DataNodeServicer):
     def __init__(self, features: np.array = None, feature_names: Optional[List[str]] = None,
                  name=None, server=None, include_column: Optional[str] = None,
                  include_value: bool = True,
-                 commodity_address: str = None):
+                 commodity_address: str = None,
+                 beta: np.array = None):
         """
 
         Args:
@@ -59,7 +60,7 @@ class DataNode(DataNodeServicer):
         self.n_party_address = commodity_address
 
         self.rho = None
-        self.beta = None
+        self.beta = beta
         self.sigma = None
         self.z = None
         self.gamma = None
@@ -178,6 +179,21 @@ class DataNode(DataNodeServicer):
             return FeatureNames(names=unicode_names)
         else:
             context.abort(grpc.StatusCode.NOT_FOUND, 'This datanode does not have feature names')
+
+    def getRecordLevelSigma(self, request, context: grpc.ServicerContext = None) -> RecordLevelSigma:
+        """
+        Get the sigma value for every record. Sigma is defined as :math: `\beta_k \cdot x`
+
+        :param request:
+        :param context:
+        :return:
+        """
+        sigmas = np.zeros(self.features.shape[0])
+
+        for idx in range(self.features.shape[0]):
+            sigmas[idx] = np.dot(self.beta, self.features[idx])
+
+        return RecordLevelSigma(sigma=sigmas)
 
     @staticmethod
     def _sum_covariates(covariates: np.array):

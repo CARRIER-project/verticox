@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 import verticox.ssl
 from verticox.datanode import DataNode, serve
@@ -17,6 +18,7 @@ PORT = 9999
 @pytest.fixture()
 def test_data():
     return test_data_nofixture()
+
 
 def test_data_nofixture():
     data = np.arange(4).reshape((2, 2))
@@ -85,6 +87,7 @@ def test_get_feature_names_aborts_if_not_exist(test_data):
 
     mock_context.abort.assert_called_once()
 
+
 # Because this test is juggling multiple processes it doesn't go well with the pytest runner.
 @pytest.mark.skip
 def test_can_make_secure_connection_with_datanode(test_data):
@@ -99,6 +102,7 @@ def test_can_make_secure_connection_with_datanode(test_data):
     print(f'Waiting for server to start...')
     sleep(5)
     print('Continuing....')
+
     def get_feature_names():
         host = '127.0.0.1'
         stub = verticox.ssl.get_secure_stub(host, port)
@@ -116,6 +120,20 @@ def test_can_make_secure_connection_with_datanode(test_data):
     client_process.kill()
     server_process.join()
     server_process.kill()
+
+
+def test_get_record_level_sigma(test_data):
+    features, _ = test_data
+    beta = np.array([0.1, 0.2])
+
+    datanode = DataNode(features=features, beta=beta)
+
+    result = datanode.getRecordLevelSigma(Empty()).sigma
+
+    target = [0.2, 0.8]
+
+    assert_array_almost_equal(target, result)
+
 
 if __name__ == '__main__':
     test_can_make_secure_connection_with_datanode(test_data_nofixture())
