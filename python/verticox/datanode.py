@@ -2,12 +2,11 @@ import json
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, List, Union
+from typing import Optional, List
 
 import clize
 import grpc
 import numpy as np
-import pandas as pd
 from vantage6.tools.util import info
 
 import verticox.ssl
@@ -51,7 +50,6 @@ class DataNode(DataNodeServicer):
         # The formula says for every patient, x needs to be multiplied by itself.
         # Squaring all covariates with themselves comes down to the same thing since x_nk is
         # supposed to be one-dimensional
-        info(f'Multiplying features {features}')
         self.features_multiplied = DataNode._multiply_features(features)
 
         self.num_samples = self.features.shape[0]

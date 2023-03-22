@@ -1,11 +1,12 @@
 import logging
 import time
-from typing import List, Tuple
+from typing import List, Tuple, Union
 from numba import types, typed
 import numpy as np
 from numpy.typing import ArrayLike
 from vantage6.common import info
 
+from verticox.datanode import DataNode
 from verticox.likelihood import find_z
 from verticox.common import group_samples_at_risk, group_samples_on_event_time
 from verticox.grpc.datanode_pb2 import Empty, AggregatedParameters, InitialValues
@@ -251,6 +252,29 @@ class Aggregator:
             names += current_names
 
         return list(zip(names, betas))
+
+    def compute_baseline_hazard_function(self):
+        record_level_sigmas = np.zeros((self.num_institutions, self.num_samples))
+        average_sigmas = np.zeros(self.num_institutions)
+
+        for idx, institution in enumerate(self.institutions):
+            record_level_sigma = institution.getRecordLevelSigma(Empty())
+            record_level_sigmas[idx] = np.array(record_level_sigma.sigma)
+
+            average_sigma = institution.getAverageSigma(Empty())
+            average_sigmas[idx] = average_sigma.sigma
+
+        summed_record_level_sigma = record_level_sigmas.sum(axis=0)
+
+        baseline_hazard = {}
+
+        for t, group in self.Rt.items():
+            summed_sigmas = summed_record_level_sigma[group]
+            baseline_hazard[t] = 1 / np.exp(summed_sigmas).sum()
+
+        baseline_x , baseline_y = zip(*baseline_hazard.items())
+
+        return baseline_x, baseline_y
 
 
 class Progress:
