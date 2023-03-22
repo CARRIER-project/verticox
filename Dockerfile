@@ -1,5 +1,3 @@
-# syntax = docker/dockerfile:1.2
-
 FROM openjdk:17-slim as runner
 
 ARG PKG_NAME="verticox"
