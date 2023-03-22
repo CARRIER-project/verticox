@@ -16,11 +16,11 @@ PORT = 9999
 
 
 @pytest.fixture()
-def test_data():
-    return test_data_nofixture()
+def data():
+    return data_nofixture()
 
 
-def test_data_nofixture():
+def data_nofixture():
     data = np.arange(4).reshape((2, 2))
     feature_names = ['piet', 'henk']
 
@@ -70,16 +70,16 @@ def test_get_num_features_returns_num_features():
     assert datanode.getNumFeatures(Empty()).numFeatures == NUM_FEATURES
 
 
-def test_get_feature_names_gives_names_if_they_exist(test_data):
-    features, feature_names = test_data
+def test_get_feature_names_gives_names_if_they_exist(data):
+    features, feature_names = data
     datanode = DataNode(features=features, feature_names=feature_names)
     result = datanode.getFeatureNames(request=Empty(), context=None)
 
     assert result.names == ['piet', 'henk']
 
 
-def test_get_feature_names_aborts_if_not_exist(test_data):
-    data, _ = test_data
+def test_get_feature_names_aborts_if_not_exist(data):
+    data, _ = data
     datanode = DataNode(features=data, )
 
     mock_context = MagicMock()
@@ -90,8 +90,8 @@ def test_get_feature_names_aborts_if_not_exist(test_data):
 
 # Because this test is juggling multiple processes it doesn't go well with the pytest runner.
 @pytest.mark.skip
-def test_can_make_secure_connection_with_datanode(test_data):
-    features, feature_names = test_data
+def test_can_make_secure_connection_with_datanode(data):
+    features, feature_names = data
     port = PORT
     server_process = Process(target=serve,
                              kwargs={'features': features, 'feature_names': feature_names,
@@ -122,8 +122,8 @@ def test_can_make_secure_connection_with_datanode(test_data):
     server_process.kill()
 
 
-def test_get_record_level_sigma(test_data):
-    features, _ = test_data
+def test_get_record_level_sigma(data):
+    features, _ = data
     beta = np.array([0.1, 0.2])
 
     datanode = DataNode(features=features, beta=beta)
@@ -135,8 +135,8 @@ def test_get_record_level_sigma(test_data):
     assert_array_almost_equal(target, result)
 
 
-def test_get_average_sigma(test_data):
-    features, _ = test_data
+def test_get_average_sigma(data):
+    features, _ = data
     beta = np.array([0.1, 0.2])
 
     datanode = DataNode(features=features, beta=beta)
@@ -148,4 +148,4 @@ def test_get_average_sigma(test_data):
 
 
 if __name__ == '__main__':
-    test_can_make_secure_connection_with_datanode(test_data_nofixture())
+    test_can_make_secure_connection_with_datanode(data_nofixture())
