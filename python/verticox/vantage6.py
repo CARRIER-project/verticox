@@ -105,6 +105,8 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     '''
 
     info(f'Start running verticox on features: {feature_columns}')
+
+    info(f'My database: {client.database}')
     start_time = time.time()
     external_commodity_address = _get_current_java_address(client, datanode_ids[0])
 
