@@ -1,8 +1,10 @@
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-from sksurv.linear_model import CoxPHSurvivalAnalysis
 import numpy as np
+import pandas as pd
+from pytest import mark
+from sksurv.linear_model import CoxPHSurvivalAnalysis
 
 from verticox import common
 from verticox.aggregator import Aggregator
@@ -44,12 +46,11 @@ def test_compute_deaths_per_t_with_right_censored_returns_0_deaths():
     TestCase().assertDictEqual(result, {1: 2, 2: 0})
 
 
-# TODO: test with more institutions and features
-def test_compute_baseline_hazard():
-    # We need enough data to be able to do a full analysis
-    num_records = 60
-    num_features = 2
-    num_institutions = 2
+@mark.parametrize('num_records,num_features,num_institutions',
+                  [(60, 2, 2),
+                   (100, 3, 3),
+                   (400, 4, 4)])
+def test_compute_baseline_hazard(num_records, num_features, num_institutions):
     features_per_institution = num_features // num_institutions
     features, events, names = common.get_test_dataset(num_records, num_features)
 
@@ -57,6 +58,12 @@ def test_compute_baseline_hazard():
 
     centralized_model = CoxPHSurvivalAnalysis()
     centralized_model.fit(features, events)
+
+    # Compute hazard ratio
+    predictions = np.apply_along_axis(lambda x: compute_hazard_ratio(x, centralized_model.coef_),
+                                      1, features)
+
+    baseline_hazard_centralized = compute_baseline_hazard(events, predictions)
 
     mock_datanodes = []
     # Mock the datanodes
@@ -77,5 +84,33 @@ def test_compute_baseline_hazard():
     aggregator = Aggregator(institutions=mock_datanodes, event_times=event_times,
                             event_happened=event_happened)
 
-    baseline_hazard = aggregator.compute_baseline_hazard_function()
-    print(baseline_hazard)
+    steps, hazard = aggregator.compute_baseline_hazard_function()
+    hazard = np.array(hazard)
+
+    np.testing.assert_almost_equal(baseline_hazard_centralized[0], np.array(steps))
+    np.testing.assert_almost_equal(baseline_hazard_centralized[1], hazard)
+
+
+def compute_hazard_ratio(features, coefficients):
+    return np.exp(np.dot(features, coefficients))
+
+
+def compute_baseline_hazard(events, predictions):
+    event_times, event_happened = common.unpack_events(events)
+
+    samples_per_event_time = common.group_samples_on_event_time(event_times, event_happened)
+    at_risk_per_event_time = common.group_samples_at_risk(event_times)
+
+    baseline_hazard_function = {}
+    # We need to weight the risk set using the estimated coefficients
+    for time, event_set in samples_per_event_time.items():
+        risk_set = at_risk_per_event_time[time]
+        ratios = predictions[risk_set]
+        weighted_risk = ratios.sum()
+
+        baseline_hazard_score = len(event_set) / weighted_risk
+        baseline_hazard_function[time] = baseline_hazard_score
+
+    steps, hazard = zip(*baseline_hazard_function.items())
+
+    return steps, hazard

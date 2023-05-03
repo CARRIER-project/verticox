@@ -255,14 +255,10 @@ class Aggregator:
 
     def compute_baseline_hazard_function(self):
         record_level_sigmas = np.zeros((self.num_institutions, self.num_samples))
-        average_sigmas = np.zeros(self.num_institutions)
 
         for idx, institution in enumerate(self.institutions):
             record_level_sigma = institution.getRecordLevelSigma(Empty())
             record_level_sigmas[idx] = np.array(record_level_sigma.sigma)
-
-            average_sigma = institution.getAverageSigma(Empty())
-            average_sigmas[idx] = average_sigma.sigma
 
         summed_record_level_sigma = record_level_sigmas.sum(axis=0)
 
