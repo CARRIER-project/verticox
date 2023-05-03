@@ -1,3 +1,5 @@
+import json
+
 import vantage6.client as v6client
 from clize import run
 
@@ -33,14 +35,14 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest
     feature_columns = ['age', 'sysbp']
 
     task = verticox_client.compute(feature_columns, 'event_time', 'event_happened',
-                                   datanodes=datanodes, central_node=central_node, precision=1e-2,
+                                   datanodes=datanodes, central_node=central_node, precision=1e-4,
                                    database=DATABASE)
 
     results = task.get_result(timeout=10 * 60)
     for result in results:
         print(f'Organization: {result.organization}')
         print(f'Log: {result.log}')
-        print(f'Content: {result.content}')
+        print(f'Content: {json.dumps(result.content)}')
 
 
 if __name__ == '__main__':
