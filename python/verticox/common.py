@@ -13,7 +13,8 @@ def group_samples_at_risk(event_times: ArrayLike) -> types.DictType(types.float6
     """
     Groups the indices of samples on whether they are at risk at a certain time.
 
-    A sample is at risk at a certain time when its event time is greater or equal that time.
+    A sample is at risk at a certain time when its event- or censor time is greater or equal that
+    time.
 
     Ri is the set of indices of samples with death or censor times occurring
     after ti.
