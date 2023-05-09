@@ -1,9 +1,7 @@
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from pytest import mark
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 
@@ -86,13 +84,6 @@ def test_compute_baseline_hazard(num_records, num_features, num_institutions):
                             event_happened=event_happened)
 
     decentralized_t, decentralized_hazard = aggregator.compute_baseline_hazard_function()
-
-    fig, ax = plt.subplots()
-    ax.scatter(x=decentralized_t, y=decentralized_hazard, label='decentralized', s=20)
-    ax.scatter(x=centralized_t, y=centralized_hazard, label='centralized', s=5)
-    ax.set_ylim(bottom=0, top=0.25)
-    plt.legend()
-    plt.show()
 
     np.testing.assert_almost_equal(decentralized_t, centralized_t)
     np.testing.assert_almost_equal(decentralized_hazard, centralized_hazard, decimal=5)
