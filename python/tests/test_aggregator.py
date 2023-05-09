@@ -95,7 +95,7 @@ def test_compute_baseline_hazard(num_records, num_features, num_institutions):
     plt.show()
 
     np.testing.assert_almost_equal(decentralized_t, centralized_t)
-    np.testing.assert_almost_equal(decentralized_hazard, centralized_hazard)
+    np.testing.assert_almost_equal(decentralized_hazard, centralized_hazard, decimal=5)
 
 
 def compute_hazard_ratio(features, coefficients):

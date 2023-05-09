@@ -268,8 +268,7 @@ class Aggregator:
             summed_sigmas = summed_record_level_sigma[group]
             baseline_hazard[t] = 1 / np.exp(summed_sigmas).sum()
 
-        baseline_x , baseline_y = zip(*baseline_hazard.items())
-
+        baseline_x, baseline_y = zip(*sorted(baseline_hazard.items()))
         return baseline_x, baseline_y
 
 
