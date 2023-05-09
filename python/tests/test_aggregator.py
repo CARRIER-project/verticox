@@ -63,7 +63,7 @@ def test_compute_baseline_hazard(num_records, num_features, num_institutions):
     predictions = np.apply_along_axis(lambda x: compute_hazard_ratio(x, centralized_model.coef_),
                                       1, features)
 
-    baseline_hazard_centralized = compute_baseline_hazard(events, predictions)
+    centralized_t, centralized_hazard = compute_baseline_hazard(events, predictions)
 
     mock_datanodes = []
     # Mock the datanodes
@@ -84,11 +84,17 @@ def test_compute_baseline_hazard(num_records, num_features, num_institutions):
     aggregator = Aggregator(institutions=mock_datanodes, event_times=event_times,
                             event_happened=event_happened)
 
-    steps, hazard = aggregator.compute_baseline_hazard_function()
-    hazard = np.array(hazard)
+    decentralized_t, decentralized_hazard = aggregator.compute_baseline_hazard_function()
+    #
+    # fig, ax = plt.subplots()
+    # ax.scatter(x=decentralized_t, y=decentralized_hazard, label='decentralized', s=20)
+    # ax.scatter(x=centralized_t, y=centralized_hazard, label='centralized', s=5)
+    # ax.set_ylim(bottom=0, top=0.25)
+    # plt.legend()
+    # plt.show()
 
-    np.testing.assert_almost_equal(baseline_hazard_centralized[0], np.array(steps))
-    np.testing.assert_almost_equal(baseline_hazard_centralized[1], hazard)
+    np.testing.assert_almost_equal(decentralized_t, centralized_t)
+    np.testing.assert_almost_equal(decentralized_hazard, centralized_hazard)
 
 
 def compute_hazard_ratio(features, coefficients):
@@ -111,6 +117,6 @@ def compute_baseline_hazard(events, predictions):
         baseline_hazard_score = len(event_set) / weighted_risk
         baseline_hazard_function[time] = baseline_hazard_score
 
-    steps, hazard = zip(*baseline_hazard_function.items())
+    steps, hazard = zip(*sorted(baseline_hazard_function.items()))
 
     return steps, hazard
