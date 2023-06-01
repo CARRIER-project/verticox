@@ -150,7 +150,7 @@ class NPartyScalarProductClient:
         requests.post(url, json=payload, timeout=10)
 
     def _kill_endpoint(self, target):
-        r = requests.put(target + "/kill")
+        requests.put(target + "/kill")
 
 
 def main():
