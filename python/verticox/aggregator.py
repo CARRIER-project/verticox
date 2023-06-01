@@ -1,16 +1,16 @@
 import logging
 import time
-from typing import List, Tuple, Union
-from numba import types, typed
+from typing import List, Tuple
+
 import numpy as np
+from numba import types, typed
 from numpy.typing import ArrayLike
 from vantage6.common import info
 
-from verticox.datanode import DataNode
-from verticox.likelihood import find_z
 from verticox.common import group_samples_at_risk, group_samples_on_event_time
 from verticox.grpc.datanode_pb2 import Empty, AggregatedParameters, InitialValues
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
+from verticox.likelihood import find_z
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +37,8 @@ class Aggregator:
                  event_happened: types.boolean[:], convergence_precision: float = DEFAULT_PRECISION,
                  newton_raphson_precision: float = DEFAULT_PRECISION, rho=RHO):
         """
-        Initialize regular verticox aggregator. Note that this type of aggregator needs access to the
-        event times of the samples.
+        Initialize regular verticox aggregator. Note that this type of aggregator needs access to
+        the event times of the samples.
 
         Args:
             institutions:
@@ -246,7 +246,7 @@ class Aggregator:
             try:
                 current_names = institution.getFeatureNames(Empty()).names
                 info(f'Current names: {current_names}')
-            except Exception as e:
+            except Exception:
                 current_names = [None] * len(current_betas)
             betas += current_betas
             names += current_names

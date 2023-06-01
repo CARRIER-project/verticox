@@ -1,15 +1,12 @@
-from unittest import TestCase
-
 import numba
 import numpy as np
 from numba import typed, types
 from numpy import array
-from numpy.testing import assert_array_equal
 from pytest import mark
 
 from verticox.likelihood import Parameters, parametrized, derivative_1, \
     minimize_newton_raphson, \
-    jacobian_parametrized, hessian_parametrized
+    jacobian_parametrized
 
 NUM_PATIENTS = 3
 NUM_FEATURES = 2
@@ -94,8 +91,7 @@ def test_one_dim_newton_rhapson():
             [0, 2]
         ])
 
-    result = minimize_newton_raphson(np.array([1, 1], dtype=float)
-                                     , jac, hess, PARAMS, eps=EPSILON)
+    result = minimize_newton_raphson(np.array([1, 1], dtype=float), jac, hess, PARAMS, eps=EPSILON)
 
     np.testing.assert_array_almost_equal(result, np.array([0, 0]))
 

@@ -161,7 +161,7 @@ class DataNode(DataNodeServicer):
         return NumSamples(numSamples=num_samples)
 
     def getBeta(self, request, context=None):
-        self._logger.debug(f'Returning beta')
+        self._logger.debug('Returning beta')
         result = self.beta.tolist()
         self._logger.debug('Converted beta to list')
         return Beta(beta=result)
