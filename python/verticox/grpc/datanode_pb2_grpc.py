@@ -71,7 +71,7 @@ class DataNodeStub(object):
                 )
         self.computePartialHazardRatio = channel.unary_unary(
                 '/DataNode/computePartialHazardRatio',
-                request_serializer=verticox_dot_grpc_dot_datanode__pb2.Indices.SerializeToString,
+                request_serializer=verticox_dot_grpc_dot_datanode__pb2.Subset.SerializeToString,
                 response_deserializer=verticox_dot_grpc_dot_datanode__pb2.PartialHazardRatio.FromString,
                 )
 
@@ -211,7 +211,7 @@ def add_DataNodeServicer_to_server(servicer, server):
             ),
             'computePartialHazardRatio': grpc.unary_unary_rpc_method_handler(
                     servicer.computePartialHazardRatio,
-                    request_deserializer=verticox_dot_grpc_dot_datanode__pb2.Indices.FromString,
+                    request_deserializer=verticox_dot_grpc_dot_datanode__pb2.Subset.FromString,
                     response_serializer=verticox_dot_grpc_dot_datanode__pb2.PartialHazardRatio.SerializeToString,
             ),
     }
@@ -423,7 +423,7 @@ class DataNode(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/DataNode/computePartialHazardRatio',
-            verticox_dot_grpc_dot_datanode__pb2.Indices.SerializeToString,
+            verticox_dot_grpc_dot_datanode__pb2.Subset.SerializeToString,
             verticox_dot_grpc_dot_datanode__pb2.PartialHazardRatio.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
