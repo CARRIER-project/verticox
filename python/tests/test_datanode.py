@@ -166,5 +166,22 @@ def test_compute_partial_hazard_ratio_1_record(data, beta):
     np.testing.assert_array_almost_equal(ratios, target)
 
 
+def test_compute_partial_hazard_ratio_multiple_records(beta):
+    total_rows = 6
+    subset = [0,1,2]
+
+    features = np.arange(total_rows).reshape((-1, 2))
+    datanode = DataNode(features, beta=beta)
+    request = Subset(indices=subset)
+
+    result = datanode.computePartialHazardRatio(request)
+    ratios = np.array(result.partialHazardRatios)
+
+    target = [np.dot(features[i], beta) for i in range(features.shape[0])]
+    target = np.array(target)
+
+    np.testing.assert_array_almost_equal(ratios, target)
+
+
 if __name__ == '__main__':
     test_can_make_secure_connection_with_datanode(data_nofixture())
