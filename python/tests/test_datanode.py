@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal
 
 import verticox.ssl
 from verticox.datanode import DataNode, serve
@@ -99,7 +99,7 @@ def test_can_make_secure_connection_with_datanode(data):
     server_process.start()
 
     # Wait until server has started
-    print(f'Waiting for server to start...')
+    print('Waiting for server to start...')
     sleep(5)
     print('Continuing....')
 

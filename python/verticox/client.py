@@ -1,8 +1,8 @@
+import logging
 import time
 from collections import namedtuple
 from typing import List
-import logging
-import verticox
+
 from vantage6.client import Client
 
 _VERTICOX_IMAGE = 'harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox'
@@ -10,7 +10,6 @@ _DATA_FORMAT = 'json'
 _SLEEP = 5
 _TIMEOUT = 5 * 60  # 5 minutes
 _DEFAULT_PRECISION = 1e-5
-
 
 
 class VerticoxClient:

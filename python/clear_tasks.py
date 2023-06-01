@@ -7,8 +7,6 @@ def run_verticox_v6(host, port, user, password, private_key):
     client.authenticate(user, password)
     client.setup_encryption(private_key)
 
-    page = 1
-
     while True:
         tasks = client.task.list()
 
@@ -19,7 +17,6 @@ def run_verticox_v6(host, port, user, password, private_key):
 
         for t in tasks['data']:
             client.task.delete(t['id'])
-
 
 
 if __name__ == '__main__':

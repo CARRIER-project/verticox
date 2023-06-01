@@ -1,21 +1,22 @@
 import os
+import shutil
 import subprocess
+import sys
 import time
+import traceback as tb
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
-import traceback as tb
+
 import pandas as pd
+from numpy.testing import assert_array_almost_equal
 from vantage6.client import ContainerClient
 from vantage6.tools.util import info
 
 from verticox import datanode
 from verticox.aggregator import Aggregator
-from verticox.ssl import get_secure_stub
 from verticox.scalarproduct import NPartyScalarProductClient
-import sys
-import shutil
-from numpy.testing import assert_array_almost_equal
+from verticox.ssl import get_secure_stub
 
 DATABASE_URI = 'DATABASE_URI'
 
@@ -38,6 +39,7 @@ _WORKAROUND_DATABASE_URI = 'default.parquet'
 
 # Methods
 NO_OP = 'no_op'
+
 
 @dataclass
 class ContainerAddresses:
@@ -65,6 +67,7 @@ class ContainerAddresses:
 
         return ContainerAddresses(python_addresses, java_addresses)
 
+
 def _get_node_ip(client: ContainerClient, organization_id: int):
     params = {'method': 'no_op'}
 
@@ -73,7 +76,6 @@ def _get_node_ip(client: ContainerClient, organization_id: int):
 
     address = addresses.python[0]
     return address.split(':')[0]
-
 
 
 def _limit_data(data):
@@ -150,7 +152,6 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
 
 def _start_python_containers(client, datanode_ids, event_happened_column, event_times_column,
                              external_commodity_address, feature_columns, include_value):
-
     addresses = []
 
     for id in datanode_ids:
@@ -179,8 +180,9 @@ def _start_python_containers(client, datanode_ids, event_happened_column, event_
     return addresses
 
 
-def _run_java_nodes(client: ContainerClient, datanode_ids: List[int], external_commodity_address) -> \
-        str:
+def _run_java_nodes(client: ContainerClient,
+                    datanode_ids: List[int],
+                    external_commodity_address) -> str:
     # Kick off java nodes
     java_node_input = {'method': 'run_java_server'}
 
@@ -407,8 +409,6 @@ def test_sum_relevant_values(client: ContainerClient, data, features, mask_colum
 
     task = client.create_new_task(input_=input_, organization_ids=datanode_ids)
 
-    results = []
-    max_requests = 20
     num_requests = 0
 
     while True:
