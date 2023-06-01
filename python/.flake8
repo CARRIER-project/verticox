@@ -1,3 +1,5 @@
 [flake8]
 exclude =
     verticox/grpc
+
+max_line_length=100
