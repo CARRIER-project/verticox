@@ -2,18 +2,17 @@ import json
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, List, Union
+from typing import Optional, List
 
 import clize
 import grpc
 import numpy as np
-import pandas as pd
 from vantage6.tools.util import info
 
 import verticox.ssl
 from verticox.common import get_test_dataset
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
-    NumSamples, Empty, Beta, FeatureNames
+    NumSamples, Empty, Beta, FeatureNames, RecordLevelSigma, AverageSigma
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
 from verticox.scalarproduct import NPartyScalarProductClient
 
@@ -28,7 +27,8 @@ class DataNode(DataNodeServicer):
     def __init__(self, features: np.array = None, feature_names: Optional[List[str]] = None,
                  name=None, server=None, include_column: Optional[str] = None,
                  include_value: bool = True,
-                 commodity_address: str = None):
+                 commodity_address: str = None,
+                 beta: np.array = None):
         """
 
         Args:
@@ -50,7 +50,6 @@ class DataNode(DataNodeServicer):
         # The formula says for every patient, x needs to be multiplied by itself.
         # Squaring all covariates with themselves comes down to the same thing since x_nk is
         # supposed to be one-dimensional
-        info(f'Multiplying features {features}')
         self.features_multiplied = DataNode._multiply_features(features)
 
         self.num_samples = self.features.shape[0]
@@ -59,7 +58,7 @@ class DataNode(DataNodeServicer):
         self.n_party_address = commodity_address
 
         self.rho = None
-        self.beta = None
+        self.beta = beta
         self.sigma = None
         self.z = None
         self.gamma = None
@@ -178,6 +177,34 @@ class DataNode(DataNodeServicer):
             return FeatureNames(names=unicode_names)
         else:
             context.abort(grpc.StatusCode.NOT_FOUND, 'This datanode does not have feature names')
+
+    def getRecordLevelSigma(self, request,
+                            context: grpc.ServicerContext = None) -> RecordLevelSigma:
+        """
+        Get the sigma value for every record. Sigma is defined as :math: `\beta_k \cdot x`
+
+        :param request:
+        :param context:
+        :return:
+        """
+
+        sigmas = np.tensordot(self.features, self.beta, (1, 0))
+
+        return RecordLevelSigma(sigma=sigmas)
+
+    def getAverageSigma(self, request: Empty, context=None) -> AverageSigma:
+        """
+        Get sigma value averaged over all records.
+        :param request:
+        :param context:
+        :return:
+        """
+        # TODO: We need to select a subpopulation
+
+        sigmas = np.tensordot(self.features, self.beta, (1, 0))
+        average = np.average(sigmas, axis=0)
+
+        return AverageSigma(sigma=average)
 
     @staticmethod
     def _sum_covariates(covariates: np.array):

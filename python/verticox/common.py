@@ -1,4 +1,7 @@
+from typing import Tuple
+
 import numpy as np
+import pandas as pd
 from numba import typed, types
 from numpy.typing import ArrayLike
 from sksurv.datasets import load_whas500
@@ -37,6 +40,7 @@ def group_samples_at_risk(event_times: ArrayLike) -> types.DictType(types.float6
 def group_samples_on_event_time(event_times, event_happened) -> \
         types.DictType(types.float64, types.int64[:]):
     """
+    Group samples based on event time. Right-censored samples are excluded.
 
     Args:
         event_times:
@@ -109,3 +113,15 @@ def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True
         numerical_columns = numerical_columns[:feature_limit]
     return features, events, list(numerical_columns)
 
+
+def unpack_events(events):
+    """
+    Unpacks outcome arrays from sksurv into two separate arrays with censor and event time
+    :param events:
+    :return: (lenfol array, fstat array)
+    """
+    df = pd.DataFrame(events)
+    times = df.lenfol.values
+    right_censored = df.fstat.values
+
+    return times, right_censored

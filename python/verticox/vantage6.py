@@ -141,9 +141,11 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     info('Retrieving betas')
     betas = aggregator.get_betas()
 
+    baseline_hazard = aggregator.compute_baseline_hazard_function()
+
     info('Killing datanodes')
     aggregator.kill_all_datanodes()
-    return betas
+    return betas, baseline_hazard
 
 
 def _start_python_containers(client, datanode_ids, event_happened_column, event_times_column,
