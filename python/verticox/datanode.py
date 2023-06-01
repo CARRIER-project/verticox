@@ -12,7 +12,7 @@ from vantage6.tools.util import info
 import verticox.ssl
 from verticox.common import get_test_dataset
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
-    NumSamples, Empty, Beta, FeatureNames, RecordLevelSigma, AverageSigma, Indices, \
+    NumSamples, Empty, Beta, FeatureNames, RecordLevelSigma, AverageSigma, Subset, \
     PartialHazardRatio
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
 from verticox.scalarproduct import NPartyScalarProductClient
@@ -207,7 +207,7 @@ class DataNode(DataNodeServicer):
 
         return AverageSigma(sigma=average)
 
-    def computePartialHazardRatio(self, request: Indices, context=None) -> PartialHazardRatio:
+    def computePartialHazardRatio(self, request: Subset, context=None) -> PartialHazardRatio:
         """
         Compute the hazard ratio of a subset of records
         :param request: The indices of the subset of records
@@ -218,7 +218,7 @@ class DataNode(DataNodeServicer):
         subset = self.features[indices, :]
         sigmas = np.tensordot(subset, self.beta, (1, 0))
 
-        return PartialHazardRatio(sigmas.tolist())
+        return PartialHazardRatio(partialHazardRatios=sigmas.tolist())
 
     @staticmethod
     def _sum_covariates(covariates: np.array):
