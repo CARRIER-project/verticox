@@ -109,7 +109,7 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     info(f'Start running verticox on features: {feature_columns}')
 
     info(f'My database: {client.database}')
-    start_time = time.time()
+
     external_commodity_address = _get_current_java_address(client, datanode_ids[0])
 
     event_times = data[event_times_column].values
@@ -134,6 +134,17 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
 
     info(f'Created {len(stubs)} RPC stubs')
 
+    aggregator, betas = compute_betas(event_happened, event_times, precision, rho, stubs)
+
+    baseline_hazard = aggregator.compute_baseline_hazard_function()
+
+    info('Killing datanodes')
+    aggregator.kill_all_datanodes()
+    return betas, baseline_hazard
+
+
+def compute_betas(event_happened, event_times, precision, rho, stubs):
+    start_time = time.time()
     aggregator = Aggregator(stubs, event_times, event_happened, convergence_precision=precision,
                             rho=rho)
     aggregator.fit()
@@ -142,12 +153,7 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     info(f'Verticox algorithm complete after {duration} seconds')
     info('Retrieving betas')
     betas = aggregator.get_betas()
-
-    baseline_hazard = aggregator.compute_baseline_hazard_function()
-
-    info('Killing datanodes')
-    aggregator.kill_all_datanodes()
-    return betas, baseline_hazard
+    return aggregator, betas
 
 
 def _start_python_containers(client, datanode_ids, event_happened_column, event_times_column,
