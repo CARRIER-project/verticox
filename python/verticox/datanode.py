@@ -179,7 +179,7 @@ class DataNode(DataNodeServicer):
         else:
             context.abort(grpc.StatusCode.NOT_FOUND, 'This datanode does not have feature names')
 
-    def getRecordLevelSigma(self, request,
+    def getRecordLevelSigma(self, request: Subset,
                             context: grpc.ServicerContext = None) -> RecordLevelSigma:
         """
         Get the sigma value for every record. Sigma is defined as :math: `\beta_k \cdot x`
@@ -188,21 +188,22 @@ class DataNode(DataNodeServicer):
         :param context:
         :return:
         """
-
-        sigmas = np.tensordot(self.features, self.beta, (1, 0))
+        indices = list(request.indices)
+        subset = self.features[indices]
+        sigmas = np.tensordot(subset, self.beta, (1, 0))
 
         return RecordLevelSigma(sigma=sigmas)
 
-    def getAverageSigma(self, request: Empty, context=None) -> AverageSigma:
+    def getAverageSigma(self, request: Subset, context=None) -> AverageSigma:
         """
         Get sigma value averaged over all records.
         :param request:
         :param context:
         :return:
         """
-        # TODO: We need to select a subpopulation
-
-        sigmas = np.tensordot(self.features, self.beta, (1, 0))
+        indices = list(request.indices)
+        subset = self.features[indices]
+        sigmas = np.tensordot(subset, self.beta, (1, 0))
         average = np.average(sigmas, axis=0)
 
         return AverageSigma(sigma=average)
