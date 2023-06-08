@@ -8,7 +8,7 @@ from numpy.testing import assert_array_almost_equal
 
 import verticox.ssl
 from verticox.datanode import DataNode, serve
-from verticox.grpc.datanode_pb2 import Empty
+from verticox.grpc.datanode_pb2 import Empty, Subset
 
 NUM_PATIENTS = 3
 NUM_FEATURES = 5
@@ -25,6 +25,11 @@ def data_nofixture():
     feature_names = ['piet', 'henk']
 
     return data, feature_names
+
+
+@pytest.fixture()
+def beta():
+    return np.array([0.1, 0.2])
 
 
 def test_sum_covariates_returns_one_dim_array():
@@ -135,9 +140,8 @@ def test_get_record_level_sigma(data):
     assert_array_almost_equal(target, result)
 
 
-def test_get_average_sigma(data):
+def test_get_average_sigma(data, beta):
     features, _ = data
-    beta = np.array([0.1, 0.2])
 
     datanode = DataNode(features=features, beta=beta)
 
@@ -145,6 +149,38 @@ def test_get_average_sigma(data):
 
     target = 0.5
     np.testing.assert_almost_equal(target, result)
+
+
+def test_compute_partial_hazard_ratio_1_record(data, beta):
+    features, _ = data
+    subset = [0]
+    datanode = DataNode(features, beta=beta)
+    request = Subset(indices=subset)
+
+    result = datanode.computePartialHazardRatio(request)
+    ratios = np.array(result.partialHazardRatios)
+
+    target = np.dot(features[0], beta)
+    target = target.reshape((1,))
+
+    np.testing.assert_array_almost_equal(ratios, target)
+
+
+def test_compute_partial_hazard_ratio_multiple_records(beta):
+    total_rows = 6
+    subset = [0,1,2]
+
+    features = np.arange(total_rows).reshape((-1, 2))
+    datanode = DataNode(features, beta=beta)
+    request = Subset(indices=subset)
+
+    result = datanode.computePartialHazardRatio(request)
+    ratios = np.array(result.partialHazardRatios)
+
+    target = [np.dot(features[i], beta) for i in range(features.shape[0])]
+    target = np.array(target)
+
+    np.testing.assert_array_almost_equal(ratios, target)
 
 
 if __name__ == '__main__':

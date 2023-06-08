@@ -8,7 +8,7 @@ from numpy.typing import ArrayLike
 from vantage6.common import info
 
 from verticox.common import group_samples_at_risk, group_samples_on_event_time
-from verticox.grpc.datanode_pb2 import Empty, AggregatedParameters, InitialValues
+from verticox.grpc.datanode_pb2 import Empty, AggregatedParameters, InitialValues, Subset
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 from verticox.likelihood import find_z
 
@@ -270,6 +270,14 @@ class Aggregator:
 
         baseline_x, baseline_y = zip(*sorted(baseline_hazard.items()))
         return baseline_x, baseline_y
+
+    def predict_risk_score(self, indices):
+        result = np.zeros_like(indices, dtype='float')
+        for institution in self.institutions:
+            subresult = institution.computePartialHazardRatio(Subset(indices=indices))
+            result += np.array(subresult.partialHazardRatios)
+
+        return result
 
 
 class Progress:
