@@ -22,7 +22,7 @@ def data():
 
 def data_nofixture():
     data = np.arange(4).reshape((2, 2))
-    feature_names = ['piet', 'henk']
+    feature_names = ['blood_pressure', 'heart_rate']
 
     return data, feature_names
 
@@ -80,7 +80,7 @@ def test_get_feature_names_gives_names_if_they_exist(data):
     datanode = DataNode(features=features, feature_names=feature_names)
     result = datanode.getFeatureNames(request=Empty(), context=None)
 
-    assert result.names == ['piet', 'henk']
+    assert result.names == ['blood_pressure', 'heart_rate']
 
 
 def test_get_feature_names_aborts_if_not_exist(data):
@@ -127,13 +127,16 @@ def test_can_make_secure_connection_with_datanode(data):
     server_process.kill()
 
 
-def test_get_record_level_sigma(data):
+def test_get_record_level_sigma_full_dataset(data):
     features, _ = data
     beta = np.array([0.1, 0.2])
 
     datanode = DataNode(features=features, beta=beta)
+    num_records = features.shape[0]
+    indices = np.arange(num_records)
+    subset = Subset(indices=indices)
 
-    result = datanode.getRecordLevelSigma(Empty()).sigma
+    result = datanode.getRecordLevelSigma(subset).sigma
 
     target = [0.2, 0.8]
 
@@ -144,8 +147,11 @@ def test_get_average_sigma(data, beta):
     features, _ = data
 
     datanode = DataNode(features=features, beta=beta)
+    num_records = features.shape[0]
+    indices = np.arange(num_records)
 
-    result = datanode.getAverageSigma(Empty()).sigma
+    subset = Subset(indices=indices)
+    result = datanode.getAverageSigma(subset).sigma
 
     target = 0.5
     np.testing.assert_almost_equal(target, result)
@@ -167,8 +173,8 @@ def test_compute_partial_hazard_ratio_1_record(data, beta):
 
 
 def test_compute_partial_hazard_ratio_multiple_records(beta):
-    total_rows = 6
-    subset = [0,1,2]
+    total_rows = 6 * 2
+    subset = [0, 1, 2]
 
     features = np.arange(total_rows).reshape((-1, 2))
     datanode = DataNode(features, beta=beta)
@@ -177,7 +183,8 @@ def test_compute_partial_hazard_ratio_multiple_records(beta):
     result = datanode.computePartialHazardRatio(request)
     ratios = np.array(result.partialHazardRatios)
 
-    target = [np.dot(features[i], beta) for i in range(features.shape[0])]
+    subset_features = features[subset]
+    target = [np.dot(subset_features[i], beta) for i in range(subset_features.shape[0])]
     target = np.array(target)
 
     np.testing.assert_array_almost_equal(ratios, target)
