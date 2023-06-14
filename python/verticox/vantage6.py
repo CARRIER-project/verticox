@@ -84,7 +84,7 @@ def _limit_data(data):
 
 def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[str],
              event_times_column: str, event_happened_column: str, include_value=True,
-             datanode_ids: List[int] = None,
+             datanode_ids: List[int] = None, central_node_id: int = None,
              precision: float = DEFAULT_PRECISION, rho=DEFAULT_RHO,
              *_args, **_kwargs):
     '''
@@ -110,17 +110,15 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
 
     info(f'My database: {client.database}')
 
-    external_commodity_address = _get_current_java_address(client, datanode_ids[0])
-
     event_times = data[event_times_column].values
     event_happened = data[event_happened_column]
 
     info('Starting java containers')
-    _run_java_nodes(client, datanode_ids, external_commodity_address=external_commodity_address)
+    _run_java_nodes(client, datanode_ids, central_node_id)
 
     info('Starting python containers')
     addresses = _start_python_containers(client, datanode_ids, event_happened_column,
-                                         event_times_column, external_commodity_address,
+                                         event_times_column,
                                          feature_columns, include_value)
 
     info(f'Python datanode addresses: {addresses}')
@@ -157,7 +155,7 @@ def compute_betas(event_happened, event_times, precision, rho, stubs):
 
 
 def _start_python_containers(client, datanode_ids, event_happened_column, event_times_column,
-                             external_commodity_address, feature_columns, include_value):
+                             feature_columns, include_value):
     addresses = []
 
     for id in datanode_ids:
@@ -173,7 +171,6 @@ def _start_python_containers(client, datanode_ids, event_happened_column, event_
                 'event_time_column': event_times_column,
                 'include_column': event_happened_column,
                 'include_value': include_value,
-                'external_commodity_address': external_commodity_address,
                 'address': ip
             }
         }
@@ -188,16 +185,12 @@ def _start_python_containers(client, datanode_ids, event_happened_column, event_
 
 def _run_java_nodes(client: ContainerClient,
                     datanode_ids: List[int],
-                    external_commodity_address) -> str:
+                    central_node_id: int) -> str:
     # Kick off java nodes
     java_node_input = {'method': 'run_java_server'}
 
-    # TODO: Currently we cannot access algorithms that are running on the same node so we're
-    #  running the commodity node in the same container
-    info('Starting local java')
-    _start_local_java()
-    info('Local java is running')
-    commodity_uri = _get_internal_java_address()
+    commodity_address = _start_containers(client, java_node_input, [central_node_id])
+    commodity_address = commodity_address[0]
 
     info(f'Running java nodes on organizations {datanode_ids}')
     datanode_addresses = _start_containers(client, java_node_input, datanode_ids)
@@ -209,26 +202,17 @@ def _run_java_nodes(client: ContainerClient,
 
     # Do initial setup for nodes
     scalar_product_client = \
-        NPartyScalarProductClient(commodity_address=commodity_uri,
-                                  other_addresses=datanode_addresses.java,
-                                  external_commodity_address=external_commodity_address)
+        NPartyScalarProductClient(commodity_address=commodity_address,
+                                  other_addresses=datanode_addresses.java)
 
     scalar_product_client.initialize_servers()
 
-    return commodity_uri
+    return commodity_address
 
 
 def _get_internal_java_address():
     commodity_uri = f'localhost:{JAVA_PORT}'
     return commodity_uri
-
-
-def _start_local_java():
-    target_uri = _move_parquet_file()
-    command = _get_java_command()
-    process = subprocess.Popen(command, env=_get_workaround_sysenv(target_uri))
-
-    return process
 
 
 def _get_java_command():

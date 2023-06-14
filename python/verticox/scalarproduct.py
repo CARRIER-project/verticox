@@ -20,7 +20,7 @@ _COMMODITY_ID = 'commodity'
 # TODO: Split up in datanode client and aggregator client
 class NPartyScalarProductClient:
 
-    def __init__(self, commodity_address: str, external_commodity_address=None,
+    def __init__(self, commodity_address: str,
                  other_addresses: Optional[List[str]] = None,
                  precision: Optional[int] = _DEFAULT_PRECISION):
         """
@@ -30,22 +30,20 @@ class NPartyScalarProductClient:
             other_addresses:
             precision:
         """
-        self._internal_address = commodity_address
-        self._external_commodity_address = external_commodity_address
+        self.commodity_address = commodity_address
         self.other_addresses = other_addresses
         self.precision = precision
 
         info(f'Initializing N party client with:\n'
-             f'Internal commodity address: {self._internal_address}\n'
-             f'External commodity address: {self._external_commodity_address}\n'
+             f'Commodity address: {self.commodity_address}\n'
              f'Scalar product Datanode addresses: {self.other_addresses}\n'
              f'Precision: {self.precision}')
 
     def initialize_servers(self):
-        self._init_central_server(self._internal_address, self.other_addresses)
+        self._init_central_server(self.commodity_address, self.other_addresses)
         info('Initialized central server')
 
-        self._init_datanodes(self._external_commodity_address, self.other_addresses)
+        self._init_datanodes(self.commodity_address, self.other_addresses)
         info('Initialized datanodes')
 
         # # Setting endpoints for central server
@@ -82,7 +80,7 @@ class NPartyScalarProductClient:
         pass
 
     def kill_nodes(self):
-        nodes_to_kill = self.other_addresses + [self._internal_address]
+        nodes_to_kill = self.other_addresses + [self.commodity_address]
 
         for n in nodes_to_kill:
             try:
@@ -137,9 +135,8 @@ class NPartyScalarProductClient:
         if not result.ok:
             raise Exception(f'Received response code {result.status_code}')
 
-    def _get_url(self, endpoint, address=None):
-        if address is None:
-            address = self._internal_address
+    @staticmethod
+    def _get_url(endpoint, address):
         return f'{_PROTOCOL}{address}/{endpoint}'
 
     def _put_endpoints(self, targetUrl, others):
