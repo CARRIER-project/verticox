@@ -381,41 +381,6 @@ def RPC_run_java_server(_data, *_args, **_kwargs):
     subprocess.run(command, env=_get_workaround_sysenv(target_uri))
 
 
-# TODO: Remove this function when done testing
-def test_sum_relevant_values(client: ContainerClient, data, features, mask_column, mask_value,
-                             datanode_ids, *args, **kwargs):
-    info('Starting java containers')
-    external_commodity_address = _get_current_java_address(client, datanode_ids[0])
-
-    _run_java_nodes(client, datanode_ids, external_commodity_address=external_commodity_address)
-
-    n_party_client = NPartyScalarProductClient(_get_internal_java_address())
-
-    n_party_result = n_party_client.sum_relevant_values(features, mask_column, mask_value)
-
-    mask = data.event_happened
-
-    input_ = {'method': 'test_sum_local_features', 'args': [features, mask]}
-
-    task = client.create_new_task(input_=input_, organization_ids=datanode_ids)
-
-    num_requests = 0
-
-    while True:
-        results = client.get_results(task_id=task['id'])
-        results_complete = [r.complete for r in results]
-
-        if all(results_complete):
-            break
-        # TODO: Something
-
-    num_requests += 1
-
-    result = results[0]
-    assert_array_almost_equal(n_party_result, result)
-    return 'success'
-
-
 def RPC_test_sum_local_features(data: pd.DataFrame, features: List[str], mask, *args, **kwargs):
     # Only check requested features
     data = data[features]
