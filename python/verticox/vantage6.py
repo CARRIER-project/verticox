@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import List
 
 import pandas as pd
-from numpy.testing import assert_array_almost_equal
 from vantage6.client import ContainerClient
 from vantage6.tools.util import info
 
@@ -103,6 +102,7 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
         **_kwargs:
 
     Returns:
+    :param central_node_id:
 
     '''
 
@@ -190,7 +190,8 @@ def _run_java_nodes(client: ContainerClient,
     java_node_input = {'method': 'run_java_server'}
 
     commodity_address = _start_containers(client, java_node_input, [central_node_id])
-    commodity_address = commodity_address[0]
+    info(f'Commodity address: {commodity_address}')
+    commodity_address = commodity_address.java[0]
 
     info(f'Running java nodes on organizations {datanode_ids}')
     datanode_addresses = _start_containers(client, java_node_input, datanode_ids)

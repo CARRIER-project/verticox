@@ -93,7 +93,7 @@ class NPartyScalarProductClient:
         for idx, address in enumerate(other_addresses):
             # Set id first
             datanode_id = f'datanode_{idx}'
-            set_id_endpoint = f'http://{address}/{_SET_ID}'
+            set_id_endpoint = self._get_url(address, _SET_ID)
             requests.post(set_id_endpoint, params={'id': datanode_id})
             others = other_addresses.copy()
             others.remove(address)
@@ -113,8 +113,10 @@ class NPartyScalarProductClient:
 
         self._post(_SET_ID, params={'id': _COMMODITY_ID})
 
-    def _request(self, method, endpoint, **kwargs):
-        url = self._get_url(endpoint)
+    def _request(self, method, endpoint, address=None, **kwargs):
+        if address is None:
+            address = self.commodity_address
+        url = self._get_url(address, endpoint)
         result = requests.request(method, url, **kwargs)
 
         self.check_response_code(result)
@@ -136,7 +138,7 @@ class NPartyScalarProductClient:
             raise Exception(f'Received response code {result.status_code}')
 
     @staticmethod
-    def _get_url(endpoint, address):
+    def _get_url(address, endpoint):
         return f'{_PROTOCOL}{address}/{endpoint}'
 
     def _put_endpoints(self, targetUrl, others):
@@ -160,7 +162,7 @@ def main():
 
     client.kill_nodes()
 
-    info('All steps have run succesfully')
+    info('All steps have run successfully')
 
 
 if __name__ == '__main__':
