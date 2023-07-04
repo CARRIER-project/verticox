@@ -7,7 +7,7 @@ import traceback as tb
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
-
+import traceback
 import pandas as pd
 from vantage6.client import ContainerClient
 from vantage6.tools.util import info
@@ -86,7 +86,7 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
              datanode_ids: List[int] = None, central_node_id: int = None,
              precision: float = DEFAULT_PRECISION, rho=DEFAULT_RHO,
              *_args, **_kwargs):
-    '''
+    """
     TODO: Describe precision parameter
     Args:
         include_value:
@@ -102,43 +102,48 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
         **_kwargs:
 
     Returns:
+    :param datanode_ids:
     :param central_node_id:
 
-    '''
+    """
+    try:
+        info(f'Start running verticox on features: {feature_columns}')
 
-    info(f'Start running verticox on features: {feature_columns}')
+        info(f'My database: {client.database}')
 
-    info(f'My database: {client.database}')
+        event_times = data[event_times_column].values
+        event_happened = data[event_happened_column]
 
-    event_times = data[event_times_column].values
-    event_happened = data[event_happened_column]
+        info('Starting java containers')
+        _run_java_nodes(client, datanode_ids, central_node_id)
 
-    info('Starting java containers')
-    _run_java_nodes(client, datanode_ids, central_node_id)
+        info('Starting python containers')
+        addresses = _start_python_containers(client, datanode_ids, event_happened_column,
+                                             event_times_column,
+                                             feature_columns, include_value)
 
-    info('Starting python containers')
-    addresses = _start_python_containers(client, datanode_ids, event_happened_column,
-                                         event_times_column,
-                                         feature_columns, include_value)
+        info(f'Python datanode addresses: {addresses}')
 
-    info(f'Python datanode addresses: {addresses}')
+        stubs = []
+        # Create gRPC stubs
+        for a in addresses:
+            # TODO: This part is stupid, it should be separate host and port in the first place.
+            host, port = tuple(a.split(':'))
+            stubs.append(get_secure_stub(host, port))
 
-    stubs = []
-    # Create gRPC stubs
-    for a in addresses:
-        # TODO: This part is stupid, it should be separate host and port in the first place.
-        host, port = tuple(a.split(':'))
-        stubs.append(get_secure_stub(host, port))
+        info(f'Created {len(stubs)} RPC stubs')
 
-    info(f'Created {len(stubs)} RPC stubs')
+        aggregator, betas = compute_betas(event_happened, event_times, precision, rho, stubs)
 
-    aggregator, betas = compute_betas(event_happened, event_times, precision, rho, stubs)
+        baseline_hazard = aggregator.compute_baseline_hazard_function()
 
-    baseline_hazard = aggregator.compute_baseline_hazard_function()
-
-    info('Killing datanodes')
-    aggregator.kill_all_datanodes()
-    return betas, baseline_hazard
+        info('Killing datanodes')
+        aggregator.kill_all_datanodes()
+        return betas, baseline_hazard
+    except Exception as e:
+        info(f'Algorithm ended with exception {e}')
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        info(str(traceback.format_exception(exc_value)))
 
 
 def compute_betas(event_happened, event_times, precision, rho, stubs):
@@ -289,8 +294,11 @@ def _get_algorithm_addresses(client: ContainerClient,
 
     retries = 0
     # Wait for nodes to get ready
-    while len(addresses) < expected_amount:
+    while True:
         addresses = client.get_algorithm_addresses(task_id=task_id)
+
+        if len(addresses) >= expected_amount:
+            break
 
         if retries >= MAX_RETRIES:
             raise Exception(f'Could not connect to all {expected_amount} datanodes. There are '
