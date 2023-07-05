@@ -31,6 +31,7 @@ DEFAULT_PRECISION = 1e-3
 DEFAULT_RHO = 0.5
 COMMODITY_PROPERTIES = [f'--server.port={JAVA_PORT}']
 WAIT_CONTAINER_STARTUP = 10
+NO_OP_TIME = 360
 _PYTHON = 'python'
 _JAVA = 'java'
 _SOME_ID = 1
@@ -268,7 +269,9 @@ def _get_current_java_address(client: ContainerClient, some_id):
 
 
 def RPC_no_op(*args, **kwargs):
-    pass
+    info(f'Sleeping for {NO_OP_TIME}')
+    time.sleep(NO_OP_TIME)
+    info('Shutting down.')
 
 
 def _start_containers(client, input, org_ids) -> ContainerAddresses:
