@@ -1,4 +1,4 @@
-FROM openjdk:17-slim as runner
+FROM eclipse-temurin:17.0.7_7-jdk as runner
 
 ARG PKG_NAME="verticox"
 ENV JAR_PATH="/app/verticox.jar"
