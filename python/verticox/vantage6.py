@@ -22,9 +22,9 @@ DATABASE_URI = 'DATABASE_URI'
 PYTHON_PORT = 8888
 JAVA_PORT = 9999
 PORTS_PER_CONTAINER = 2
-MAX_RETRIES = 20
-
-SLEEP = 5
+NODE_TIMEOUT = 360
+SLEEP = 10
+MAX_RETRIES = NODE_TIMEOUT // SLEEP
 DATANODE_TIMEOUT = None
 DATA_LIMIT = 10
 DEFAULT_PRECISION = 1e-3
@@ -70,10 +70,12 @@ class ContainerAddresses:
 def _get_node_ip(client: ContainerClient, organization_id: int):
     params = {'method': 'no_op'}
 
+    info(f'Getting ip for organization {organization_id}')
     task = client.create_new_task(params, [organization_id])
     addresses = _get_algorithm_addresses(client, 1, task['id'])
 
     address = addresses.python[0]
+    info(f'Address: {address}')
     return address.split(':')[0]
 
 
@@ -115,12 +117,12 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
         event_happened = data[event_happened_column]
 
         info('Starting java containers')
-        _run_java_nodes(client, datanode_ids, central_node_id)
+        commodity_address = _run_java_nodes(client, datanode_ids, central_node_id)
 
         info('Starting python containers')
         addresses = _start_python_containers(client, datanode_ids, event_happened_column,
                                              event_times_column,
-                                             feature_columns, include_value)
+                                             feature_columns, include_value, commodity_address)
 
         info(f'Python datanode addresses: {addresses}')
 
@@ -142,8 +144,7 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
         return betas, baseline_hazard
     except Exception as e:
         info(f'Algorithm ended with exception {e}')
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        info(str(traceback.format_exception(exc_value)))
+        info(traceback.format_exc())
 
 
 def compute_betas(event_happened, event_times, precision, rho, stubs):
@@ -160,8 +161,10 @@ def compute_betas(event_happened, event_times, precision, rho, stubs):
 
 
 def _start_python_containers(client, datanode_ids, event_happened_column, event_times_column,
-                             feature_columns, include_value):
+                             feature_columns, include_value, commodity_address):
     addresses = []
+    info(f'Datanode ids: {datanode_ids}')
+    info(f'Commodity address: {commodity_address}')
 
     for id in datanode_ids:
         # First run a no-op task to retrieve the address
@@ -176,7 +179,8 @@ def _start_python_containers(client, datanode_ids, event_happened_column, event_
                 'event_time_column': event_times_column,
                 'include_column': event_happened_column,
                 'include_value': include_value,
-                'address': ip
+                'address': ip,
+                'external_commodity_address': commodity_address
             }
         }
         # create a new task for all organizations in the collaboration.
@@ -316,13 +320,14 @@ def _filter_algorithm_addresses(addresses, label):
 
 
 def RPC_run_datanode(data: pd.DataFrame,
+                     *args,
                      feature_columns: List[str] = (),
                      event_time_column: str = None,
-                     include_column: str = None, include_value: bool = None,
+                     include_column: str = None,
+                     include_value: bool = None,
                      external_commodity_address=None,
                      address=None,
-                     *_args,
-                     **_kwargs):
+                     **kwargs):
     """
     Starts the datanode as gRPC server
     Args:
@@ -335,34 +340,28 @@ def RPC_run_datanode(data: pd.DataFrame,
         include_column: the name of the column that indicates whether an event has taken
                                 place or whether the sample is right censored. If the value is
                                 False, the sample is right censored.
-        *args:
-        **kwargs:
+        address:
 
     Returns: None
+
 
     """
     info(f'Feature columns: {feature_columns}')
     info(f'All columns: {data.columns}')
     info(f'Event time column: {event_time_column}')
     info(f'Censor column: {include_column}')
-    try:
-        # The current datanode might not have all the features
-        feature_columns = [f for f in feature_columns if f in data.columns]
 
-        info(f'Feature columns after filtering: {feature_columns}')
-        features = data[feature_columns].values
+    # The current datanode might not have all the features
+    feature_columns = [f for f in feature_columns if f in data.columns]
 
-        datanode.serve(features=features, feature_names=feature_columns, port=PYTHON_PORT,
-                       include_column=include_column,
-                       include_value=include_value, timeout=DATANODE_TIMEOUT,
-                       commodity_address=external_commodity_address,
-                       address=address)
-    except Exception as e:
-        ex_type, ex_value, ex_tb = sys.exc_info()
-        info('Some exception happened')
-        info(str(tb.format_tb(ex_tb)))
-        raise e
-    return None
+    info(f'Feature columns after filtering: {feature_columns}')
+    features = data[feature_columns].values
+
+    datanode.serve(features=features, feature_names=feature_columns, port=PYTHON_PORT,
+                   include_column=include_column,
+                   include_value=include_value, timeout=DATANODE_TIMEOUT,
+                   commodity_address=external_commodity_address,
+                   address=address)
 
 
 # Note this function also exists in other algorithm packages but since it is so easy to implement I
