@@ -20,7 +20,7 @@ _COMMODITY_ID = 'commodity'
 # TODO: Split up in datanode client and aggregator client
 class NPartyScalarProductClient:
 
-    def __init__(self, commodity_address: str, external_commodity_address=None,
+    def __init__(self, commodity_address: str,
                  other_addresses: Optional[List[str]] = None,
                  precision: Optional[int] = _DEFAULT_PRECISION):
         """
@@ -30,22 +30,20 @@ class NPartyScalarProductClient:
             other_addresses:
             precision:
         """
-        self._internal_address = commodity_address
-        self._external_commodity_address = external_commodity_address
+        self.commodity_address = commodity_address
         self.other_addresses = other_addresses
         self.precision = precision
 
         info(f'Initializing N party client with:\n'
-             f'Internal commodity address: {self._internal_address}\n'
-             f'External commodity address: {self._external_commodity_address}\n'
+             f'Commodity address: {self.commodity_address}\n'
              f'Scalar product Datanode addresses: {self.other_addresses}\n'
              f'Precision: {self.precision}')
 
     def initialize_servers(self):
-        self._init_central_server(self._internal_address, self.other_addresses)
+        self._init_central_server(self.commodity_address, self.other_addresses)
         info('Initialized central server')
 
-        self._init_datanodes(self._external_commodity_address, self.other_addresses)
+        self._init_datanodes(self.commodity_address, self.other_addresses)
         info('Initialized datanodes')
 
         # # Setting endpoints for central server
@@ -82,7 +80,7 @@ class NPartyScalarProductClient:
         pass
 
     def kill_nodes(self):
-        nodes_to_kill = self.other_addresses + [self._internal_address]
+        nodes_to_kill = self.other_addresses + [self.commodity_address]
 
         for n in nodes_to_kill:
             try:
@@ -95,7 +93,7 @@ class NPartyScalarProductClient:
         for idx, address in enumerate(other_addresses):
             # Set id first
             datanode_id = f'datanode_{idx}'
-            set_id_endpoint = f'http://{address}/{_SET_ID}'
+            set_id_endpoint = self._get_url(address, _SET_ID)
             requests.post(set_id_endpoint, params={'id': datanode_id})
             others = other_addresses.copy()
             others.remove(address)
@@ -115,8 +113,10 @@ class NPartyScalarProductClient:
 
         self._post(_SET_ID, params={'id': _COMMODITY_ID})
 
-    def _request(self, method, endpoint, **kwargs):
-        url = self._get_url(endpoint)
+    def _request(self, method, endpoint, address=None, **kwargs):
+        if address is None:
+            address = self.commodity_address
+        url = self._get_url(address, endpoint)
         result = requests.request(method, url, **kwargs)
 
         self.check_response_code(result)
@@ -137,9 +137,8 @@ class NPartyScalarProductClient:
         if not result.ok:
             raise Exception(f'Received response code {result.status_code}')
 
-    def _get_url(self, endpoint, address=None):
-        if address is None:
-            address = self._internal_address
+    @staticmethod
+    def _get_url(address, endpoint):
         return f'{_PROTOCOL}{address}/{endpoint}'
 
     def _put_endpoints(self, targetUrl, others):
@@ -163,7 +162,7 @@ def main():
 
     client.kill_nodes()
 
-    info('All steps have run succesfully')
+    info('All steps have run successfully')
 
 
 if __name__ == '__main__':
