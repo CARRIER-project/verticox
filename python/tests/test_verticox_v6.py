@@ -7,6 +7,7 @@ from verticox.client import VerticoxClient
 
 IMAGE = 'harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox'
 DATABASE = 'parquet'
+TIMEOUT = 20 * 60
 
 
 def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest'):
@@ -38,7 +39,7 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest
                                    datanodes=datanodes, central_node=central_node, precision=1e-4,
                                    database=DATABASE)
 
-    results = task.get_result(timeout=10 * 60)
+    results = task.get_result(timeout=TIMEOUT)
     for result in results:
         print(f'Organization: {result.organization}')
         print(f'Log: {result.log}')
