@@ -179,10 +179,6 @@ class V6NodeManager:
         info(f'Address: {address}')
         return address.split(':')[0]
 
-        pass
-
-
-
     def _create_stubs(self):
         stubs = []
         # Create gRPC stubs
