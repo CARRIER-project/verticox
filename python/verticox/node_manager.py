@@ -141,6 +141,14 @@ class V6NodeManager:
 
         self._baseline_hazard = self._aggregator.compute_baseline_hazard_function()
 
+    def start_nodes(self):
+        info('Starting java containers')
+        self._start_java_algorithms()
+
+        info('Starting python containers')
+        self._start_python_algorithms()
+        self._create_stubs()
+
     def _start_containers(self, input, org_ids) -> ContainerAddresses:
         """
         Trigger a task at the nodes at org_ids and retrieve the addresses for those algorithm containers
@@ -173,13 +181,7 @@ class V6NodeManager:
 
         pass
 
-    def start_nodes(self):
-        info('Starting java containers')
-        self._start_java_algorithms()
 
-        info('Starting python containers')
-        self._start_python_algorithms()
-        self._create_stubs()
 
     def _create_stubs(self):
         stubs = []
