@@ -1,87 +1,31 @@
 import os
 import shutil
 import subprocess
-import sys
 import time
-import traceback as tb
-from dataclasses import dataclass
+import traceback
 from pathlib import Path
 from typing import List
-import traceback
+
 import pandas as pd
 from vantage6.client import ContainerClient
 from vantage6.tools.util import info
 
-from verticox import datanode
+from verticox import datanode, node_manager
 from verticox.aggregator import Aggregator
 from verticox.scalarproduct import NPartyScalarProductClient
-from verticox.ssl import get_secure_stub
 
 DATABASE_URI = 'DATABASE_URI'
-
-PYTHON_PORT = 8888
-JAVA_PORT = 9999
-PORTS_PER_CONTAINER = 2
-NODE_TIMEOUT = 360
-SLEEP = 10
-MAX_RETRIES = NODE_TIMEOUT // SLEEP
 DATANODE_TIMEOUT = None
 DATA_LIMIT = 10
 DEFAULT_PRECISION = 1e-3
 DEFAULT_RHO = 0.5
-COMMODITY_PROPERTIES = [f'--server.port={JAVA_PORT}']
-WAIT_CONTAINER_STARTUP = 10
+COMMODITY_PROPERTIES = [f'--server.port={node_manager.JAVA_PORT}']
 NO_OP_TIME = 360
-_PYTHON = 'python'
-_JAVA = 'java'
 _SOME_ID = 1
 _WORKAROUND_DATABASE_URI = 'default.parquet'
 
 # Methods
 NO_OP = 'no_op'
-
-
-@dataclass
-class ContainerAddresses:
-    """
-    Class to keep track of the various types of algorithm addresses
-    """
-    # Maps organization ids to uris
-    python: List[str]
-    java: List[str]
-
-    @staticmethod
-    def parse_addresses(v6_container_addresses):
-        info(f'Parsing addresses: {v6_container_addresses}')
-        python_addresses = []
-        java_addresses = []
-
-        for addr in v6_container_addresses:
-            label = addr['label']
-            uri = f'{addr["ip"]}:{addr["port"]}'
-
-            if label == _PYTHON:
-                python_addresses.append(uri)
-            elif label == _JAVA:
-                java_addresses.append(uri)
-
-        return ContainerAddresses(python_addresses, java_addresses)
-
-
-def _get_node_ip(client: ContainerClient, organization_id: int):
-    params = {'method': 'no_op'}
-
-    info(f'Getting ip for organization {organization_id}')
-    task = client.create_new_task(params, [organization_id])
-    addresses = _get_algorithm_addresses(client, 1, task['id'])
-
-    address = addresses.python[0]
-    info(f'Address: {address}')
-    return address.split(':')[0]
-
-
-def _limit_data(data):
-    return data.iloc[:5]
 
 
 def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[str],
@@ -90,144 +34,49 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
              precision: float = DEFAULT_PRECISION, rho=DEFAULT_RHO,
              *_args, **_kwargs):
     """
-    TODO: Describe precision parameter
+
     Args:
-        include_value:
         client:
         data:
         feature_columns:
         event_times_column:
         event_happened_column:
+        include_value:
         datanode_ids:
-        precision: determines precision in multiple places in the optimization process
+        central_node_id:
+        precision:
         rho:
         *_args:
         **_kwargs:
 
     Returns:
-    :param datanode_ids:
-    :param central_node_id:
 
     """
+
     try:
         info(f'Start running verticox on features: {feature_columns}')
 
         info(f'My database: {client.database}')
 
-        event_times = data[event_times_column].values
-        event_happened = data[event_happened_column]
+        manager = node_manager.V6NodeManager(client, data, datanode_ids, central_node_id,
+                                             event_happened_column, event_times_column,
+                                             feature_columns, include_value,
+                                             precision=precision, rho=rho)
+        manager.start_nodes()
 
-        info('Starting java containers')
-        commodity_address = _run_java_nodes(client, datanode_ids, central_node_id)
-
-        info('Starting python containers')
-        addresses = _start_python_containers(client, datanode_ids, event_happened_column,
-                                             event_times_column,
-                                             feature_columns, include_value, commodity_address)
-
-        info(f'Python datanode addresses: {addresses}')
-
-        stubs = []
-        # Create gRPC stubs
-        for a in addresses:
-            # TODO: This part is stupid, it should be separate host and port in the first place.
-            host, port = tuple(a.split(':'))
-            stubs.append(get_secure_stub(host, port))
-
-        info(f'Created {len(stubs)} RPC stubs')
-
-        aggregator, betas = compute_betas(event_happened, event_times, precision, rho, stubs)
-
-        baseline_hazard = aggregator.compute_baseline_hazard_function()
+        start_time = time.time()
+        manager.fit()
+        end_time = time.time()
+        duration = end_time - start_time
+        info(f'Verticox algorithm complete after {duration} seconds')
+        info('Retrieving betas')
 
         info('Killing datanodes')
-        aggregator.kill_all_datanodes()
-        return betas, baseline_hazard
+        manager.kill_all_algorithms()
+        return manager.betas, manager.baseline_hazard
     except Exception as e:
         info(f'Algorithm ended with exception {e}')
         info(traceback.format_exc())
-
-
-def compute_betas(event_happened, event_times, precision, rho, stubs):
-    start_time = time.time()
-    aggregator = Aggregator(stubs, event_times, event_happened, convergence_precision=precision,
-                            rho=rho)
-    aggregator.fit()
-    end_time = time.time()
-    duration = end_time - start_time
-    info(f'Verticox algorithm complete after {duration} seconds')
-    info('Retrieving betas')
-    betas = aggregator.get_betas()
-    return aggregator, betas
-
-
-def _start_python_containers(client, datanode_ids, event_happened_column, event_times_column,
-                             feature_columns, include_value, commodity_address):
-    addresses = []
-    info(f'Datanode ids: {datanode_ids}')
-    info(f'Commodity address: {commodity_address}')
-
-    for id in datanode_ids:
-        # First run a no-op task to retrieve the address
-        ip = _get_node_ip(client, id)
-
-        info(f'Address: {ip}')
-
-        datanode_input = {
-            'method': 'run_datanode',
-            'kwargs': {
-                'feature_columns': feature_columns,
-                'event_time_column': event_times_column,
-                'include_column': event_happened_column,
-                'include_value': include_value,
-                'address': ip,
-                'external_commodity_address': commodity_address
-            }
-        }
-        # create a new task for all organizations in the collaboration.
-        info('Dispatching python datanode task')
-        task = client.create_new_task(datanode_input, organization_ids=[id])
-        address = _get_algorithm_addresses(client, 1, task['id'])
-
-        addresses += address.python
-    return addresses
-
-
-def _run_java_nodes(client: ContainerClient,
-                    datanode_ids: List[int],
-                    central_node_id: int) -> str:
-    # Kick off java nodes
-    java_node_input = {'method': 'run_java_server'}
-
-    commodity_address = _start_containers(client, java_node_input, [central_node_id])
-    info(f'Commodity address: {commodity_address}')
-    commodity_address = commodity_address.java[0]
-
-    info(f'Running java nodes on organizations {datanode_ids}')
-    datanode_addresses = _start_containers(client, java_node_input, datanode_ids)
-
-    info(f'Addresses: {datanode_addresses}')
-
-    # Wait for a bit for the containers to start up
-    time.sleep(WAIT_CONTAINER_STARTUP)
-
-    # Do initial setup for nodes
-    scalar_product_client = \
-        NPartyScalarProductClient(commodity_address=commodity_address,
-                                  other_addresses=datanode_addresses.java)
-
-    scalar_product_client.initialize_servers()
-
-    return commodity_address
-
-
-def _get_internal_java_address():
-    commodity_uri = f'localhost:{JAVA_PORT}'
-    return commodity_uri
-
-
-def _get_java_command():
-    return ['java', '-jar', _get_jar_path()] + COMMODITY_PROPERTIES
 
 
 # TODO: Remove this ugly workaround!
@@ -263,7 +112,7 @@ def _get_current_java_address(client: ContainerClient, some_id):
 
     address = client.get_algorithm_addresses(task_id=my_task_id)
     info(f' Current address {address}')
-    parsed = ContainerAddresses.parse_addresses(address)
+    parsed = node_manager.ContainerAddresses.parse_addresses(address)
 
     return parsed.java[0]
 
@@ -272,48 +121,6 @@ def RPC_no_op(*args, **kwargs):
     info(f'Sleeping for {NO_OP_TIME}')
     time.sleep(NO_OP_TIME)
     info('Shutting down.')
-
-
-def _start_containers(client, input, org_ids) -> ContainerAddresses:
-    """
-    Trigger a task at the nodes at org_ids and retrieve the addresses for those algorithm containers
-    Args:
-        client:
-        input:
-        org_ids:
-
-    Returns:
-
-    """
-
-    # Every container will have two addresses because it has both a java and a python endpoint
-    expected_num_addresses = len(org_ids) * PORTS_PER_CONTAINER
-
-    task = client.create_new_task(input, organization_ids=org_ids)
-    addresses = _get_algorithm_addresses(client, expected_num_addresses, task['id'])
-    return addresses
-
-
-def _get_algorithm_addresses(client: ContainerClient,
-                             expected_amount: int, task_id) \
-        -> ContainerAddresses:
-    addresses = client.get_algorithm_addresses(task_id=task_id)
-
-    retries = 0
-    # Wait for nodes to get ready
-    while True:
-        addresses = client.get_algorithm_addresses(task_id=task_id)
-
-        if len(addresses) >= expected_amount:
-            break
-
-        if retries >= MAX_RETRIES:
-            raise Exception(f'Could not connect to all {expected_amount} datanodes. There are '
-                            f'only {len(addresses)} nodes available')
-        time.sleep(SLEEP)
-        retries += 1
-
-    return ContainerAddresses.parse_addresses(addresses)
 
 
 def _filter_algorithm_addresses(addresses, label):
@@ -360,7 +167,7 @@ def RPC_run_datanode(data: pd.DataFrame,
     info(f'Feature columns after filtering: {feature_columns}')
     features = data[feature_columns].values
 
-    datanode.serve(features=features, feature_names=feature_columns, port=PYTHON_PORT,
+    datanode.serve(features=features, feature_names=feature_columns, port=node_manager.PYTHON_PORT,
                    include_column=include_column,
                    include_value=include_value, timeout=DATANODE_TIMEOUT,
                    commodity_address=external_commodity_address,
@@ -370,7 +177,7 @@ def RPC_run_datanode(data: pd.DataFrame,
 # Note this function also exists in other algorithm packages but since it is so easy to implement I
 # decided to do that rather than rely on other algorithm packages.
 def RPC_column_names(data: pd.DataFrame, *args, **kwargs):
-    '''
+    """
 
 
     Args:
@@ -379,7 +186,7 @@ def RPC_column_names(data: pd.DataFrame, *args, **kwargs):
 
     Returns:
 
-    '''
+    """
     return data.columns.tolist()
 
 
@@ -402,11 +209,15 @@ def RPC_test_sum_local_features(data: pd.DataFrame, features: List[str], mask, *
     return data.sum(axis=0).values
 
 
-def _get_workaround_sysenv(target_uri):
-    env = os.environ
-    env[DATABASE_URI] = target_uri
-    return env
+def _get_java_command():
+    return ['java', '-jar', _get_jar_path()] + COMMODITY_PROPERTIES
 
 
 def _get_jar_path():
     return os.environ.get('JAR_PATH')
+
+
+def _get_workaround_sysenv(target_uri):
+    env = os.environ
+    env[DATABASE_URI] = target_uri
+    return env
