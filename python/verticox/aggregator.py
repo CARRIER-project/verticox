@@ -33,7 +33,7 @@ class Aggregator:
             state. This will have to be fixed later.
     """
 
-    def __init__(self, institutions: List[DataNodeStub], event_times: types.float64[:],
+    def __init__(self, institutions: List[DataNodeStub], event_times: ArrayLike,
                  event_happened: types.boolean[:], convergence_precision: float = DEFAULT_PRECISION,
                  newton_raphson_precision: float = DEFAULT_PRECISION, rho=RHO):
         """

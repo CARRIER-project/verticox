@@ -52,16 +52,15 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
     Returns:
 
     """
-
+    manager = node_manager.V6NodeManager(client, data, datanode_ids, central_node_id,
+                                         event_happened_column, event_times_column,
+                                         feature_columns, include_value,
+                                         convergence_precision=precision, rho=rho)
     try:
         info(f'Start running verticox on features: {feature_columns}')
 
         info(f'My database: {client.database}')
 
-        manager = node_manager.V6NodeManager(client, data, datanode_ids, central_node_id,
-                                             event_happened_column, event_times_column,
-                                             feature_columns, include_value,
-                                             precision=precision, rho=rho)
         manager.start_nodes()
 
         start_time = time.time()
@@ -69,14 +68,14 @@ def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[
         end_time = time.time()
         duration = end_time - start_time
         info(f'Verticox algorithm complete after {duration} seconds')
-        info('Retrieving betas')
 
         info('Killing datanodes')
-        manager.kill_all_algorithms()
         return manager.betas, manager.baseline_hazard
     except Exception as e:
         info(f'Algorithm ended with exception {e}')
         info(traceback.format_exc())
+    finally:
+        manager.kill_all_algorithms()
 
 
 # TODO: Remove this ugly workaround!

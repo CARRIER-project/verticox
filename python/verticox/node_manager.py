@@ -6,7 +6,8 @@ import pandas as pd
 from vantage6.client import ContainerClient
 from vantage6.common import info
 
-from verticox import NPartyScalarProductClient, Aggregator
+from verticox.scalarproduct import NPartyScalarProductClient
+from verticox.aggregator import Aggregator
 from verticox.grpc.datanode_pb2 import Empty
 from verticox.ssl import get_secure_stub
 
@@ -17,7 +18,6 @@ PYTHON_PORT = 8888
 JAVA_PORT = 9999
 
 WAIT_CONTAINER_STARTUP = 10
-
 
 SLEEP = 10
 NODE_TIMEOUT = 360
@@ -103,13 +103,14 @@ class V6NodeManager:
         self._betas = None
         self._baseline_hazard = None
         self._aggregator = None
+        self._scalar_product_client = None
 
         if rows is not None:
             data = data[rows]
 
         self._data = data
-        self._event_times = data[event_times_column]
-        self._event_happened = data[event_happened_column]
+        self._event_times = data[event_times_column].values
+        self._event_happened = data[event_happened_column].values
 
     @property
     def betas(self):
@@ -121,10 +122,18 @@ class V6NodeManager:
     def baseline_hazard(self):
         if self._baseline_hazard is None:
             raise NodeManagerException('Trying to access baseline hazard before model has been fit')
+        return self._baseline_hazard
+
+    @property
+    def scalar_product_client(self) -> NPartyScalarProductClient:
+        if self._scalar_product_client is None:
+            raise NodeManagerException('Trying to use scalar product client before it has been '
+                                       'initialized')
+        return self._scalar_product_client
 
     def fit(self):
-        self._aggregator = Aggregator(self.stubs, self.event_times_column,
-                                      self.event_happened_column,
+        self._aggregator = Aggregator(self.stubs, self._event_times,
+                                      self._event_happened,
                                       **self.aggregator_kwargs)
         self._aggregator.fit()
 
@@ -184,11 +193,21 @@ class V6NodeManager:
         self.stubs = stubs
 
     def kill_all_algorithms(self):
-        self._kill_all_python_nodes()
+        try:
+            self._kill_all_python_nodes()
+        except Exception as e:
+            info(f'Couldn\'t kill all python nodes: {e}')
+        try:
+            self._kill_all_java_nodes()
+        except Exception as e:
+            info(f'Couldn\'t kill all java nodes: {e}')
 
     def _kill_all_python_nodes(self):
         for stub in self.stubs:
             stub.kill(Empty())
+
+    def _kill_all_java_nodes(self):
+        self.scalar_product_client.kill_nodes()
 
     def _get_algorithm_addresses(self, expected_amount: int, task_id) -> ContainerAddresses:
         addresses = self.v6_client.get_algorithm_addresses(task_id=task_id)
@@ -256,10 +275,10 @@ class V6NodeManager:
         time.sleep(WAIT_CONTAINER_STARTUP)
 
         # Do initial setup for nodes
-        scalar_product_client = \
+        self._scalar_product_client = \
             NPartyScalarProductClient(commodity_address=commodity_address,
                                       other_addresses=datanode_addresses.java)
 
-        scalar_product_client.initialize_servers()
+        self._scalar_product_client.initialize_servers()
 
         self.commodity_address = commodity_address
