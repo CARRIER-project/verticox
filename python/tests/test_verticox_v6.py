@@ -1,13 +1,24 @@
 import json
 
+import numpy as np
+from numpy.testing import assert_array_almost_equal
 import vantage6.client as v6client
 from clize import run
+from sksurv.datasets import load_whas500
+from sksurv.linear_model import CoxPHSurvivalAnalysis
 
 from verticox.client import VerticoxClient
+
+OUTCOME = 'event_happened'
+
+OUTCOME_TIME_COLUMN = 'event_time'
+
+FEATURE_COLUMNS = ['age', 'bmi', 'sysbp']
 
 IMAGE = 'harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox'
 DATABASE = 'parquet'
 TIMEOUT = 20 * 60
+PRECISION = 1e-6
 
 
 def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest'):
@@ -33,17 +44,35 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest
     for r in column_name_results:
         print(f'organization: {r.organization}, columns: {r.content}')
 
-    feature_columns = ['age', 'sysbp']
-
-    task = verticox_client.compute(feature_columns, 'event_time', 'event_happened',
-                                   datanodes=datanodes, central_node=central_node, precision=1e-4,
+    task = verticox_client.compute(FEATURE_COLUMNS, OUTCOME_TIME_COLUMN, OUTCOME,
+                                   datanodes=datanodes, central_node=central_node,
+                                   precision=PRECISION,
                                    database=DATABASE)
 
     results = task.get_result(timeout=TIMEOUT)
-    for result in results:
-        print(f'Organization: {result.organization}')
-        print(f'Log: {result.log}')
-        print(f'Content: {json.dumps(result.content)}')
+    results = results[0]
+
+    local_coefs = run_local_analysis()
+
+    federated_coefs = results.content[0]
+    federated_coefs = [el[1] for el in federated_coefs]
+    federated_coefs = np.array(federated_coefs)
+
+    print(f'Organization: {results.organization}')
+    print(f'Log: {results.log}')
+    print(f'Content: {json.dumps(results.content)}')
+
+    assert_array_almost_equal(local_coefs, federated_coefs, decimal=3)
+
+
+def run_local_analysis():
+    df, outcome = load_whas500()
+    df = df[FEATURE_COLUMNS]
+
+    model = CoxPHSurvivalAnalysis()
+    model.fit(df, outcome)
+
+    return model.coef_
 
 
 if __name__ == '__main__':

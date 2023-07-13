@@ -1,5 +1,6 @@
 import time
 from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor
 from typing import List, Any, Union, Iterable
 
 import pandas as pd
@@ -21,6 +22,7 @@ WAIT_CONTAINER_STARTUP = 10
 
 SLEEP = 10
 NODE_TIMEOUT = 360
+MAX_WORKERS = 10
 
 MAX_RETRIES = NODE_TIMEOUT // SLEEP
 
@@ -146,7 +148,7 @@ class V6NodeManager:
         self._start_java_algorithms()
 
         info('Starting python containers')
-        self._start_python_algorithms()
+        self._start_all_python_containers()
         self._create_stubs()
 
     def _start_containers(self, input, org_ids) -> ContainerAddresses:
@@ -208,8 +210,6 @@ class V6NodeManager:
         self.scalar_product_client.kill_nodes()
 
     def _get_algorithm_addresses(self, expected_amount: int, task_id) -> ContainerAddresses:
-        addresses = self.v6_client.get_algorithm_addresses(task_id=task_id)
-
         retries = 0
         # Wait for nodes to get ready
         while True:
@@ -226,35 +226,36 @@ class V6NodeManager:
 
         return ContainerAddresses.parse_addresses(addresses)
 
-    def _start_python_algorithms(self):
-        addresses = []
+    def _start_all_python_containers(self):
+
         info(f'Datanode ids: {self.datanode_organizations}')
         info(f'Commodity address: {self.commodity_address}')
 
-        for id in self.datanode_organizations:
-            # First run a no-op task to retrieve the address
-            ip = self._get_node_ip(id)
+        with ThreadPoolExecutor(MAX_WORKERS) as executor:
+            addresses = executor.map(self.start_python_algorithm, self.datanode_organizations)
 
-            info(f'Address: {ip}')
+        self.python_addresses = list(addresses)
 
-            datanode_input = {
-                'method': 'run_datanode',
-                'kwargs': {
-                    'feature_columns': self.features,
-                    'event_time_column': self.event_times_column,
-                    'include_column': self.event_happened_column,
-                    'include_value': self.include_value,
-                    'address': ip,
-                    'external_commodity_address': self.commodity_address
-                }
+    def start_python_algorithm(self, id):
+        # First run a no-op task to retrieve the address
+        ip = self._get_node_ip(id)
+        info(f'Address: {ip}')
+        datanode_input = {
+            'method': 'run_datanode',
+            'kwargs': {
+                'feature_columns': self.features,
+                'event_time_column': self.event_times_column,
+                'include_column': self.event_happened_column,
+                'include_value': self.include_value,
+                'address': ip,
+                'external_commodity_address': self.commodity_address
             }
-            # create a new task for all organizations in the collaboration.
-            info('Dispatching python datanode task')
-            task = self.v6_client.create_new_task(datanode_input, organization_ids=[id])
-            address = self._get_algorithm_addresses(1, task['id'])
-
-            addresses += address.python
-        self.python_addresses = addresses
+        }
+        # create a new task for all organizations in the collaboration.
+        info('Dispatching python datanode task')
+        task = self.v6_client.create_new_task(datanode_input, organization_ids=[id])
+        addresses = self._get_algorithm_addresses(1, task['id'])
+        return addresses.python[0]
 
     def _start_java_algorithms(self):
         # Kick off java nodes
