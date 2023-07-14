@@ -1,5 +1,7 @@
 import time
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Any, Union, Iterable
 
@@ -7,6 +9,7 @@ import pandas as pd
 from vantage6.client import ContainerClient
 from vantage6.common import info
 
+from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 from verticox.scalarproduct import NPartyScalarProductClient
 from verticox.aggregator import Aggregator
 from verticox.grpc.datanode_pb2 import Empty
@@ -25,6 +28,8 @@ NODE_TIMEOUT = 360
 MAX_WORKERS = 10
 
 MAX_RETRIES = NODE_TIMEOUT // SLEEP
+
+Outcome = namedtuple('Outcome', 'time event_happened')
 
 
 class NodeManagerException(Exception):
@@ -58,7 +63,106 @@ class ContainerAddresses:
         return ContainerAddresses(python_addresses, java_addresses)
 
 
-class V6NodeManager:
+class BaseNodeManager(ABC):
+    @abstractmethod
+    def __init__(self, data: pd.DataFrame, event_times_column, event_happened_column,
+                 features, include_value, aggregator_kwargs, rows=None):
+        self._betas = None
+        self._baseline_hazard = None
+        self._scalar_product_client = None
+        self._stubs = None
+        self._event_happened_column = event_happened_column
+        self._event_times_column = event_times_column
+
+        self.features = features
+        self.include_value = include_value
+        self.aggregator_kwargs = aggregator_kwargs
+
+        self._aggregator = None
+        self._scalar_product_client = None
+
+        if rows is not None:
+            data = data[rows]
+
+        event_times = data[event_times_column].values
+        event_happened = data[event_happened_column].values
+
+        self._outcome = Outcome(event_times, event_happened)
+        self.python_addresses = None
+
+    @property
+    def betas(self):
+        if self._betas is None:
+            raise NodeManagerException('Trying to access betas before model has been fit.')
+        return self._betas
+
+    @property
+    def baseline_hazard(self):
+        if self._baseline_hazard is None:
+            raise NodeManagerException('Trying to access baseline hazard before model has been fit')
+        return self._baseline_hazard
+
+    @property
+    def scalar_product_client(self) -> NPartyScalarProductClient:
+        if self._scalar_product_client is None:
+            raise NodeManagerException('Trying to use scalar product client before it has been '
+                                       'initialized')
+        return self._scalar_product_client
+
+    @property
+    def stubs(self):
+        if self._stubs is None:
+            raise NodeManagerException('Stubs haven\'t been initialized yet.')
+        return self._stubs
+
+    @stubs.setter
+    def stubs(self, stubs: List[DataNodeStub]):
+        self._stubs = stubs
+
+    def fit(self):
+        aggregator = Aggregator(self.stubs, self._outcome.time,
+                                self._outcome.event_happened,
+                                **self.aggregator_kwargs)
+        aggregator.fit()
+
+        self._betas = self._aggregator.get_betas()
+
+        self._baseline_hazard = self._aggregator.compute_baseline_hazard_function()
+
+    def start_nodes(self):
+        info('Starting java containers')
+        self.start_java_algorithms()
+
+        info('Starting python containers')
+        self.start_python_algorithms()
+        self.create_stubs()
+        info(self.stubs)
+
+    @abstractmethod
+    def start_java_algorithms(self):
+        pass
+
+    @abstractmethod
+    def start_python_algorithms(self):
+        pass
+
+    def create_stubs(self):
+        stubs = []
+        # Create gRPC stubs
+        for a in self.python_addresses:
+            # TODO: This part is stupid, it should be separate host and port in the first place.
+            host, port = tuple(a.split(':'))
+            stubs.append(get_secure_stub(host, port))
+
+        info(f'Created {len(stubs)} RPC stubs')
+        self.stubs = stubs
+
+    @abstractmethod
+    def kill_all_algorithms(self):
+        pass
+
+
+class V6NodeManager(BaseNodeManager):
 
     def __init__(self, v6_client: ContainerClient,
                  data: pd.DataFrame,
@@ -91,65 +195,13 @@ class V6NodeManager:
         :param rows: The indices of the rows to be included in training. The default is to
             include all rows.
         """
+        super().__init__(data, event_times_column, event_happened_column, features, include_value,
+                         aggregator_kwargs, rows)
+
         self.v6_client = v6_client
         self.datanode_organizations = datanode_organizations
         self.central_organization = central_organization
-        self.event_happened_column = event_happened_column
-        self.event_times_column = event_times_column
-        self.features = features
-        self.include_value = include_value
-        self.aggregator_kwargs = aggregator_kwargs
-
         self.commodity_address = None
-        self.stubs = None
-        self._betas = None
-        self._baseline_hazard = None
-        self._aggregator = None
-        self._scalar_product_client = None
-
-        if rows is not None:
-            data = data[rows]
-
-        self._data = data
-        self._event_times = data[event_times_column].values
-        self._event_happened = data[event_happened_column].values
-
-    @property
-    def betas(self):
-        if self._betas is None:
-            raise NodeManagerException('Trying to access betas before model has been fit.')
-        return self._betas
-
-    @property
-    def baseline_hazard(self):
-        if self._baseline_hazard is None:
-            raise NodeManagerException('Trying to access baseline hazard before model has been fit')
-        return self._baseline_hazard
-
-    @property
-    def scalar_product_client(self) -> NPartyScalarProductClient:
-        if self._scalar_product_client is None:
-            raise NodeManagerException('Trying to use scalar product client before it has been '
-                                       'initialized')
-        return self._scalar_product_client
-
-    def fit(self):
-        self._aggregator = Aggregator(self.stubs, self._event_times,
-                                      self._event_happened,
-                                      **self.aggregator_kwargs)
-        self._aggregator.fit()
-
-        self._betas = self._aggregator.get_betas()
-
-        self._baseline_hazard = self._aggregator.compute_baseline_hazard_function()
-
-    def start_nodes(self):
-        info('Starting java containers')
-        self._start_java_algorithms()
-
-        info('Starting python containers')
-        self._start_all_python_containers()
-        self._create_stubs()
 
     def _start_containers(self, input, org_ids) -> ContainerAddresses:
         """
@@ -180,17 +232,6 @@ class V6NodeManager:
         address = addresses.python[0]
         info(f'Address: {address}')
         return address.split(':')[0]
-
-    def _create_stubs(self):
-        stubs = []
-        # Create gRPC stubs
-        for a in self.python_addresses:
-            # TODO: This part is stupid, it should be separate host and port in the first place.
-            host, port = tuple(a.split(':'))
-            stubs.append(get_secure_stub(host, port))
-
-        info(f'Created {len(stubs)} RPC stubs')
-        self.stubs = stubs
 
     def kill_all_algorithms(self):
         try:
@@ -226,17 +267,18 @@ class V6NodeManager:
 
         return ContainerAddresses.parse_addresses(addresses)
 
-    def _start_all_python_containers(self):
+    def start_python_algorithms(self):
 
         info(f'Datanode ids: {self.datanode_organizations}')
         info(f'Commodity address: {self.commodity_address}')
 
         with ThreadPoolExecutor(MAX_WORKERS) as executor:
-            addresses = executor.map(self.start_python_algorithm, self.datanode_organizations)
+            addresses = executor.map(self._start_python_algorithm_at_organization,
+                                     self.datanode_organizations)
 
         self.python_addresses = list(addresses)
 
-    def start_python_algorithm(self, id):
+    def _start_python_algorithm_at_organization(self, id):
         # First run a no-op task to retrieve the address
         ip = self._get_node_ip(id)
         info(f'Address: {ip}')
@@ -244,8 +286,8 @@ class V6NodeManager:
             'method': 'run_datanode',
             'kwargs': {
                 'feature_columns': self.features,
-                'event_time_column': self.event_times_column,
-                'include_column': self.event_happened_column,
+                'event_time_column': self._event_times_column,
+                'include_column': self._event_happened_column,
                 'include_value': self.include_value,
                 'address': ip,
                 'external_commodity_address': self.commodity_address
@@ -257,7 +299,7 @@ class V6NodeManager:
         addresses = self._get_algorithm_addresses(1, task['id'])
         return addresses.python[0]
 
-    def _start_java_algorithms(self):
+    def start_java_algorithms(self):
         # Kick off java nodes
         java_node_input = {'method': 'run_java_server'}
 
