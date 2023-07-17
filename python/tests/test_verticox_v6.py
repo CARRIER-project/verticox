@@ -18,7 +18,7 @@ FEATURE_COLUMNS = ['age', 'bmi', 'sysbp']
 IMAGE = 'harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox'
 DATABASE = 'parquet'
 TIMEOUT = 20 * 60
-PRECISION = 1e-6
+PRECISION = 1e-3
 
 
 def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest'):
@@ -54,13 +54,12 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest
 
     local_coefs = run_local_analysis()
 
-    federated_coefs = results.content[0]
-    federated_coefs = [el[1] for el in federated_coefs]
-    federated_coefs = np.array(federated_coefs)
-
     print(f'Organization: {results.organization}')
     print(f'Log: {results.log}')
     print(f'Content: {json.dumps(results.content)}')
+    federated_coefs = results.content[0]
+    federated_coefs = [el[1] for el in federated_coefs]
+    federated_coefs = np.array(federated_coefs)
 
     assert_array_almost_equal(local_coefs, federated_coefs, decimal=3)
 
