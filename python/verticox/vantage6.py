@@ -17,7 +17,7 @@ from verticox.scalarproduct import NPartyScalarProductClient
 DATABASE_URI = 'DATABASE_URI'
 DATANODE_TIMEOUT = None
 DATA_LIMIT = 10
-DEFAULT_PRECISION = 1e-3
+DEFAULT_PRECISION = 1e-6
 DEFAULT_RHO = 0.5
 COMMODITY_PROPERTIES = [f'--server.port={node_manager.JAVA_PORT}']
 NO_OP_TIME = 360
