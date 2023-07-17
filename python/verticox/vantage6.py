@@ -11,8 +11,6 @@ from vantage6.client import ContainerClient
 from vantage6.tools.util import info
 
 from verticox import datanode, node_manager
-from verticox.aggregator import Aggregator
-from verticox.scalarproduct import NPartyScalarProductClient
 
 DATABASE_URI = 'DATABASE_URI'
 DATANODE_TIMEOUT = None

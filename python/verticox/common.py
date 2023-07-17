@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import numpy as np
 import pandas as pd
 from numba import typed, types
@@ -61,7 +63,8 @@ def group_samples_on_event_time(event_times, event_happened) -> \
     return typed_Dt
 
 
-def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True):
+def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True) \
+        -> Tuple[ArrayLike, ArrayLike, List]:
     """
     Prepare and provide the whas500 dataset for testing purposes.
 

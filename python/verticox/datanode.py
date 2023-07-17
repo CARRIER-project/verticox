@@ -7,7 +7,7 @@ from typing import Optional, List
 import clize
 import grpc
 import numpy as np
-from numpy._typing import ArrayLike
+import pandas as pd
 from vantage6.tools.util import info
 
 import verticox.ssl
@@ -293,3 +293,7 @@ def serve(*, data: np.array, feature_names=None,
 
 def serve_standalone():
     clize.run(serve)
+
+
+if __name__ == '__main__':
+    serve_standalone()

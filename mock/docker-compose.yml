@@ -29,16 +29,43 @@ services:
     working_dir: /app
     command: java -jar ./application.jar -DPROP_FILE=application.properties
 
-  python:
+  pythonnode1:
     build: ../
     volumes:
-      - .:/test
-      - ../python:/verticox
-    depends_on:
-      - commodity
-      - javanode1
-      - javanode2
+      - ../python:/app
+      - ./data/data_1.parquet:/data/data.parquet
+    command: >
+      poetry run python -m verticox.datanode --features /data/data.parquet --commodity-address 
+      commodity --address pythonnode1 --include-column event_happened
 
-    environment:
-      - DATA_DIR=/test/data
-    command: "poetry run python /test/compare_n_party_no_v7.py"
+  pythonnode2:
+    build: ../
+    volumes:
+      - ../python:/app
+      - ./data/data_2.parquet:/data/data.parquet
+    command: >
+      poetry run python -m verticox.datanode --features /data/data.parquet --commodity-address 
+      commodity --address pythonnode2 --include-column event_happened
+
+
+  aggregator:
+    build: ../
+    volumes:
+      - ../python:/app
+      - ./data/outcome.parquet:/data/data.parquet
+    command: >
+      poetry run python -m verticox.node_manager /data/data.parquet event_time event_happened
+
+#  python:
+#    build: ../
+#    volumes:
+#      - .:/test
+#      - ../python:/verticox
+#    depends_on:
+#      - commodity
+#      - javanode1
+#      - javanode2
+#
+#    environment:
+#      - DATA_DIR=/test/data
+#    command: "poetry run python /test/compare_n_party_no_v7.py"

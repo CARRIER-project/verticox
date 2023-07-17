@@ -5,6 +5,7 @@ from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Any, Union, Iterable
 
+import clize
 import pandas as pd
 from vantage6.client import ContainerClient
 from vantage6.common import info
@@ -66,7 +67,7 @@ class ContainerAddresses:
 class BaseNodeManager(ABC):
     @abstractmethod
     def __init__(self, data: pd.DataFrame, event_times_column, event_happened_column,
-                 features, include_value, aggregator_kwargs, rows=None):
+                 aggregator_kwargs, features=None, include_value=True, rows=None):
         self._betas = None
         self._baseline_hazard = None
         self._scalar_product_client = None
@@ -74,9 +75,9 @@ class BaseNodeManager(ABC):
         self._event_happened_column = event_happened_column
         self._event_times_column = event_times_column
 
-        self.features = features
-        self.include_value = include_value
-        self.aggregator_kwargs = aggregator_kwargs
+        self._features = features
+        self._include_value = include_value
+        self._aggregator_kwargs = aggregator_kwargs
 
         self._aggregator = None
         self._scalar_product_client = None
@@ -88,7 +89,7 @@ class BaseNodeManager(ABC):
         event_happened = data[event_happened_column].values
 
         self._outcome = Outcome(event_times, event_happened)
-        self.python_addresses = None
+        self._python_addresses = None
 
     @property
     def betas(self):
@@ -122,7 +123,8 @@ class BaseNodeManager(ABC):
     def fit(self):
         aggregator = Aggregator(self.stubs, self._outcome.time,
                                 self._outcome.event_happened,
-                                **self.aggregator_kwargs)
+                                **self._aggregator_kwargs)
+
         aggregator.fit()
 
         self._betas = self._aggregator.get_betas()
@@ -149,7 +151,7 @@ class BaseNodeManager(ABC):
     def create_stubs(self):
         stubs = []
         # Create gRPC stubs
-        for a in self.python_addresses:
+        for a in self._python_addresses:
             # TODO: This part is stupid, it should be separate host and port in the first place.
             host, port = tuple(a.split(':'))
             stubs.append(get_secure_stub(host, port))
@@ -160,6 +162,37 @@ class BaseNodeManager(ABC):
     @abstractmethod
     def kill_all_algorithms(self):
         pass
+
+
+class LocalNodeManager(BaseNodeManager):
+    def __init__(self, data: pd.DataFrame, event_times_column, event_happened_column,
+                 aggregator_kwargs,
+                 commodity_address="commodity:80",
+                 python_datanode_addresses=('pythonnode1:7777', 'pythonnode2:7777'),
+                 other_java_addresses=('javanode1:80', 'javanode2:80'), **kwargs):
+        super().__init__(data, event_times_column, event_happened_column,
+                         aggregator_kwargs, **kwargs)
+        self._commodity_address = commodity_address
+        self._other_java_addresses = other_java_addresses
+        self._python_addresses = python_datanode_addresses
+
+    def start_python_algorithms(self):
+        """When running locally, the python nodes are not controlled by the node manager,
+        so this function does nothing."""
+        pass
+
+    def kill_all_algorithms(self):
+        """
+        We don't need to kill the algorithms locally
+        Returns:
+
+        """
+        pass
+
+    def start_java_algorithms(self):
+        self._scalar_product_client = \
+            NPartyScalarProductClient(commodity_address=self._commodity_address,
+                                      other_addresses=self._other_java_addresses)
 
 
 class V6NodeManager(BaseNodeManager):
@@ -195,13 +228,13 @@ class V6NodeManager(BaseNodeManager):
         :param rows: The indices of the rows to be included in training. The default is to
             include all rows.
         """
-        super().__init__(data, event_times_column, event_happened_column, features, include_value,
-                         aggregator_kwargs, rows)
+        super().__init__(data, event_times_column, event_happened_column, aggregator_kwargs,
+                         features=features, include_value=include_value, rows=rows)
 
-        self.v6_client = v6_client
-        self.datanode_organizations = datanode_organizations
-        self.central_organization = central_organization
-        self.commodity_address = None
+        self._v6_client = v6_client
+        self._datanode_organizations = datanode_organizations
+        self._central_organization = central_organization
+        self._commodity_address = None
 
     def _start_containers(self, input, org_ids) -> ContainerAddresses:
         """
@@ -218,7 +251,7 @@ class V6NodeManager(BaseNodeManager):
         # Every container will have two addresses because it has both a java and a python endpoint
         expected_num_addresses = len(org_ids) * PORTS_PER_CONTAINER
 
-        task = self.v6_client.create_new_task(input, organization_ids=org_ids)
+        task = self._v6_client.create_new_task(input, organization_ids=org_ids)
         addresses = self._get_algorithm_addresses(expected_num_addresses, task['id'])
         return addresses
 
@@ -226,7 +259,7 @@ class V6NodeManager(BaseNodeManager):
         params = {'method': 'no_op'}
 
         info(f'Getting ip for organization {organization_id}')
-        task = self.v6_client.create_new_task(params, [organization_id])
+        task = self._v6_client.create_new_task(params, [organization_id])
         addresses = self._get_algorithm_addresses(1, task['id'])
 
         address = addresses.python[0]
@@ -254,7 +287,7 @@ class V6NodeManager(BaseNodeManager):
         retries = 0
         # Wait for nodes to get ready
         while True:
-            addresses = self.v6_client.get_algorithm_addresses(task_id=task_id)
+            addresses = self._v6_client.get_algorithm_addresses(task_id=task_id)
 
             if len(addresses) >= expected_amount:
                 break
@@ -269,12 +302,12 @@ class V6NodeManager(BaseNodeManager):
 
     def start_python_algorithms(self):
 
-        info(f'Datanode ids: {self.datanode_organizations}')
-        info(f'Commodity address: {self.commodity_address}')
+        info(f'Datanode ids: {self._datanode_organizations}')
+        info(f'Commodity address: {self._commodity_address}')
 
         with ThreadPoolExecutor(MAX_WORKERS) as executor:
             addresses = executor.map(self._start_python_algorithm_at_organization,
-                                     self.datanode_organizations)
+                                     self._datanode_organizations)
 
         self.python_addresses = list(addresses)
 
@@ -285,17 +318,17 @@ class V6NodeManager(BaseNodeManager):
         datanode_input = {
             'method': 'run_datanode',
             'kwargs': {
-                'feature_columns': self.features,
+                'feature_columns': self._features,
                 'event_time_column': self._event_times_column,
                 'include_column': self._event_happened_column,
-                'include_value': self.include_value,
+                'include_value': self._include_value,
                 'address': ip,
-                'external_commodity_address': self.commodity_address
+                'external_commodity_address': self._commodity_address
             }
         }
         # create a new task for all organizations in the collaboration.
         info('Dispatching python datanode task')
-        task = self.v6_client.create_new_task(datanode_input, organization_ids=[id])
+        task = self._v6_client.create_new_task(datanode_input, organization_ids=[id])
         addresses = self._get_algorithm_addresses(1, task['id'])
         return addresses.python[0]
 
@@ -303,12 +336,12 @@ class V6NodeManager(BaseNodeManager):
         # Kick off java nodes
         java_node_input = {'method': 'run_java_server'}
 
-        commodity_address = self._start_containers(java_node_input, [self.central_organization])
+        commodity_address = self._start_containers(java_node_input, [self._central_organization])
         info(f'Commodity address: {commodity_address}')
         commodity_address = commodity_address.java[0]
 
-        info(f'Running java nodes on organizations {self.datanode_organizations}')
-        datanode_addresses = self._start_containers(java_node_input, self.datanode_organizations)
+        info(f'Running java nodes on organizations {self._datanode_organizations}')
+        datanode_addresses = self._start_containers(java_node_input, self._datanode_organizations)
 
         info(f'Addresses: {datanode_addresses}')
 
@@ -322,4 +355,20 @@ class V6NodeManager(BaseNodeManager):
 
         self._scalar_product_client.initialize_servers()
 
-        self.commodity_address = commodity_address
+        self._commodity_address = commodity_address
+
+
+def run_locally(data, event_times_column, event_happened_column):
+    df = pd.read_parquet(data)
+
+    print(df)
+
+    node_manager = LocalNodeManager(df, event_times_column, event_happened_column, {})
+    node_manager.start_nodes()
+    node_manager.fit()
+
+    print(node_manager.betas)
+
+
+if __name__ == '__main__':
+    clize.run(run_locally)
