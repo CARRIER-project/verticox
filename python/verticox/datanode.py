@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, List
 
 import clize
+from clize import Parameter
 import grpc
 import numpy as np
 import pandas as pd
@@ -41,6 +42,7 @@ class DataNode(DataNodeServicer):
 
         self.name = name
         self._logger = logging.getLogger(f'{__name__} :: {self.name}')
+        self._logger.setLevel(logging.DEBUG)
         self._logger.debug(f'Initializing datanode {self.name}')
         self.features = features
         self.feature_names = feature_names
@@ -119,6 +121,12 @@ class DataNode(DataNodeServicer):
             raise Exception('Datanode has not been prepared!')
 
         self._logger.info('Performing local update...')
+        self._logger.debug(f'Features: {self.features}\n'
+                            f'z: {self.z}\n'
+                            f'gamma: {self.gamma}\n'
+                            f'rho: {self.rho}\n'
+                            f'features_multiplied: {self.features_multiplied}\n'
+                            f'sum_Dt: {self.sum_Dt}')
         sigma, beta = DataNode._local_update(self.features, self.z, self.gamma, self.rho,
                                              self.features_multiplied, self.sum_Dt)
 
