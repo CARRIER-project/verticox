@@ -362,8 +362,10 @@ def run_locally(data, event_times_column, event_happened_column):
     df = pd.read_parquet(data)
 
     print(df)
+    testing_precision = 1e-3
 
-    node_manager = LocalNodeManager(df, event_times_column, event_happened_column, {})
+    node_manager = LocalNodeManager(df, event_times_column, event_happened_column,
+                                    {'convergence_precision': testing_precision})
     node_manager.start_nodes()
     node_manager.fit()
 
