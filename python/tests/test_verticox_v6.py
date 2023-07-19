@@ -73,6 +73,7 @@ def run_local_analysis():
 
     return model.coef_
 
+    # Results should be close to [ 0.06169848, -0.00783813]
 
 if __name__ == '__main__':
     run(run_verticox_v6)
