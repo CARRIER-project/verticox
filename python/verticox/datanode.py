@@ -7,6 +7,7 @@ from typing import Optional, List
 import clize
 import grpc
 import numpy as np
+from numpy._typing import ArrayLike
 from vantage6.tools.util import info
 
 import verticox.ssl
@@ -260,18 +261,15 @@ class DataNode(DataNodeServicer):
         return DataNode._compute_sigma(beta, features), beta
 
 
-def serve(*, features=DEFAULT_DATA, feature_names=None,
+def serve(*, data: np.array, feature_names=None,
           include_column=None, include_value=True,
           commodity_address=None, port=DEFAULT_PORT,
           timeout=TIMEOUT, secure=True, address=None):
     logging.basicConfig(level=logging.DEBUG)
 
-    if features == DEFAULT_DATA:
-        features, _, feature_names = get_test_dataset()
-
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
     add_DataNodeServicer_to_server(
-        DataNode(features=features, feature_names=feature_names, include_column=include_column,
+        DataNode(features=data, feature_names=feature_names, include_column=include_column,
                  include_value=include_value, commodity_address=commodity_address, server=server),
         server)
 
