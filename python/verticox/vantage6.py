@@ -159,7 +159,6 @@ def RPC_run_datanode(data: pd.DataFrame,
     info(f'All columns: {data.columns}')
     info(f'Event time column: {event_time_column}')
     info(f'Censor column: {include_column}')
-
     # The current datanode might not have all the features
     feature_columns = [f for f in feature_columns if f in data.columns]
 

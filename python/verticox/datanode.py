@@ -266,7 +266,7 @@ def serve(*, data: np.array, feature_names=None,
           commodity_address=None, port=DEFAULT_PORT,
           timeout=TIMEOUT, secure=True, address=None):
     logging.basicConfig(level=logging.DEBUG)
-
+    info(f'Data shape {data.shape }')
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
     add_DataNodeServicer_to_server(
         DataNode(features=data, feature_names=feature_names, include_column=include_column,
