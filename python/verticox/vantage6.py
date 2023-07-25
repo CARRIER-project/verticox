@@ -159,14 +159,13 @@ def RPC_run_datanode(data: pd.DataFrame,
     info(f'All columns: {data.columns}')
     info(f'Event time column: {event_time_column}')
     info(f'Censor column: {include_column}')
-
     # The current datanode might not have all the features
     feature_columns = [f for f in feature_columns if f in data.columns]
 
     info(f'Feature columns after filtering: {feature_columns}')
     features = data[feature_columns].values
 
-    datanode.serve(features=features, feature_names=feature_columns, port=node_manager.PYTHON_PORT,
+    datanode.serve(data=features, feature_names=feature_columns, port=node_manager.PYTHON_PORT,
                    include_column=include_column,
                    include_value=include_value, timeout=DATANODE_TIMEOUT,
                    commodity_address=external_commodity_address,
