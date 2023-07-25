@@ -54,7 +54,7 @@ services:
       - ../python:/app
       - ./data/outcome.parquet:/data/data.parquet
     command: >
-      poetry run python -m verticox.node_manager /data/data.parquet event_time event_happened
+      poetry run python tests/test_local_node_manager.py /data/data.parquet event_time event_happened
 
 #  python:
 #    build: ../

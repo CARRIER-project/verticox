@@ -5,7 +5,6 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, List
 
 import clize
-from clize import Parameter
 import grpc
 import numpy as np
 import pandas as pd

@@ -3,18 +3,12 @@ import numpy as np
 import vantage6.client as v6client
 from clize import run
 
+from test_constants import FEATURE_COLUMNS, OUTCOME_TIME_COLUMN, OUTCOME, PRECISION
 from verticox.client import VerticoxClient
-
-OUTCOME = 'event_happened'
-
-OUTCOME_TIME_COLUMN = 'event_time'
-
-FEATURE_COLUMNS = ['age', 'sysbp']
 
 IMAGE = 'harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox'
 DATABASE = 'parquet'
 TIMEOUT = 20 * 60
-PRECISION = 1e-4
 
 
 def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest'):

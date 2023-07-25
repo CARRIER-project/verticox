@@ -1,19 +1,18 @@
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from typing import List, Any, Union, Iterable
 
-import clize
 import pandas as pd
 from vantage6.client import ContainerClient
 from vantage6.common import info
 
-from verticox.grpc.datanode_pb2_grpc import DataNodeStub
-from verticox.scalarproduct import NPartyScalarProductClient
 from verticox.aggregator import Aggregator
 from verticox.grpc.datanode_pb2 import Empty
+from verticox.grpc.datanode_pb2_grpc import DataNodeStub
+from verticox.scalarproduct import NPartyScalarProductClient
 from verticox.ssl import get_secure_stub
 
 _PYTHON = 'python'
@@ -29,6 +28,10 @@ NODE_TIMEOUT = 360
 MAX_WORKERS = 10
 
 MAX_RETRIES = NODE_TIMEOUT // SLEEP
+
+DOCKER_COMPOSE_PYTHON_NODES = ('pythonnode1:7777', 'pythonnode2:7777')
+DOCKER_COMPOSE_JAVA_NODES = ('javanode1:80', 'javanode2:80')
+DOCKER_COMPOSE_COMMODITY_NODE = "commodity:80"
 
 Outcome = namedtuple('Outcome', 'time event_happened')
 
@@ -167,11 +170,12 @@ class BaseNodeManager(ABC):
 class LocalNodeManager(BaseNodeManager):
     def __init__(self, data: pd.DataFrame, event_times_column, event_happened_column,
                  aggregator_kwargs,
-                 commodity_address="commodity:80",
-                 python_datanode_addresses=('pythonnode1:7777', 'pythonnode2:7777'),
-                 other_java_addresses=('javanode1:80', 'javanode2:80'), **kwargs):
-        super().__init__(data, event_times_column, event_happened_column,
-                         aggregator_kwargs, **kwargs)
+                 commodity_address=DOCKER_COMPOSE_COMMODITY_NODE,
+                 python_datanode_addresses=DOCKER_COMPOSE_PYTHON_NODES,
+                 other_java_addresses=DOCKER_COMPOSE_JAVA_NODES, **kwargs):
+        super().__init__(data=data, event_times_column=event_times_column,
+                         event_happened_column=event_happened_column,
+                         aggregator_kwargs=aggregator_kwargs, **kwargs)
         self._commodity_address = commodity_address
         self._other_java_addresses = other_java_addresses
         self._python_addresses = python_datanode_addresses
@@ -356,21 +360,3 @@ class V6NodeManager(BaseNodeManager):
         self._scalar_product_client.initialize_servers()
 
         self._commodity_address = commodity_address
-
-
-def run_locally(data, event_times_column, event_happened_column):
-    df = pd.read_parquet(data)
-
-    print(df)
-    testing_precision = 1e-4
-
-    node_manager = LocalNodeManager(df, event_times_column, event_happened_column,
-                                    {'convergence_precision': testing_precision})
-    node_manager.start_nodes()
-    node_manager.fit()
-
-    print(node_manager.betas)
-
-
-if __name__ == '__main__':
-    clize.run(run_locally)
