@@ -298,9 +298,11 @@ def serve(*, data: np.array, feature_names=None,
     info(f'Stopped datanode after {total_time} seconds')
 
 
-def serve_standalone():
-    clize.run(serve)
+def serve_standalone(*, data_path, address, commodity_address, include_column):
+    data = pd.read_parquet(data_path)
+    serve(data=data.values, feature_names=data.columns, address=address,
+          commodity_address=commodity_address, include_column=include_column)
 
 
 if __name__ == '__main__':
-    serve_standalone()
+    clize.run(serve_standalone)

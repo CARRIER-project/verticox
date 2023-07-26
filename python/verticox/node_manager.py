@@ -30,7 +30,7 @@ MAX_WORKERS = 10
 MAX_RETRIES = NODE_TIMEOUT // SLEEP
 
 DOCKER_COMPOSE_PYTHON_NODES = ('pythonnode1:7777', 'pythonnode2:7777')
-DOCKER_COMPOSE_JAVA_NODES = ('javanode1:80', 'javanode2:80')
+DOCKER_COMPOSE_JAVA_NODES = ('javanode1:80', 'javanode2:80', 'javanode-outcome:80')
 DOCKER_COMPOSE_COMMODITY_NODE = "commodity:80"
 
 Outcome = namedtuple('Outcome', 'time event_happened')
@@ -124,15 +124,16 @@ class BaseNodeManager(ABC):
         self._stubs = stubs
 
     def fit(self):
+        info(self._outcome)
         aggregator = Aggregator(self.stubs, self._outcome.time,
                                 self._outcome.event_happened,
                                 **self._aggregator_kwargs)
 
         aggregator.fit()
 
-        self._betas = self._aggregator.get_betas()
+        self._betas = aggregator.get_betas()
 
-        self._baseline_hazard = self._aggregator.compute_baseline_hazard_function()
+        self._baseline_hazard = aggregator.compute_baseline_hazard_function()
 
     def start_nodes(self):
         info('Starting java containers')
@@ -197,6 +198,7 @@ class LocalNodeManager(BaseNodeManager):
         self._scalar_product_client = \
             NPartyScalarProductClient(commodity_address=self._commodity_address,
                                       other_addresses=self._other_java_addresses)
+        self._scalar_product_client.initialize_servers()
 
 
 class V6NodeManager(BaseNodeManager):
@@ -313,7 +315,7 @@ class V6NodeManager(BaseNodeManager):
             addresses = executor.map(self._start_python_algorithm_at_organization,
                                      self._datanode_organizations)
 
-        self.python_addresses = list(addresses)
+        self._python_addresses = list(addresses)
 
     def _start_python_algorithm_at_organization(self, id):
         # First run a no-op task to retrieve the address
