@@ -11,7 +11,6 @@ import pandas as pd
 from vantage6.tools.util import info
 
 import verticox.ssl
-from verticox.common import get_test_dataset
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
     NumSamples, Empty, Beta, FeatureNames, RecordLevelSigma, AverageSigma, Subset, \
     PartialHazardRatio
@@ -119,23 +118,16 @@ class DataNode(DataNodeServicer):
         if not self.prepared:
             raise Exception('Datanode has not been prepared!')
 
-        self._logger.info('Performing local update...')
-        self._logger.debug(f'Features: {self.features}\n'
-                            f'z: {self.z}\n'
-                            f'gamma: {self.gamma}\n'
-                            f'rho: {self.rho}\n'
-                            f'features_multiplied: {self.features_multiplied}\n'
-                            f'sum_Dt: {self.sum_Dt}')
+        self._logger.debug('Performing local update...')
+
         sigma, beta = DataNode._local_update(self.features, self.z, self.gamma, self.rho,
                                              self.features_multiplied, self.sum_Dt)
 
         self.sigma = sigma
         self.beta = beta
 
-        self._logger.debug(f'Beta: {json.dumps(self.beta.tolist())}')
-
         response = LocalParameters(gamma=self.gamma.tolist(), sigma=sigma.tolist())
-        self._logger.info('Finished local update, returning results.')
+        self._logger.debug('Finished local update, returning results.')
 
         return response
 
