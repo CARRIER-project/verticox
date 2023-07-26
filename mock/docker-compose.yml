@@ -11,6 +11,12 @@ services:
     command: java -jar ./application.jar -DPROP_FILE=application.properties
     ports:
       - "8080:80"
+    healthcheck:
+      test: [ "CMD", "curl", "http://localhost" ]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+
 
   javanode-outcome:
     image: openjdk
@@ -48,6 +54,7 @@ services:
       poetry run python -m verticox.datanode --data-path /data/data.parquet --commodity-address 
       commodity --address pythonnode1 --include-column event_happened
 
+
   pythonnode2:
     build: ../
     volumes:
@@ -57,7 +64,6 @@ services:
       poetry run python -m verticox.datanode --data-path /data/data.parquet --commodity-address 
       commodity --address pythonnode2 --include-column event_happened
 
-
   aggregator:
     build: ../
     volumes:
@@ -65,3 +71,8 @@ services:
       - ./data/outcome.parquet:/data/data.parquet
     command: >
       poetry run python tests/test_local_node_manager.py /data/data.parquet event_time event_happened
+    depends_on:
+      commodity:
+        condition: service_healthy
+    restart: on-failure
+
