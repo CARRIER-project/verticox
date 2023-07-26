@@ -1,4 +1,4 @@
-FEATURE_COLUMNS = ['age', 'sysbp']
+FEATURE_COLUMNS = ['bmi', 'sysbp']
 CONVERGENCE_PRECISION = 1e-4
 OUTCOME = 'event_happened'
 
