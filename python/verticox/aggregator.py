@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import numpy as np
 from numba import types, typed
@@ -235,7 +235,7 @@ class Aggregator:
         response = self.institutions[0].getNumSamples(Empty())
         return response.numSamples
 
-    def get_betas(self) -> List[Tuple[str, float]]:
+    def get_betas(self) -> Dict[str, float]:
         betas = []
         names = []
         info(f'Getting betas from {len(self.institutions)} institutions')
@@ -249,7 +249,7 @@ class Aggregator:
             betas += current_betas
             names += current_names
 
-        return list(zip(names, betas))
+        return dict(zip(names, betas))
 
     def compute_baseline_hazard_function(self):
         record_level_sigmas = np.zeros((self.num_institutions, self.num_samples))
