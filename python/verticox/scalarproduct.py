@@ -95,7 +95,7 @@ class NPartyScalarProductClient:
             datanode_id = f'datanode_{idx}'
             set_id_endpoint = self._get_url(address, _SET_ID)
             requests.post(set_id_endpoint, params={'id': datanode_id})
-            others = other_addresses.copy()
+            others = list(other_addresses)
             others.remove(address)
             others.append(commodity_address)
             self._put_endpoints(address, others)

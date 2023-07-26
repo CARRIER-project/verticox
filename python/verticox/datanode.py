@@ -7,7 +7,7 @@ from typing import Optional, List
 import clize
 import grpc
 import numpy as np
-from numpy._typing import ArrayLike
+import pandas as pd
 from vantage6.tools.util import info
 
 import verticox.ssl
@@ -41,6 +41,7 @@ class DataNode(DataNodeServicer):
 
         self.name = name
         self._logger = logging.getLogger(f'{__name__} :: {self.name}')
+        self._logger.setLevel(logging.DEBUG)
         self._logger.debug(f'Initializing datanode {self.name}')
         self.features = features
         self.feature_names = feature_names
@@ -119,6 +120,12 @@ class DataNode(DataNodeServicer):
             raise Exception('Datanode has not been prepared!')
 
         self._logger.info('Performing local update...')
+        self._logger.debug(f'Features: {self.features}\n'
+                            f'z: {self.z}\n'
+                            f'gamma: {self.gamma}\n'
+                            f'rho: {self.rho}\n'
+                            f'features_multiplied: {self.features_multiplied}\n'
+                            f'sum_Dt: {self.sum_Dt}')
         sigma, beta = DataNode._local_update(self.features, self.z, self.gamma, self.rho,
                                              self.features_multiplied, self.sum_Dt)
 
@@ -291,5 +298,11 @@ def serve(*, data: np.array, feature_names=None,
     info(f'Stopped datanode after {total_time} seconds')
 
 
-def serve_standalone():
-    clize.run(serve)
+def serve_standalone(*, data_path, address, commodity_address, include_column):
+    data = pd.read_parquet(data_path)
+    serve(data=data.values, feature_names=data.columns, address=address,
+          commodity_address=commodity_address, include_column=include_column)
+
+
+if __name__ == '__main__':
+    clize.run(serve_standalone)
