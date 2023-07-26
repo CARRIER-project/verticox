@@ -124,7 +124,6 @@ class BaseNodeManager(ABC):
         self._stubs = stubs
 
     def fit(self):
-        info(self._outcome)
         aggregator = Aggregator(self.stubs, self._outcome.time,
                                 self._outcome.event_happened,
                                 **self._aggregator_kwargs)
