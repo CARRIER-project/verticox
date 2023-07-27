@@ -9,7 +9,7 @@ on:
     branches: [ "main" ]
 env:
   JAR_DIR: "java/verticox/target/"
-  JAR_FILE: "verticox-1.0-SNAPSHOT.jar"
+  JARFILE: "verticox-1.0-SNAPSHOT.jar"
   ARTIFACT_NAME: jarfile
 jobs:
   javabuild:
