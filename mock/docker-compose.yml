@@ -11,11 +11,11 @@ services:
     command: java -jar ./application.jar -DPROP_FILE=application.properties
     ports:
       - "8080:80"
-    healthcheck:
-      test: [ "CMD", "curl", "http://localhost" ]
-      interval: 5s
-      timeout: 5s
-      retries: 20
+#    healthcheck:
+#      test: [ "CMD", "curl", "http://localhost" ]
+#      interval: 5s
+#      timeout: 5s
+#      retries: 20
 
 
   javanode-outcome:
