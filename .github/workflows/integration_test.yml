@@ -10,7 +10,7 @@ on:
 env:
   JAR_DIR: "java/verticox/target/"
   JAR_FILE: "verticox-1.0-SNAPSHOT.jar"
-  $JARFILE: "java/verticox/target/verticox-1.0-SNAPSHOT.jar"
+  ARTIFACT_NAME: jarfile
 jobs:
   javabuild:
     uses: ./.github/workflows/build_java.yml
@@ -25,7 +25,7 @@ jobs:
     - name: Download jar file
       uses: actions/download-artifact@v3
       with:
-        name: ${{env.JAR_FILE}}
+        name: ${{env.ARTIFACT_NAME}}
         path: ${{ env.JAR_DIR}}
     - uses: isbang/compose-action@v1.5.0
       with:
