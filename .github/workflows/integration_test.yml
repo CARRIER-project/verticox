@@ -27,7 +27,7 @@ jobs:
       uses: actions/download-artifact@v3
       with:
         name: ${{env.ARTIFACT_NAME}}
-        path: ${{JAR_DIR}}
+        path: ${{env.JAR_DIR}}
     - name: Check jar dir
       run: ls -la ${{env.JAR_DIR}}
 
