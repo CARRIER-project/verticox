@@ -9,7 +9,7 @@ on:
     branches: [ "main" ]
 env:
   JAR_DIR: "./jarfile"
-  JARFILE: "verticox-1.0-SNAPSHOT.jar"
+  JARFILE: "/home/runner/work/verticox/verticox/jarfile/verticox-1.0-SNAPSHOT.jar"
   ARTIFACT_NAME: "jarfile"
   PWD: ./mock/
 jobs:
