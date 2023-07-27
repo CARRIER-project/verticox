@@ -28,8 +28,9 @@ jobs:
       with:
         name: ${{env.ARTIFACT_NAME}}
         path: ${{env.JAR_DIR}}
+
     - name: Check jar dir
-      run: ls -la ${{env.JAR_DIR}}
+      run: ls -la
 
     - name: Set up Docker Buildx
       id: buildx
