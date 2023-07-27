@@ -36,3 +36,6 @@ jobs:
     - name: Run the compose until aggregator exits
       run: docker compose up --exit-code-from aggregator
       timeout-minutes: 10
+
+    - name: Print aggregator log
+      run: docker compose logs aggregator
