@@ -4,11 +4,9 @@
 name: Full integration test
 
 on:
-  push:
   pull_request:
     branches: [ "main" ]
 env:
-  #JARFILE: "java/verticox/target/verticox-1.0-SNAPSHOT.jar"
   PWD: ./mock/
 jobs:
   javabuild:
