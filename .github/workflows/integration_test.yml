@@ -8,7 +8,7 @@ on:
   pull_request:
     branches: [ "main" ]
 env:
-  JAR_DIR: "."
+  JAR_DIR: "./jarfile"
   JARFILE: "verticox-1.0-SNAPSHOT.jar"
   ARTIFACT_NAME: "jarfile"
   PWD: ./mock/
@@ -27,8 +27,7 @@ jobs:
       uses: actions/download-artifact@v3
       with:
         name: ${{env.ARTIFACT_NAME}}
-        path: ${{ env.JAR_DIR}}
-
+        path: ${{JAR_DIR}}
     - name: Check jar dir
       run: ls -la ${{env.JAR_DIR}}
 
