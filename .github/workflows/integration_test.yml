@@ -33,8 +33,3 @@ jobs:
         compose-file: "./mock/docker-compose.yml"
         up-flags: "--exit-code-from aggregator"
       timeout-minutes: 10
-
-    - name: Check if aggregator has finished
-      run: "docker compose ps --status exited --services aggregator"
-
-    - name: Check
