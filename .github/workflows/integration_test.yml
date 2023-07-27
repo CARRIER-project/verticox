@@ -36,7 +36,7 @@ jobs:
         env:
           JARFILE: "${{env.GITHUB_WORKSPACE}}/java/verticox/target/verticox-1.0-SNAPSHOT.jar"
           JARPATH: "${{env.GITHUB_WORKSPACE}}/java/verticox/target"
-        run: echo $GITHUB_WORKSPACE  && ls -la $JARPATH
+        run: echo $GITHUB_WORKSPACE  && ls -la $/GITHUB_WORKSPACE/$JARPATH
 
       - name: Run the compose until aggregator exits
 #        env:
