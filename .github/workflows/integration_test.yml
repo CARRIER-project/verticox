@@ -9,8 +9,8 @@ on:
     branches: [ "main" ]
 env:
   JAR_DIR: "java/verticox/target/"
-  JAR_FILE: "jarfile.jar"
-  $JARFILE: "java/verticox/target/jarfile.jar"
+  JAR_FILE: "verticox-1.0-SNAPSHOT.jar"
+  $JARFILE: "java/verticox/target/verticox-1.0-SNAPSHOT.jar"
 jobs:
   javabuild:
     uses: ./.github/workflows/build_java.yml
