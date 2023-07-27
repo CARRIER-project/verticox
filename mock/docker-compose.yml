@@ -11,11 +11,11 @@ services:
     command: java -jar ./application.jar -DPROP_FILE=application.properties
     ports:
       - "8080:80"
-#    healthcheck:
-#      test: [ "CMD", "curl", "http://localhost" ]
-#      interval: 5s
-#      timeout: 5s
-#      retries: 20
+    healthcheck:
+      test: [ "CMD", "curl", "http://localhost" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
 
   javanode-outcome:
@@ -71,8 +71,8 @@ services:
       - ./data/outcome.parquet:/data/data.parquet
     command: >
       poetry run python tests/test_local_node_manager.py /data/data.parquet event_time event_happened
-#    depends_on:
-#      commodity:
-#        condition: service_healthy
+    depends_on:
+      commodity:
+        condition: service_healthy
     restart: on-failure
 
