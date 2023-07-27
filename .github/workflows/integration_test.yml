@@ -34,13 +34,13 @@ jobs:
 
       - name: Print jar file dir
         env:
-          JARFILE: "${{env.GITHUB_WORKSPACE}}/java/verticox/target/verticox-1.0-SNAPSHOT.jar"
-          JARPATH: "${{env.GITHUB_WORKSPACE}}/java/verticox/target"
-        run: echo $JARFILE && ls -la $JARPATH
+          JARFILE: "${{GITHUB_WORKSPACE}}/java/verticox/target/verticox-1.0-SNAPSHOT.jar"
+          JARPATH: "${{GITHUB_WORKSPACE}}/java/verticox/target"
+        run: echo $GITHUB_WORKSPACE  && ls -la $JARPATH
 
       - name: Run the compose until aggregator exits
         env:
-          JARFILE: "${{env.GITHUB_WORKSPACE}}/java/verticox/target/verticox-1.0-SNAPSHOT.jar"
+          JARFILE: "${{GITHUB_WORKSPACE}}/java/verticox/target/verticox-1.0-SNAPSHOT.jar"
         working-directory: ./mock
         run: docker compose up --exit-code-from aggregator
         timeout-minutes: 10
