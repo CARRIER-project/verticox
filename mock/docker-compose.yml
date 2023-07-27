@@ -15,7 +15,7 @@ services:
       test: [ "CMD", "curl", "http://localhost" ]
       interval: 5s
       timeout: 5s
-      retries: 3
+      retries: 20
 
 
   javanode-outcome:
