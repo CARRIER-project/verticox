@@ -50,6 +50,7 @@ def run_locally(data, event_times_column, event_happened_column):
     for key, value in TARGET_COEFS.items():
         np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
 
+    assert False
     print('Test has passed.')
 
 

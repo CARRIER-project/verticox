@@ -6,6 +6,7 @@ name: Full integration test
 on:
   pull_request:
     branches: [ "main" ]
+  push:
 env:
   PWD: ./mock/
 jobs:
