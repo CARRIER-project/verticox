@@ -36,9 +36,3 @@ jobs:
     - name: Run the compose until aggregator exits
       run: docker compose up --exit-code-from aggregator
       timeout-minutes: 10
-
-    - uses: isbang/compose-action@v1.5.0
-      with:
-        compose-file: "./mock/docker-compose.yml"
-        up-flags: "--exit-code-from aggregator"
-      timeout-minutes: 10
