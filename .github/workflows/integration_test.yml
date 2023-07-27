@@ -25,7 +25,7 @@ jobs:
           path: java/verticox/target
 
       - name: Check jar dir
-        run: ls -la
+        run: ls -la ${{JARFILE}}
 
       - name: Set up Docker Buildx
         id: buildx
