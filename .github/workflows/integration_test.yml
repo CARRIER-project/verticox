@@ -11,7 +11,7 @@ env:
 jobs:
   javabuild:
     uses: ./.github/workflows/build_java.yml
-  build:
+  integrationtest:
     needs: javabuild
     runs-on: ubuntu-latest
     steps:
