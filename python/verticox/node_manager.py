@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import List, Any, Union, Iterable
+from typing import List, Any, Union, Iterable, Dict
 
 import pandas as pd
 from vantage6.client import ContainerClient
@@ -71,7 +71,7 @@ class BaseNodeManager(ABC):
     @abstractmethod
     def __init__(self, data: pd.DataFrame, event_times_column, event_happened_column,
                  aggregator_kwargs, features=None, include_value=True, rows=None):
-        self._betas = None
+        self._betas: Union[Dict[str, float], None] = None
         self._baseline_hazard = None
         self._scalar_product_client = None
         self._stubs = None
