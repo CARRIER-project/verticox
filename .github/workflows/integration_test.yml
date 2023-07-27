@@ -34,7 +34,7 @@ jobs:
 
       - name: Run the compose until aggregator exits
         with:
-          JARFILE: "${{$github_workspace}}/java/verticox/target/verticox-1.0-SNAPSHOT.jar"
+          JARFILE: "${{github_workspace}}/java/verticox/target/verticox-1.0-SNAPSHOT.jar"
         working-directory: ./mock
         run: docker compose up --exit-code-from aggregator
         timeout-minutes: 10
