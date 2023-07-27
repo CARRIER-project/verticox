@@ -8,8 +8,8 @@ on:
   pull_request:
     branches: [ "main" ]
 env:
-  JAR_DIR: "java/verticox/target/"
-  JARFILE: "java/verticox/target/verticox-1.0-SNAPSHOT.jar"
+  JAR_DIR: "./java/verticox/target/"
+  JARFILE: "./java/verticox/target/verticox-1.0-SNAPSHOT.jar"
   ARTIFACT_NAME: jarfile
   PWD: ./mock/
 jobs:
