@@ -8,9 +8,7 @@ on:
   pull_request:
     branches: [ "main" ]
 env:
-  JAR_DIR: "./jarfile"
-  JARFILE: "/home/runner/work/verticox/verticox/jarfile/verticox-1.0-SNAPSHOT.jar"
-  ARTIFACT_NAME: "jarfile"
+  JARFILE: "java/verticox/target/verticox-1.0-SNAPSHOT.jar"
   PWD: ./mock/
 jobs:
   javabuild:
@@ -22,23 +20,23 @@ jobs:
         working-directory: ./mock
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Download jar file
-      uses: actions/download-artifact@v3
-      with:
-        name: ${{env.ARTIFACT_NAME}}
-        path: ${{env.JAR_DIR}}
+      - uses: actions/checkout@v3
+      - name: Download jar file
+        uses: actions/download-artifact@v3
+        with:
+          name: jarfile
+          path: java/verticox/target
 
-    - name: Check jar dir
-      run: ls -la
+      - name: Check jar dir
+        run: ls -la
 
-    - name: Set up Docker Buildx
-      id: buildx
-      uses: docker/setup-buildx-action@v2
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
 
-    - name: Run the compose until aggregator exits
-      run: docker compose up --exit-code-from aggregator
-      timeout-minutes: 10
+      - name: Run the compose until aggregator exits
+        run: docker compose up --exit-code-from aggregator
+        timeout-minutes: 10
 
-    - name: Print aggregator log
-      run: docker compose logs aggregator
+      - name: Print aggregator log
+        run: docker compose logs aggregator
