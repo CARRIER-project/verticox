@@ -84,7 +84,7 @@ class NPartyScalarProductClient:
 
         for n in nodes_to_kill:
             try:
-                self._kill_endpoint(n)
+                self._kill_node(n)
             except ConnectionError:
                 # A connection error means that the node has successfully shut down (most likely)
                 pass
@@ -148,8 +148,8 @@ class NPartyScalarProductClient:
         url = f'{_PROTOCOL}{targetUrl}/{_SET_ENDPOINTS}'
         requests.post(url, json=payload, timeout=10)
 
-    def _kill_endpoint(self, target):
-        requests.put(target + "/kill")
+    def _kill_node(self, target):
+        self._put('kill', address=target)
 
 
 def main():
