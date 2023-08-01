@@ -89,6 +89,10 @@ class NPartyScalarProductClient:
                 # A connection error means that the node has successfully shut down (most likely)
                 pass
 
+    def activate_fold(self, activated: List[bool]):
+        payload = {'activeRecords': activated}
+        self._post('activateFold', json=payload)
+
     def _init_datanodes(self, commodity_address, other_addresses):
         for idx, address in enumerate(other_addresses):
             # Set id first
