@@ -345,8 +345,13 @@ class V6NodeManager(BaseNodeManager):
         info(f'Commodity address: {commodity_address}')
         commodity_address = commodity_address.java[0]
 
-        info(f'Running java nodes on organizations {self._datanode_organizations}')
-        datanode_addresses = self._start_containers(java_node_input, self._datanode_organizations)
+        # For just the java part we need to run a datanode as well as a commodity node at the
+        # central server because the commodity node doesn't access the data
+        datanode_organizations = self._datanode_organizations + [self._central_organization]
+
+        info(f'Running java nodes on organizations {datanode_organizations}')
+
+        datanode_addresses = self._start_containers(java_node_input, datanode_organizations)
 
         info(f'Addresses: {datanode_addresses}')
 
