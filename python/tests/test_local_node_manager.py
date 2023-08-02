@@ -8,11 +8,11 @@ from test_constants import CONVERGENCE_PRECISION
 from verticox.node_manager import LocalNodeManager
 import numpy as np
 
-TEST_DATA_PATH = '../mock/data'
+TEST_DATA_PATH = 'mock/data'
 COVARIATE_FILES = ['data_1.parquet', 'data_2.parquet']
 OUTCOME_FILE = 'outcome.parquet'
 DECIMAL_PRECISION = 4
-TARGET_COEFS = {'bmi': -0.16787336343511397, 'sysbp': -0.015998133958014818}
+TARGET_COEFS = {'age': 0.05566997593047372, 'bmi': -0.0908968266847538}
 logger = logging.getLogger(__name__)
 
 

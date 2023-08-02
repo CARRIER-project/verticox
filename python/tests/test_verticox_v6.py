@@ -3,12 +3,13 @@ import numpy as np
 import vantage6.client as v6client
 from clize import run
 
-from test_constants import FEATURE_COLUMNS, OUTCOME_TIME_COLUMN, OUTCOME, PRECISION
+from test_constants import OUTCOME_TIME_COLUMN, OUTCOME, PRECISION
 from verticox.client import VerticoxClient
 
 IMAGE = 'harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox'
 DATABASE = 'parquet'
 TIMEOUT = 20 * 60
+TARGET_COEFS = {'age': 0.05566997593047372, 'bmi': -0.0908968266847538}
 
 
 def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest'):
@@ -34,7 +35,9 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest
     for r in column_name_results:
         print(f'organization: {r.organization}, columns: {r.content}')
 
-    task = verticox_client.compute(FEATURE_COLUMNS, OUTCOME_TIME_COLUMN, OUTCOME,
+    feature_columns = list(TARGET_COEFS.keys())
+
+    task = verticox_client.compute(feature_columns, OUTCOME_TIME_COLUMN, OUTCOME,
                                    datanodes=datanodes, central_node=central_node,
                                    precision=PRECISION,
                                    database=DATABASE)
@@ -48,10 +51,9 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest
     # Results should be close to [ 0.06169848, -0.00783813]
 
     coefs = dict(results[0].content[0])
-    target = {'age':  0.06169848, 'sysbp': -0.00783813}
 
     for key, value in coefs.items():
-        np.testing.assert_almost_equal(value, target[key], decimal=4)
+        np.testing.assert_almost_equal(value, TARGET_COEFS[key], decimal=4)
 
 
 if __name__ == '__main__':
