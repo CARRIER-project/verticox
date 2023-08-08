@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1cverticox/grpc/datanode.proto\"D\n\rInitialValues\x12\r\n\x05gamma\x18\x01 \x01(\x02\x12\t\n\x01z\x18\x02 \x01(\x02\x12\x0c\n\x04\x62\x65ta\x18\x03 \x01(\x02\x12\x0b\n\x03rho\x18\x04 \x01(\x02\"?\n\x14\x41ggregatedParameters\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\x12\t\n\x01z\x18\x03 \x03(\x02\"/\n\x0fLocalParameters\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\"\"\n\x0bNumFeatures\x12\x13\n\x0bnumFeatures\x18\x01 \x01(\x05\" \n\nNumSamples\x12\x12\n\nnumSamples\x18\x01 \x01(\x05\"\x14\n\x04\x42\x65ta\x12\x0c\n\x04\x62\x65ta\x18\x01 \x03(\x02\"\x1d\n\x0c\x46\x65\x61tureNames\x12\r\n\x05names\x18\x01 \x03(\t\"\x1d\n\x0c\x41verageSigma\x12\r\n\x05sigma\x18\x01 \x01(\x02\"!\n\x10RecordLevelSigma\x12\r\n\x05sigma\x18\x01 \x03(\x02\"1\n\x12PartialHazardRatio\x12\x1b\n\x13partialHazardRatios\x18\x01 \x03(\x02\"\x19\n\x06Subset\x12\x0f\n\x07indices\x18\x01 \x03(\x05\"\x07\n\x05\x45mpty2\xfa\x03\n\x08\x44\x61taNode\x12!\n\x03\x66it\x12\x06.Empty\x1a\x10.LocalParameters\"\x00\x12(\n\x0egetNumFeatures\x12\x06.Empty\x1a\x0c.NumFeatures\"\x00\x12&\n\rgetNumSamples\x12\x06.Empty\x1a\x0b.NumSamples\"\x00\x12\x33\n\x10updateParameters\x12\x15.AggregatedParameters\x1a\x06.Empty\"\x00\x12 \n\x0c\x63omputeGamma\x12\x06.Empty\x1a\x06.Empty\"\x00\x12\x1a\n\x07getBeta\x12\x06.Empty\x1a\x05.Beta\"\x00\x12#\n\x07prepare\x12\x0e.InitialValues\x1a\x06.Empty\"\x00\x12\x18\n\x04kill\x12\x06.Empty\x1a\x06.Empty\"\x00\x12*\n\x0fgetFeatureNames\x12\x06.Empty\x1a\r.FeatureNames\"\x00\x12*\n\x0fgetAverageSigma\x12\x06.Empty\x1a\r.AverageSigma\"\x00\x12\x32\n\x13getRecordLevelSigma\x12\x06.Empty\x1a\x11.RecordLevelSigma\"\x00\x12;\n\x19\x63omputePartialHazardRatio\x12\x07.Subset\x1a\x13.PartialHazardRatio\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1cverticox/grpc/datanode.proto\"R\n\rInitialValues\x12\r\n\x05gamma\x18\x01 \x01(\x02\x12\t\n\x01z\x18\x02 \x03(\x02\x12\x0c\n\x04\x62\x65ta\x18\x03 \x03(\x02\x12\x0b\n\x03rho\x18\x04 \x01(\x02\x12\x0c\n\x04rows\x18\x05 \x03(\x05\"?\n\x14\x41ggregatedParameters\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\x12\t\n\x01z\x18\x03 \x03(\x02\"/\n\x0fLocalParameters\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\"\"\n\x0bNumFeatures\x12\x13\n\x0bnumFeatures\x18\x01 \x01(\x05\" \n\nNumSamples\x12\x12\n\nnumSamples\x18\x01 \x01(\x05\"\x14\n\x04\x42\x65ta\x12\x0c\n\x04\x62\x65ta\x18\x01 \x03(\x02\"\x1d\n\x0c\x46\x65\x61tureNames\x12\r\n\x05names\x18\x01 \x03(\t\"\x1d\n\x0c\x41verageSigma\x12\r\n\x05sigma\x18\x01 \x01(\x02\"!\n\x10RecordLevelSigma\x12\r\n\x05sigma\x18\x01 \x03(\x02\"1\n\x12PartialHazardRatio\x12\x1b\n\x13partialHazardRatios\x18\x01 \x03(\x02\"\x19\n\x06Subset\x12\x0f\n\x07indices\x18\x01 \x03(\x05\"\x07\n\x05\x45mpty2\xfa\x03\n\x08\x44\x61taNode\x12!\n\x03\x66it\x12\x06.Empty\x1a\x10.LocalParameters\"\x00\x12(\n\x0egetNumFeatures\x12\x06.Empty\x1a\x0c.NumFeatures\"\x00\x12&\n\rgetNumSamples\x12\x06.Empty\x1a\x0b.NumSamples\"\x00\x12\x33\n\x10updateParameters\x12\x15.AggregatedParameters\x1a\x06.Empty\"\x00\x12 \n\x0c\x63omputeGamma\x12\x06.Empty\x1a\x06.Empty\"\x00\x12\x1a\n\x07getBeta\x12\x06.Empty\x1a\x05.Beta\"\x00\x12#\n\x07prepare\x12\x0e.InitialValues\x1a\x06.Empty\"\x00\x12\x18\n\x04kill\x12\x06.Empty\x1a\x06.Empty\"\x00\x12*\n\x0fgetFeatureNames\x12\x06.Empty\x1a\r.FeatureNames\"\x00\x12*\n\x0fgetAverageSigma\x12\x06.Empty\x1a\r.AverageSigma\"\x00\x12\x32\n\x13getRecordLevelSigma\x12\x06.Empty\x1a\x11.RecordLevelSigma\"\x00\x12;\n\x19\x63omputePartialHazardRatio\x12\x07.Subset\x1a\x13.PartialHazardRatio\"\x00\x62\x06proto3')
 
 
 
@@ -119,29 +119,29 @@ if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
   _INITIALVALUES._serialized_start=32
-  _INITIALVALUES._serialized_end=100
-  _AGGREGATEDPARAMETERS._serialized_start=102
-  _AGGREGATEDPARAMETERS._serialized_end=165
-  _LOCALPARAMETERS._serialized_start=167
-  _LOCALPARAMETERS._serialized_end=214
-  _NUMFEATURES._serialized_start=216
-  _NUMFEATURES._serialized_end=250
-  _NUMSAMPLES._serialized_start=252
-  _NUMSAMPLES._serialized_end=284
-  _BETA._serialized_start=286
-  _BETA._serialized_end=306
-  _FEATURENAMES._serialized_start=308
-  _FEATURENAMES._serialized_end=337
-  _AVERAGESIGMA._serialized_start=339
-  _AVERAGESIGMA._serialized_end=368
-  _RECORDLEVELSIGMA._serialized_start=370
-  _RECORDLEVELSIGMA._serialized_end=403
-  _PARTIALHAZARDRATIO._serialized_start=405
-  _PARTIALHAZARDRATIO._serialized_end=454
-  _SUBSET._serialized_start=456
-  _SUBSET._serialized_end=481
-  _EMPTY._serialized_start=483
-  _EMPTY._serialized_end=490
-  _DATANODE._serialized_start=493
-  _DATANODE._serialized_end=999
+  _INITIALVALUES._serialized_end=114
+  _AGGREGATEDPARAMETERS._serialized_start=116
+  _AGGREGATEDPARAMETERS._serialized_end=179
+  _LOCALPARAMETERS._serialized_start=181
+  _LOCALPARAMETERS._serialized_end=228
+  _NUMFEATURES._serialized_start=230
+  _NUMFEATURES._serialized_end=264
+  _NUMSAMPLES._serialized_start=266
+  _NUMSAMPLES._serialized_end=298
+  _BETA._serialized_start=300
+  _BETA._serialized_end=320
+  _FEATURENAMES._serialized_start=322
+  _FEATURENAMES._serialized_end=351
+  _AVERAGESIGMA._serialized_start=353
+  _AVERAGESIGMA._serialized_end=382
+  _RECORDLEVELSIGMA._serialized_start=384
+  _RECORDLEVELSIGMA._serialized_end=417
+  _PARTIALHAZARDRATIO._serialized_start=419
+  _PARTIALHAZARDRATIO._serialized_end=468
+  _SUBSET._serialized_start=470
+  _SUBSET._serialized_end=495
+  _EMPTY._serialized_start=497
+  _EMPTY._serialized_end=504
+  _DATANODE._serialized_start=507
+  _DATANODE._serialized_end=1013
 # @@protoc_insertion_point(module_scope)

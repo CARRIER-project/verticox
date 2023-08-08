@@ -26,15 +26,15 @@ def main():
     n_party_client.initialize_servers()
 
     Dt = group_samples_on_event_time(outcome.event_time.values, outcome.event_happened.values)
-    regular_sum_Dt = DataNode.compute_sum_Dt(Dt, data_1.values)
+    regular_sum_Dt = DataNode._compute_sum_Dt(Dt, data_1.values)
 
     print(f'Regular sum_dt: {regular_sum_Dt}')
 
     local_feature_names = data_1.columns
-    n_party_sum_Dt = DataNode.compute_sum_Dt_n_party_scalar_product(local_feature_names,
-                                                                    CENSOR_FEATURE,
-                                                                    CENSOR_VALUE,
-                                                                    COMMODITY_ADDRESS)
+    n_party_sum_Dt = DataNode._compute_sum_Dt_n_party_scalar_product(local_feature_names,
+                                                                     CENSOR_FEATURE,
+                                                                     CENSOR_VALUE,
+                                                                     COMMODITY_ADDRESS)
 
     print(f'N party sum dt: {n_party_sum_Dt}')
 

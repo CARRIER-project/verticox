@@ -17,9 +17,10 @@ service DataNode{
 
 message InitialValues{
   float gamma = 1;
-  float z = 2;
-  float beta = 3;
+  repeated float z = 2;
+  repeated float beta = 3;
   float rho = 4;
+  repeated int32 rows = 5;
 }
 
 message AggregatedParameters {

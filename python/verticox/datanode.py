@@ -14,7 +14,7 @@ from vantage6.tools.util import info
 import verticox.ssl
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
     NumSamples, Empty, Beta, FeatureNames, RecordLevelSigma, AverageSigma, Subset, \
-    PartialHazardRatio
+    PartialHazardRatio, InitialValues
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
 from verticox.scalarproduct import NPartyScalarProductClient
 
@@ -25,55 +25,37 @@ TIMEOUT = 3600
 DEFAULT_DATA = 'whas500'
 
 
+class DataNodeException(Exception):
+    pass
+
+
 class DataNode(DataNodeServicer):
     @dataclass
     class State:
         # The data belongs to the state because it can change based on which selection is activated
         # Parts that stay constant over iterations
-        features: np.array
-        feature_names: List[str]
+        features_selected: np.array
         features_multiplied: np.array
-        censor_name: str
-        censor_value: Any
-        beta: np.array = None
-        rho: float = None
-        sigma: float = None
-        z: np.array = None
-        gamma: np.array = None
+        beta: np.array
+        rho: float
+        z: np.array
+        gamma: np.array
+        sum_Dt: np.array
         aggregated_gamma: np.array = None
-        sum_Dt: np.array = None
-        _prepared = False
-
-        @property
-        def prepared(self):
-            return self._prepared
-
-        @property
-        def num_features(self):
-            return self.features.shape[1]
+        sigma: float = None
 
         @property
         def num_samples(self):
-            return self.features.shape[0]
+            return self.features_selected.shape[0]
 
-        def prepare(self, gamma, z, beta, rho, sum_Dt):
-            self.gamma = gamma
-            self.z = z
-            self.beta = beta
-            self.rho = rho
-            self.sum_Dt = sum_Dt
-
-            self._prepared = True
-
-    def __init__(self, features: np.array = None, feature_names: Optional[List[str]] = None,
+    def __init__(self, all_features: np.array, feature_names: List[str],
                  name=None, server=None, include_column: Optional[str] = None,
                  include_value: bool = True,
-                 commodity_address: str = None,
-                 beta: np.array = None):
+                 commodity_address: str = None):
         """
 
         Args:
-            features:
+            all_features:
             event_times:
             rho:
         """
@@ -82,44 +64,63 @@ class DataNode(DataNodeServicer):
         self._logger = logging.getLogger(f'{__name__} :: {self.name}')
         self._logger.setLevel(logging.DEBUG)
         self._logger.debug(f'Initializing datanode {self.name}')
+        self._all_features = all_features
+        self._censor_name = include_column
+        self._censor_value = include_value
 
-        # Square all covariates and sum them together
-        # The formula says for every patient, x needs to be multiplied by itself.
-        # Squaring all covariates with themselves comes down to the same thing since x_nk is
-        # supposed to be one-dimensional
-        self.state = DataNode.State(features=features,
-                                    feature_names=feature_names,
-                                    features_multiplied=DataNode._multiply_features(features),
-                                    censor_name=include_column,
-                                    censor_value=include_value,
-                                    beta=beta)
+        self._all_features = all_features
+        self.feature_names = feature_names
 
         self.server = server
         # Parts that stay constant over iterations
 
         self.n_party_address = commodity_address
 
+        self.state = None
+
+    @property
+    def num_features(self):
+        return self._all_features.shape[1]
+
+    @property
+    def prepared(self):
+        return self.state is not None
+
     @staticmethod
     @np.vectorize
     def include(event):
         return event[0]
 
-    def prepare(self, request, context=None):
-        sum_Dt = self.compute_sum_Dt_n_party_scalar_product(self.state.feature_names,
-                                                            self.state.censor_name,
-                                                            self.state.censor_value,
-                                                            self.n_party_address)
+    def _select_features(self, selected_rows):
+        if len(selected_rows) == 0:
+            return self._all_features
 
-        self.state.prepare(gamma=np.full((self.state.num_samples,), request.gamma),
-                           z=np.full((self.state.num_samples,), request.z),
-                           beta=np.full((self.state.num_features,), request.beta),
-                           rho=request.rho,
-                           sum_Dt=sum_Dt)
+        return self._all_features[selected_rows]
+
+    def prepare(self, request: InitialValues, context=None):
+        row_selection = list(request.rows)
+        features = self._select_features(row_selection)
+        num_samples = features.shape[0]
+        features_multiplied = DataNode._multiply_features(features)
+
+        sum_Dt = self._compute_sum_Dt_n_party_scalar_product(self.feature_names,
+                                                             self._censor_name,
+                                                             self._censor_value,
+                                                             self.n_party_address)
+
+        self.state = DataNode.State(features_selected=features,
+                                    features_multiplied=features_multiplied,
+                                    gamma=np.full((num_samples,), request.gamma),
+                                    z=np.full((num_samples,), request.z),
+                                    beta=np.full((self.num_features,), request.beta),
+                                    rho=request.rho,
+                                    sum_Dt=sum_Dt,
+                                    )
 
         return Empty()
 
     @staticmethod
-    def compute_sum_Dt(Dt, features):
+    def _compute_sum_Dt(Dt, features):
         logger.debug('Computing sum dt locally')
         # TODO: I think this can be simpler but for debugging's sake I will follow the paper
         result = np.zeros((features.shape[1]))
@@ -131,8 +132,8 @@ class DataNode(DataNodeServicer):
         return result
 
     @staticmethod
-    def compute_sum_Dt_n_party_scalar_product(local_feature_names, censor_feature,
-                                              censor_value, commodity_address):
+    def _compute_sum_Dt_n_party_scalar_product(local_feature_names, censor_feature,
+                                               censor_value, commodity_address):
         logger.info('Computing sum Dt with n party scalar product')
         client = NPartyScalarProductClient(commodity_address=commodity_address)
 
@@ -144,12 +145,13 @@ class DataNode(DataNodeServicer):
         return np.array(result, dtype=float)
 
     def fit(self, request, context=None):
-        if not self.state.prepared:
-            raise Exception('Datanode has not been prepared!')
+        if not self.prepared:
+            raise DataNodeException('Datanode has not been prepared!')
 
         self._logger.debug('Performing local update...')
 
-        sigma, beta = DataNode._local_update(self.state.features, self.state.z, self.state.gamma,
+        sigma, beta = DataNode._local_update(self.state.features_selected, self.state.z,
+                                             self.state.gamma,
                                              self.state.rho, self.state.features_multiplied,
                                              self.state.sum_Dt)
 
@@ -158,6 +160,8 @@ class DataNode(DataNodeServicer):
 
         response = LocalParameters(gamma=self.state.gamma.tolist(), sigma=sigma.tolist())
         self._logger.debug('Finished local update, returning results.')
+
+        self._logger.debug(f'State:\n{self.state}')
 
         return response
 
@@ -184,13 +188,15 @@ class DataNode(DataNodeServicer):
         return Empty()
 
     def getNumFeatures(self, request, context=None):
-        num_features = self.state.num_features
+        num_features = self.num_features
         return NumFeatures(numFeatures=num_features)
 
     def getNumSamples(self, request, context=None):
-        num_samples = self.state.num_samples
+        if self.prepared:
+            num_samples = self.state.num_samples
+            return NumSamples(numSamples=num_samples)
 
-        return NumSamples(numSamples=num_samples)
+        raise DataNodeException('Datanode has not been prepared yet!')
 
     def getBeta(self, request, context=None):
         self._logger.debug('Returning beta')
@@ -204,8 +210,8 @@ class DataNode(DataNodeServicer):
         return Empty()
 
     def getFeatureNames(self, request, context: grpc.ServicerContext):
-        if self.state.feature_names is not None:
-            unicode_names = [n.encode('utf-8') for n in self.state.feature_names]
+        if self.feature_names is not None:
+            unicode_names = [n.encode('utf-8') for n in self.feature_names]
             return FeatureNames(names=unicode_names)
         else:
             context.abort(grpc.StatusCode.NOT_FOUND, 'This datanode does not have feature names')
@@ -220,7 +226,7 @@ class DataNode(DataNodeServicer):
         :return:
         """
 
-        sigmas = np.tensordot(self.state.features, self.state.beta, (1, 0))
+        sigmas = np.tensordot(self.state.features_selected, self.state.beta, (1, 0))
 
         return RecordLevelSigma(sigma=sigmas)
 
@@ -233,7 +239,7 @@ class DataNode(DataNodeServicer):
         """
         # TODO: We need to select a subpopulation
 
-        sigmas = np.tensordot(self.state.features, self.state.beta, (1, 0))
+        sigmas = np.tensordot(self.state.features_selected, self.state.beta, (1, 0))
         average = np.average(sigmas, axis=0)
 
         return AverageSigma(sigma=average)
@@ -246,7 +252,7 @@ class DataNode(DataNodeServicer):
         :return:
         """
         indices = list(request.indices)
-        subset = self.state.features[indices, :]
+        subset = self.state.features_selected[indices, :]
         sigmas = np.tensordot(subset, self.state.beta, (1, 0))
 
         return PartialHazardRatio(partialHazardRatios=sigmas.tolist())
@@ -299,7 +305,7 @@ def serve(*, data: np.array, feature_names=None,
     info(f'Data shape {data.shape}')
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
     add_DataNodeServicer_to_server(
-        DataNode(features=data, feature_names=feature_names, include_column=include_column,
+        DataNode(all_features=data, feature_names=feature_names, include_column=include_column,
                  include_value=include_value, commodity_address=commodity_address, server=server),
         server)
 

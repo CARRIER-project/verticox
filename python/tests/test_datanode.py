@@ -8,10 +8,11 @@ from numpy.testing import assert_array_almost_equal
 
 import verticox.ssl
 from verticox.datanode import DataNode, serve
-from verticox.grpc.datanode_pb2 import Empty, Subset
+from verticox.grpc.datanode_pb2 import Empty, Subset, InitialValues
 
 NUM_PATIENTS = 3
 NUM_FEATURES = 5
+FEATURE_NAMES = '12345'
 PORT = 9999
 
 
@@ -70,27 +71,17 @@ def test_local_update_sigma_shape_is_num_patients():
 def test_get_num_features_returns_num_features():
     data = np.arange(NUM_PATIENTS * NUM_FEATURES).reshape((NUM_PATIENTS, NUM_FEATURES))
 
-    datanode = DataNode(features=data)
+    datanode = DataNode(all_features=data, feature_names=FEATURE_NAMES)
 
     assert datanode.getNumFeatures(Empty()).numFeatures == NUM_FEATURES
 
 
 def test_get_feature_names_gives_names_if_they_exist(data):
     features, feature_names = data
-    datanode = DataNode(features=features, feature_names=feature_names)
+    datanode = DataNode(all_features=features, feature_names=feature_names)
     result = datanode.getFeatureNames(request=Empty(), context=None)
 
     assert result.names == ['piet', 'henk']
-
-
-def test_get_feature_names_aborts_if_not_exist(data):
-    data, _ = data
-    datanode = DataNode(features=data, )
-
-    mock_context = MagicMock()
-    datanode.getFeatureNames(request=Empty(), context=mock_context)
-
-    mock_context.abort.assert_called_once()
 
 
 # Because this test is juggling multiple processes it doesn't go well with the pytest runner.
@@ -128,10 +119,11 @@ def test_can_make_secure_connection_with_datanode(data):
 
 
 def test_get_record_level_sigma(data):
-    features, _ = data
+    features, feature_names = data
     beta = np.array([0.1, 0.2])
 
-    datanode = DataNode(features=features, beta=beta)
+    datanode = DataNode(all_features=features, feature_names=feature_names)
+    datanode.prepare(InitialValues(beta=beta))
 
     result = datanode.getRecordLevelSigma(Empty()).sigma
 
@@ -141,9 +133,10 @@ def test_get_record_level_sigma(data):
 
 
 def test_get_average_sigma(data, beta):
-    features, _ = data
+    features, feature_names = data
 
-    datanode = DataNode(features=features, beta=beta)
+    datanode = DataNode(all_features=features, feature_names=feature_names)
+    datanode.prepare(InitialValues(beta=beta))
 
     result = datanode.getAverageSigma(Empty()).sigma
 
@@ -152,9 +145,10 @@ def test_get_average_sigma(data, beta):
 
 
 def test_compute_partial_hazard_ratio_1_record(data, beta):
-    features, _ = data
+    features, names = data
     subset = [0]
-    datanode = DataNode(features, beta=beta)
+    datanode = DataNode(features, names)
+    datanode.prepare(InitialValues(beta=beta))
     request = Subset(indices=subset)
 
     result = datanode.computePartialHazardRatio(request)
@@ -168,10 +162,12 @@ def test_compute_partial_hazard_ratio_1_record(data, beta):
 
 def test_compute_partial_hazard_ratio_multiple_records(beta):
     total_rows = 6
-    subset = [0,1,2]
+    subset = [0, 1, 2]
 
     features = np.arange(total_rows).reshape((-1, 2))
-    datanode = DataNode(features, beta=beta)
+    feature_names = 'ab'  # Lazy list
+    datanode = DataNode(features, feature_names=feature_names)
+    datanode.prepare(InitialValues(beta=beta))
     request = Subset(indices=subset)
 
     result = datanode.computePartialHazardRatio(request)
