@@ -159,8 +159,6 @@ class DataNode(DataNodeServicer):
         response = LocalParameters(gamma=self.state.gamma.tolist(), sigma=sigma.tolist())
         self._logger.debug('Finished local update, returning results.')
 
-        self._logger.debug(f'State:\n{self.state}')
-
         return response
 
     def updateParameters(self, request, context=None):
