@@ -112,7 +112,7 @@ class DataNode(DataNodeServicer):
                                     features_multiplied=features_multiplied,
                                     gamma=np.full((num_samples,), request.gamma),
                                     z=np.full((num_samples,), request.z),
-                                    beta=np.full((self.num_features,), request.beta),
+                                    beta=np.array(request.beta),
                                     rho=request.rho,
                                     sum_Dt=sum_Dt,
                                     )
