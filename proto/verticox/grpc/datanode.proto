@@ -13,6 +13,11 @@ service DataNode{
   rpc getAverageSigma(Empty) returns (AverageSigma){};
   rpc getRecordLevelSigma(Empty) returns (RecordLevelSigma){};
   rpc getPartialHazardRatio(Subset) returns (PartialHazardRatio) {};
+  rpc reset(Rows) returns (Empty) {};
+}
+
+message Rows{
+  repeated int32 rows = 1;
 }
 
 message InitialValues{
@@ -20,7 +25,6 @@ message InitialValues{
   repeated float z = 2;
   repeated float beta = 3;
   float rho = 4;
-  repeated int32 rows = 5;
 }
 
 message AggregatedParameters {

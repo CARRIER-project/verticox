@@ -74,6 +74,11 @@ class DataNodeStub(object):
                 request_serializer=verticox_dot_grpc_dot_datanode__pb2.Subset.SerializeToString,
                 response_deserializer=verticox_dot_grpc_dot_datanode__pb2.PartialHazardRatio.FromString,
                 )
+        self.reset = channel.unary_unary(
+                '/DataNode/reset',
+                request_serializer=verticox_dot_grpc_dot_datanode__pb2.Rows.SerializeToString,
+                response_deserializer=verticox_dot_grpc_dot_datanode__pb2.Empty.FromString,
+                )
 
 
 class DataNodeServicer(object):
@@ -151,6 +156,12 @@ class DataNodeServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def reset(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_DataNodeServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -213,6 +224,11 @@ def add_DataNodeServicer_to_server(servicer, server):
                     servicer.getPartialHazardRatio,
                     request_deserializer=verticox_dot_grpc_dot_datanode__pb2.Subset.FromString,
                     response_serializer=verticox_dot_grpc_dot_datanode__pb2.PartialHazardRatio.SerializeToString,
+            ),
+            'reset': grpc.unary_unary_rpc_method_handler(
+                    servicer.reset,
+                    request_deserializer=verticox_dot_grpc_dot_datanode__pb2.Rows.FromString,
+                    response_serializer=verticox_dot_grpc_dot_datanode__pb2.Empty.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -425,5 +441,22 @@ class DataNode(object):
         return grpc.experimental.unary_unary(request, target, '/DataNode/getPartialHazardRatio',
             verticox_dot_grpc_dot_datanode__pb2.Subset.SerializeToString,
             verticox_dot_grpc_dot_datanode__pb2.PartialHazardRatio.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def reset(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/DataNode/reset',
+            verticox_dot_grpc_dot_datanode__pb2.Rows.SerializeToString,
+            verticox_dot_grpc_dot_datanode__pb2.Empty.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

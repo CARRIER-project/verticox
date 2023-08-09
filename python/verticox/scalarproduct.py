@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Iterable
 
 import requests
 from requests.exceptions import ConnectionError
@@ -89,7 +89,8 @@ class NPartyScalarProductClient:
                 # A connection error means that the node has successfully shut down (most likely)
                 pass
 
-    def activate_fold(self, activated: List[bool]):
+    def activate_fold(self, activated: Iterable[bool]):
+        activated = list(activated)
         payload = {'activeRecords': activated}
         self._post('activateFold', json=payload)
 

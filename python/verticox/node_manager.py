@@ -5,12 +5,13 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import List, Any, Union, Iterable, Dict
 
+import numpy as np
 import pandas as pd
 from vantage6.client import ContainerClient
 from vantage6.common import info
 
 from verticox.aggregator import Aggregator
-from verticox.grpc.datanode_pb2 import Empty
+from verticox.grpc.datanode_pb2 import Empty, InitialValues
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 from verticox.scalarproduct import NPartyScalarProductClient
 from verticox.ssl import get_secure_stub
@@ -72,7 +73,8 @@ class ContainerAddresses:
 class BaseNodeManager(ABC):
     @abstractmethod
     def __init__(self, data: pd.DataFrame, event_times_column, event_happened_column,
-                 aggregator_kwargs, features=None, include_value=True, rows=None):
+                 aggregator_kwargs, features=None, include_value=True,
+                 rows: Union[None, Iterable[int]] = None):
         # Putting the results in one tuple makes it easier to reset when a new fold needs to be
         # activated. The results are the only part of the state that need to be reset.
         self._result = None
@@ -85,18 +87,21 @@ class BaseNodeManager(ABC):
         self._features = features
         self._include_value = include_value
         self._aggregator_kwargs = aggregator_kwargs
+        self._data = data
+        self._selection = None
 
         self._aggregator = None
         self._scalar_product_client = None
-
-        if rows is not None:
-            data = data[rows]
-
-        event_times = data[event_times_column].values
-        event_happened = data[event_happened_column].values
-
-        self._outcome = Outcome(event_times, event_happened)
+        self._outcome = None
         self._python_addresses = None
+
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def num_total_records(self):
+        return self.data.shape[0]
 
     @property
     def result(self):
@@ -128,15 +133,42 @@ class BaseNodeManager(ABC):
     def stubs(self, stubs: List[DataNodeStub]):
         self._stubs = stubs
 
+    def reset(self, rows: Union[None, Iterable[int]] = None):
+        self.reset_central_node(rows)
+        self.reset_java_nodes(rows)
+        self.reset_python_nodes(rows)
+
+    def reset_java_nodes(self, rows: Union[None, Iterable[int]] = None):
+        if rows is None:
+            selection = np.ones(self.num_total_records, dtype=bool)
+        else:
+            selection = np.zeros(self.num_total_records, dtype=bool)
+            selection[rows] = True
+
+        self.scalar_product_client.activate_fold(selection)
+
+    def reset_central_node(self, rows):
+        if rows is not None:
+            selection = self.data[rows]
+        else:
+            selection = self.data
+
+        event_times = selection[self._event_times_column].values
+        event_happened = selection[self._event_happened_column].values
+
+        self._outcome = Outcome(event_times, event_happened)
+
+    def reset_python_nodes(self, rows):
+        for stub in self.stubs:
+            stub.reset(rows)
+
     def fit(self):
         aggregator = Aggregator(self.stubs, self._outcome.time,
                                 self._outcome.event_happened,
                                 **self._aggregator_kwargs)
 
         aggregator.fit()
-
         self._betas = aggregator.get_betas()
-
         self._baseline_hazard = aggregator.compute_baseline_hazard_function()
 
     def start_nodes(self):

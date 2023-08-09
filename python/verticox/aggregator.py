@@ -71,7 +71,15 @@ class Aggregator:
 
         beta = np.full(self.num_samples, BETA)
         z = np.full(self.num_samples, Z)
-        self.prepare_datanodes(GAMMA, z, beta, self.rho, rows=[])
+        self.prepare_datanodes(GAMMA, z, beta, self.rho)
+
+    def prepare_datanodes(self, gamma, z, beta, rho):
+        initial_values = InitialValues(gamma=gamma, z=z, beta=beta, rho=rho)
+
+        info(f'Preparing datanodes with: {initial_values}')
+
+        for i in self.institutions:
+            i.prepare(initial_values)
 
     @staticmethod
     def _group_relevant_event_times(unique_event_times) -> \
@@ -97,14 +105,6 @@ class Aggregator:
                 deaths_per_t[t] += 1
 
         return deaths_per_t
-
-    def prepare_datanodes(self, gamma, z, beta, rho, rows):
-        initial_values = InitialValues(gamma=gamma, z=z, beta=beta, rho=rho, rows=rows)
-
-        logger.debug(f'Preparing datanodes with: {initial_values}')
-
-        for i in self.institutions:
-            i.prepare(initial_values)
 
     def fit(self):
         start_time = time.time()
@@ -151,8 +151,6 @@ class Aggregator:
             info(f'Current progress: {100 * progress.get_value():.2f}%')
 
         logger.info(f'Finished training after {self.num_iterations} iterations')
-
-
 
     def fit_one(self):
         # TODO: Parallelize
