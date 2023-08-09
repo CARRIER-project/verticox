@@ -33,7 +33,7 @@ class Aggregator:
             state. This will have to be fixed later.
     """
 
-    def __init__(self, institutions: List[DataNodeStub], event_times: ArrayLike,
+    def __init__(self, institutions: List[DataNodeStub], event_times: np.array,
                  event_happened: types.boolean[:], convergence_precision: float = DEFAULT_PRECISION,
                  newton_raphson_precision: float = DEFAULT_PRECISION, rho=RHO):
         """
@@ -51,7 +51,7 @@ class Aggregator:
         self.institutions = tuple(institutions)
         self.num_institutions = len(institutions)
         self.features_per_institution = self.get_features_per_institution()
-        self.num_samples = self.get_num_samples()
+        self.num_samples = event_times.shape[0]
         self.rho = rho  # TODO: Make dynamic
         self.event_times = event_times
         self.event_happened = event_happened
@@ -68,7 +68,10 @@ class Aggregator:
 
         self.num_iterations = 0
         logger.debug(f'Institution stubs: {self.institutions}')
-        self.prepare_datanodes(GAMMA, Z, BETA, self.rho)
+
+        beta = np.full(self.num_samples, BETA)
+        z = np.full(self.num_samples, Z)
+        self.prepare_datanodes(GAMMA, z, beta, self.rho, rows=[])
 
     @staticmethod
     def _group_relevant_event_times(unique_event_times) -> \
@@ -95,8 +98,8 @@ class Aggregator:
 
         return deaths_per_t
 
-    def prepare_datanodes(self, gamma, z, beta, rho):
-        initial_values = InitialValues(gamma=gamma, z=z, beta=beta, rho=rho)
+    def prepare_datanodes(self, gamma, z, beta, rho, rows):
+        initial_values = InitialValues(gamma=gamma, z=z, beta=beta, rho=rho, rows=rows)
 
         logger.debug(f'Preparing datanodes with: {initial_values}')
 

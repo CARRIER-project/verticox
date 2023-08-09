@@ -2,7 +2,8 @@ import json
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, List
+from dataclasses import dataclass
+from typing import Optional, List, Any
 
 import clize
 import grpc
@@ -13,7 +14,7 @@ from vantage6.tools.util import info
 import verticox.ssl
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
     NumSamples, Empty, Beta, FeatureNames, RecordLevelSigma, AverageSigma, Subset, \
-    PartialHazardRatio
+    PartialHazardRatio, InitialValues
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
 from verticox.scalarproduct import NPartyScalarProductClient
 
@@ -24,16 +25,37 @@ TIMEOUT = 3600
 DEFAULT_DATA = 'whas500'
 
 
+class DataNodeException(Exception):
+    pass
+
+
 class DataNode(DataNodeServicer):
-    def __init__(self, features: np.array = None, feature_names: Optional[List[str]] = None,
+    @dataclass
+    class State:
+        # The data belongs to the state because it can change based on which selection is activated
+        # Parts that stay constant over iterations
+        features_selected: np.array
+        features_multiplied: np.array
+        beta: np.array
+        rho: float
+        z: np.array
+        gamma: np.array
+        sum_Dt: np.array
+        aggregated_gamma: np.array = None
+        sigma: float = None
+
+        @property
+        def num_samples(self):
+            return self.features_selected.shape[0]
+
+    def __init__(self, all_features: np.array, feature_names: List[str],
                  name=None, server=None, include_column: Optional[str] = None,
                  include_value: bool = True,
-                 commodity_address: str = None,
-                 beta: np.array = None):
+                 commodity_address: str = None):
         """
 
         Args:
-            features:
+            all_features:
             event_times:
             rho:
         """
@@ -42,55 +64,63 @@ class DataNode(DataNodeServicer):
         self._logger = logging.getLogger(f'{__name__} :: {self.name}')
         self._logger.setLevel(logging.DEBUG)
         self._logger.debug(f'Initializing datanode {self.name}')
-        self.features = features
+        self._all_features = all_features
+        self._censor_name = include_column
+        self._censor_value = include_value
+
+        self._all_features = all_features
         self.feature_names = feature_names
-        self.num_features = self.features.shape[1]
 
         self.server = server
         # Parts that stay constant over iterations
-        # Square all covariates and sum them together
-        # The formula says for every patient, x needs to be multiplied by itself.
-        # Squaring all covariates with themselves comes down to the same thing since x_nk is
-        # supposed to be one-dimensional
-        self.features_multiplied = DataNode._multiply_features(features)
 
-        self.num_samples = self.features.shape[0]
-        self.censor_name = include_column
-        self.censor_value = include_value
         self.n_party_address = commodity_address
 
-        self.rho = None
-        self.beta = beta
-        self.sigma = None
-        self.z = None
-        self.gamma = None
-        self.aggregated_gamma = None
-        self.Dt = None
-        self.sum_Dt = None
-        self.prepared = False
+        self.state = None
+
+    @property
+    def num_features(self):
+        return self._all_features.shape[1]
+
+    @property
+    def prepared(self):
+        return self.state is not None
 
     @staticmethod
     @np.vectorize
     def include(event):
         return event[0]
 
-    def prepare(self, request, context=None):
-        self.gamma = np.full((self.num_samples,), request.gamma)
-        self.z = np.full((self.num_samples,), request.z)
-        self.beta = np.full((self.num_features,), request.beta)
-        self.rho = request.rho
-        # self.sum_Dt = self.compute_sum_Dt(self.Dt, self.features)
-        self.sum_Dt = self.compute_sum_Dt_n_party_scalar_product(self.feature_names,
-                                                                 self.censor_name,
-                                                                 self.censor_value,
-                                                                 self.n_party_address)
+    def _select_features(self, selected_rows):
+        if len(selected_rows) == 0:
+            return self._all_features
 
-        self.prepared = True
+        return self._all_features[selected_rows]
+
+    def prepare(self, request: InitialValues, context=None):
+        row_selection = list(request.rows)
+        features = self._select_features(row_selection)
+        num_samples = features.shape[0]
+        features_multiplied = DataNode._multiply_features(features)
+
+        sum_Dt = self._compute_sum_Dt_n_party_scalar_product(self.feature_names,
+                                                             self._censor_name,
+                                                             self._censor_value,
+                                                             self.n_party_address)
+
+        self.state = DataNode.State(features_selected=features,
+                                    features_multiplied=features_multiplied,
+                                    gamma=np.full((num_samples,), request.gamma),
+                                    z=np.full((num_samples,), request.z),
+                                    beta=np.array(request.beta),
+                                    rho=request.rho,
+                                    sum_Dt=sum_Dt,
+                                    )
 
         return Empty()
 
     @staticmethod
-    def compute_sum_Dt(Dt, features):
+    def _compute_sum_Dt(Dt, features):
         logger.debug('Computing sum dt locally')
         # TODO: I think this can be simpler but for debugging's sake I will follow the paper
         result = np.zeros((features.shape[1]))
@@ -102,39 +132,41 @@ class DataNode(DataNodeServicer):
         return result
 
     @staticmethod
-    def compute_sum_Dt_n_party_scalar_product(local_feature_names, censor_feature,
-                                              censor_value, commodity_address):
+    def _compute_sum_Dt_n_party_scalar_product(local_feature_names, censor_feature,
+                                               censor_value, commodity_address):
         logger.info('Computing sum Dt with n party scalar product')
         client = NPartyScalarProductClient(commodity_address=commodity_address)
 
         result = client.sum_relevant_values(local_feature_names, censor_feature,
                                             censor_value)
 
-        assert len(result) == len(local_feature_names)
-
         return np.array(result, dtype=float)
 
     def fit(self, request, context=None):
         if not self.prepared:
-            raise Exception('Datanode has not been prepared!')
+            raise DataNodeException('Datanode has not been prepared!')
 
         self._logger.debug('Performing local update...')
 
-        sigma, beta = DataNode._local_update(self.features, self.z, self.gamma, self.rho,
-                                             self.features_multiplied, self.sum_Dt)
+        sigma, beta = DataNode._local_update(self.state.features_selected, self.state.z,
+                                             self.state.gamma,
+                                             self.state.rho, self.state.features_multiplied,
+                                             self.state.sum_Dt)
 
-        self.sigma = sigma
-        self.beta = beta
+        self.state.sigma = sigma
+        self.state.beta = beta
 
-        response = LocalParameters(gamma=self.gamma.tolist(), sigma=sigma.tolist())
+        response = LocalParameters(gamma=self.state.gamma.tolist(), sigma=sigma.tolist())
         self._logger.debug('Finished local update, returning results.')
+
+        self._logger.debug(f'State:\n{self.state}')
 
         return response
 
     def updateParameters(self, request, context=None):
-        self.z = np.array(request.z)
-        self.sigma = np.array(request.sigma)
-        self.aggregated_gamma = np.array(request.gamma)
+        self.state.z = np.array(request.z)
+        self.state.sigma = np.array(request.sigma)
+        self.state.aggregated_gamma = np.array(request.gamma)
 
         return Empty()
 
@@ -148,7 +180,8 @@ class DataNode(DataNodeServicer):
         Returns:
 
         """
-        self.gamma = self.aggregated_gamma + self.rho * (self.sigma - self.z)
+        self.state.gamma = self.state.aggregated_gamma + self.state.rho * \
+                           (self.state.sigma - self.state.z)
 
         return Empty()
 
@@ -157,13 +190,15 @@ class DataNode(DataNodeServicer):
         return NumFeatures(numFeatures=num_features)
 
     def getNumSamples(self, request, context=None):
-        num_samples = self.num_samples
+        if self.prepared:
+            num_samples = self.state.num_samples
+            return NumSamples(numSamples=num_samples)
 
-        return NumSamples(numSamples=num_samples)
+        raise DataNodeException('Datanode has not been prepared yet!')
 
     def getBeta(self, request, context=None):
         self._logger.debug('Returning beta')
-        result = self.beta.tolist()
+        result = self.state.beta.tolist()
         self._logger.debug('Converted beta to list')
         return Beta(beta=result)
 
@@ -189,9 +224,13 @@ class DataNode(DataNodeServicer):
         :return:
         """
 
-        sigmas = np.tensordot(self.features, self.beta, (1, 0))
+        sigmas = DataNode.compute_record_level_sigma(self.state.features_selected, self.state.beta)
 
         return RecordLevelSigma(sigma=sigmas)
+
+    @staticmethod
+    def compute_record_level_sigma(features, beta):
+        return np.tensordot(features, beta, (1, 0))
 
     def getAverageSigma(self, request: Empty, context=None) -> AverageSigma:
         """
@@ -200,14 +239,17 @@ class DataNode(DataNodeServicer):
         :param context:
         :return:
         """
-        # TODO: We need to select a subpopulation
-
-        sigmas = np.tensordot(self.features, self.beta, (1, 0))
-        average = np.average(sigmas, axis=0)
+        average = DataNode.compute_average_sigma(self.state.features_selected, self.state.beta)
 
         return AverageSigma(sigma=average)
 
-    def computePartialHazardRatio(self, request: Subset, context=None) -> PartialHazardRatio:
+    @staticmethod
+    def compute_average_sigma(features, beta):
+
+        sigmas = np.tensordot(features, beta, (1, 0))
+        return np.average(sigmas, axis=0)
+
+    def getPartialHazardRatio(self, request: Subset, context=None) -> PartialHazardRatio:
         """
         Compute the hazard ratio of a subset of records
         :param request: The indices of the subset of records
@@ -215,10 +257,17 @@ class DataNode(DataNodeServicer):
         :return:
         """
         indices = list(request.indices)
-        subset = self.features[indices, :]
-        sigmas = np.tensordot(subset, self.beta, (1, 0))
+
+        sigmas = DataNode.compute_partial_hazard_ratio(self.state.features_selected,
+                                                       self.state.beta, indices)
 
         return PartialHazardRatio(partialHazardRatios=sigmas.tolist())
+
+    @staticmethod
+    def compute_partial_hazard_ratio(features, beta, indices):
+        indices = list(indices)
+        subset = features[indices, :]
+        return np.tensordot(subset, beta, (1, 0))
 
     @staticmethod
     def _sum_covariates(covariates: np.array):
@@ -265,10 +314,10 @@ def serve(*, data: np.array, feature_names=None,
           commodity_address=None, port=DEFAULT_PORT,
           timeout=TIMEOUT, secure=True, address=None):
     logging.basicConfig(level=logging.DEBUG)
-    info(f'Data shape {data.shape }')
+    info(f'Data shape {data.shape}')
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
     add_DataNodeServicer_to_server(
-        DataNode(features=data, feature_names=feature_names, include_column=include_column,
+        DataNode(all_features=data, feature_names=feature_names, include_column=include_column,
                  include_value=include_value, commodity_address=commodity_address, server=server),
         server)
 
