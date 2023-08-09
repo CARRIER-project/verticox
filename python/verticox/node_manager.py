@@ -35,6 +35,8 @@ DOCKER_COMPOSE_COMMODITY_NODE = "commodity:80"
 
 Outcome = namedtuple('Outcome', 'time event_happened')
 
+Result = namedtuple('Result', 'betas baseline_hazard')
+
 
 class NodeManagerException(Exception):
     pass
@@ -71,8 +73,10 @@ class BaseNodeManager(ABC):
     @abstractmethod
     def __init__(self, data: pd.DataFrame, event_times_column, event_happened_column,
                  aggregator_kwargs, features=None, include_value=True, rows=None):
-        self._betas: Union[Dict[str, float], None] = None
-        self._baseline_hazard = None
+        # Putting the results in one tuple makes it easier to reset when a new fold needs to be
+        # activated. The results are the only part of the state that need to be reset.
+        self._result = None
+
         self._scalar_product_client = None
         self._stubs = None
         self._event_happened_column = event_happened_column
@@ -95,16 +99,17 @@ class BaseNodeManager(ABC):
         self._python_addresses = None
 
     @property
+    def result(self):
+        if self._result is None:
+            raise NodeManagerException('Trying to access results before model has been fit.')
+
+    @property
     def betas(self):
-        if self._betas is None:
-            raise NodeManagerException('Trying to access betas before model has been fit.')
-        return self._betas
+        return self.result.betas
 
     @property
     def baseline_hazard(self):
-        if self._baseline_hazard is None:
-            raise NodeManagerException('Trying to access baseline hazard before model has been fit')
-        return self._baseline_hazard
+        return self.result.baseline_hazard
 
     @property
     def scalar_product_client(self) -> NPartyScalarProductClient:
