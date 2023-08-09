@@ -1,6 +1,6 @@
 from multiprocessing import Process
 from time import sleep
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -122,10 +122,7 @@ def test_get_record_level_sigma(data):
     features, feature_names = data
     beta = np.array([0.1, 0.2])
 
-    datanode = DataNode(all_features=features, feature_names=feature_names)
-    datanode.prepare(InitialValues(beta=beta))
-
-    result = datanode.getRecordLevelSigma(Empty()).sigma
+    result = DataNode.compute_record_level_sigma(features, beta)
 
     target = [0.2, 0.8]
 
@@ -135,11 +132,7 @@ def test_get_record_level_sigma(data):
 def test_get_average_sigma(data, beta):
     features, feature_names = data
 
-    datanode = DataNode(all_features=features, feature_names=feature_names)
-    datanode.prepare(InitialValues(beta=beta))
-
-    result = datanode.getAverageSigma(Empty()).sigma
-
+    result = DataNode.compute_average_sigma(features, beta)
     target = 0.5
     np.testing.assert_almost_equal(target, result)
 
@@ -147,12 +140,8 @@ def test_get_average_sigma(data, beta):
 def test_compute_partial_hazard_ratio_1_record(data, beta):
     features, names = data
     subset = [0]
-    datanode = DataNode(features, names)
-    datanode.prepare(InitialValues(beta=beta))
-    request = Subset(indices=subset)
 
-    result = datanode.computePartialHazardRatio(request)
-    ratios = np.array(result.partialHazardRatios)
+    ratios = DataNode.compute_partial_hazard_ratio(features, beta, subset)
 
     target = np.dot(features[0], beta)
     target = target.reshape((1,))
@@ -165,13 +154,10 @@ def test_compute_partial_hazard_ratio_multiple_records(beta):
     subset = [0, 1, 2]
 
     features = np.arange(total_rows).reshape((-1, 2))
-    feature_names = 'ab'  # Lazy list
-    datanode = DataNode(features, feature_names=feature_names)
-    datanode.prepare(InitialValues(beta=beta))
-    request = Subset(indices=subset)
 
-    result = datanode.computePartialHazardRatio(request)
-    ratios = np.array(result.partialHazardRatios)
+    result = DataNode.compute_partial_hazard_ratio(features, beta, subset)
+
+    ratios = np.array(result)
 
     target = [np.dot(features[i], beta) for i in range(features.shape[0])]
     target = np.array(target)

@@ -12,7 +12,7 @@ service DataNode{
   rpc getFeatureNames(Empty) returns (FeatureNames){};
   rpc getAverageSigma(Empty) returns (AverageSigma){};
   rpc getRecordLevelSigma(Empty) returns (RecordLevelSigma){};
-  rpc computePartialHazardRatio(Subset) returns (PartialHazardRatio) {};
+  rpc getPartialHazardRatio(Subset) returns (PartialHazardRatio) {};
 }
 
 message InitialValues{

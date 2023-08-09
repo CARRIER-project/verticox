@@ -140,8 +140,6 @@ class DataNode(DataNodeServicer):
         result = client.sum_relevant_values(local_feature_names, censor_feature,
                                             censor_value)
 
-        assert len(result) == len(local_feature_names)
-
         return np.array(result, dtype=float)
 
     def fit(self, request, context=None):
@@ -226,9 +224,13 @@ class DataNode(DataNodeServicer):
         :return:
         """
 
-        sigmas = np.tensordot(self.state.features_selected, self.state.beta, (1, 0))
+        sigmas = DataNode.compute_record_level_sigma(self.state.features_selected, self.state.beta)
 
         return RecordLevelSigma(sigma=sigmas)
+
+    @staticmethod
+    def compute_record_level_sigma(features, beta):
+        return np.tensordot(features, beta, (1, 0))
 
     def getAverageSigma(self, request: Empty, context=None) -> AverageSigma:
         """
@@ -237,14 +239,17 @@ class DataNode(DataNodeServicer):
         :param context:
         :return:
         """
-        # TODO: We need to select a subpopulation
-
-        sigmas = np.tensordot(self.state.features_selected, self.state.beta, (1, 0))
-        average = np.average(sigmas, axis=0)
+        average = DataNode.compute_average_sigma(self.state.features_selected, self.state.beta)
 
         return AverageSigma(sigma=average)
 
-    def computePartialHazardRatio(self, request: Subset, context=None) -> PartialHazardRatio:
+    @staticmethod
+    def compute_average_sigma(features, beta):
+
+        sigmas = np.tensordot(features, beta, (1, 0))
+        return np.average(sigmas, axis=0)
+
+    def getPartialHazardRatio(self, request: Subset, context=None) -> PartialHazardRatio:
         """
         Compute the hazard ratio of a subset of records
         :param request: The indices of the subset of records
@@ -252,10 +257,17 @@ class DataNode(DataNodeServicer):
         :return:
         """
         indices = list(request.indices)
-        subset = self.state.features_selected[indices, :]
-        sigmas = np.tensordot(subset, self.state.beta, (1, 0))
+
+        sigmas = DataNode.compute_partial_hazard_ratio(self.state.features_selected,
+                                                       self.state.beta, indices)
 
         return PartialHazardRatio(partialHazardRatios=sigmas.tolist())
+
+    @staticmethod
+    def compute_partial_hazard_ratio(features, beta, indices):
+        indices = list(indices)
+        subset = features[indices, :]
+        return np.tensordot(subset, beta, (1, 0))
 
     @staticmethod
     def _sum_covariates(covariates: np.array):
