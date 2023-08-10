@@ -204,7 +204,8 @@ class BaseNodeManager(ABC):
         info('Starting python containers')
         self.start_python_algorithms()
         self.create_stubs()
-        info(self.stubs)
+
+        self.reset()
 
     @abstractmethod
     def start_java_algorithms(self):

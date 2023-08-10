@@ -71,7 +71,8 @@ class Aggregator:
 
         beta = np.full(self.num_samples, BETA)
         z = np.full(self.num_samples, Z)
-        self.prepare_datanodes(GAMMA, z, beta, self.rho)
+        gamma = np.full(self.num_samples, GAMMA)
+        self.prepare_datanodes(gamma, z, beta, self.rho)
 
     def prepare_datanodes(self, gamma, z, beta, rho):
         initial_values = InitialValues(gamma=gamma, z=z, beta=beta, rho=rho)

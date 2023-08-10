@@ -21,7 +21,7 @@ message Rows{
 }
 
 message InitialValues{
-  float gamma = 1;
+  repeated float gamma = 1;
   repeated float z = 2;
   repeated float beta = 3;
   float rho = 4;

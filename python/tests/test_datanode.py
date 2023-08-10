@@ -182,6 +182,7 @@ def test_cant_fit_after_reset(data, initial_values):
 
     with patch('verticox.datanode.NPartyScalarProductClient'):
         datanode = DataNode(features, feature_names)
+        datanode.reset(Rows(rows=[]))
         datanode.prepare(initial_values)
 
         # After resetting the datanode is unprepared again

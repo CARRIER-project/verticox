@@ -76,7 +76,7 @@ class DataNode(DataNodeServicer):
         self.n_party_address = commodity_address
 
         self.state = None
-        self.selection = None
+        self._subset = None
 
     @property
     def num_features(self):
@@ -92,7 +92,7 @@ class DataNode(DataNodeServicer):
         return event[0]
 
     def _select_features(self, selected_rows):
-        if len(selected_rows) == 0:
+        if not selected_rows:
             return self._all_features
 
         return self._all_features[selected_rows]
@@ -107,17 +107,17 @@ class DataNode(DataNodeServicer):
         Returns:
 
         """
-        num_samples = self.selection.shape[0]
-        features_multiplied = DataNode._multiply_features(self.selection)
+        num_samples = self._subset.shape[0]
+        features_multiplied = DataNode._multiply_features(self._subset)
 
         sum_Dt = self._compute_sum_Dt_n_party_scalar_product(self.feature_names,
                                                              self._censor_name,
                                                              self._censor_value,
                                                              self.n_party_address)
 
-        self.state = DataNode.State(features_selected=self.selection,
+        self.state = DataNode.State(features_selected=self._subset,
                                     features_multiplied=features_multiplied,
-                                    gamma=np.full((num_samples,), request.gamma),
+                                    gamma=np.array(request.gamma),
                                     z=np.full((num_samples,), request.z),
                                     beta=np.array(request.beta),
                                     rho=request.rho,
@@ -139,7 +139,8 @@ class DataNode(DataNodeServicer):
         self.state = None
 
         rows = request.rows
-        self.selection = self._all_features[rows, :]
+
+        self._subset = self._select_features(rows)
 
         return Empty()
 
