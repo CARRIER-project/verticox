@@ -14,7 +14,7 @@ from vantage6.tools.util import info
 import verticox.ssl
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
     NumSamples, Empty, Beta, FeatureNames, RecordLevelSigma, AverageSigma, Subset, \
-    PartialHazardRatio, InitialValues
+    PartialHazardRatio, InitialValues, Rows
 from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
 from verticox.scalarproduct import NPartyScalarProductClient
 
@@ -70,13 +70,13 @@ class DataNode(DataNodeServicer):
 
         self._all_features = all_features
         self.feature_names = feature_names
-
         self.server = server
         # Parts that stay constant over iterations
 
         self.n_party_address = commodity_address
 
         self.state = None
+        self._subset = None
 
     @property
     def num_features(self):
@@ -92,30 +92,55 @@ class DataNode(DataNodeServicer):
         return event[0]
 
     def _select_features(self, selected_rows):
-        if len(selected_rows) == 0:
+        if not selected_rows:
             return self._all_features
 
         return self._all_features[selected_rows]
 
     def prepare(self, request: InitialValues, context=None):
-        row_selection = list(request.rows)
-        features = self._select_features(row_selection)
-        num_samples = features.shape[0]
-        features_multiplied = DataNode._multiply_features(features)
+        """
+        Set initial values for running verticox
+        Args:
+            request:
+            context:
+
+        Returns:
+
+        """
+        num_samples = self._subset.shape[0]
+        features_multiplied = DataNode._multiply_features(self._subset)
 
         sum_Dt = self._compute_sum_Dt_n_party_scalar_product(self.feature_names,
                                                              self._censor_name,
                                                              self._censor_value,
                                                              self.n_party_address)
 
-        self.state = DataNode.State(features_selected=features,
+        self.state = DataNode.State(features_selected=self._subset,
                                     features_multiplied=features_multiplied,
-                                    gamma=np.full((num_samples,), request.gamma),
+                                    gamma=np.array(request.gamma),
                                     z=np.full((num_samples,), request.z),
                                     beta=np.array(request.beta),
                                     rho=request.rho,
                                     sum_Dt=sum_Dt,
                                     )
+
+        return Empty()
+
+    def reset(self, request: Rows, context=None):
+        """
+        Reset state and reselect active records
+        Args:
+            request:
+            context:
+
+        Returns:
+
+        """
+        self.state = None
+
+        rows = request.rows
+
+        self._subset = self._select_features(rows)
 
         return Empty()
 

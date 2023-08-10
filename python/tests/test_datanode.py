@@ -1,14 +1,14 @@
 from multiprocessing import Process
 from time import sleep
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch, MagicMock
 
 import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal
 
 import verticox.ssl
-from verticox.datanode import DataNode, serve
-from verticox.grpc.datanode_pb2 import Empty, Subset, InitialValues
+from verticox.datanode import DataNode, serve, DataNodeException
+from verticox.grpc.datanode_pb2 import Empty, InitialValues, Rows
 
 NUM_PATIENTS = 3
 NUM_FEATURES = 5
@@ -32,6 +32,14 @@ def data_nofixture():
 def beta():
     return np.array([0.1, 0.2])
 
+@pytest.fixture()
+def initial_values():
+    some_array = np.zeros(2)
+    gamma = some_array
+    z = some_array
+    beta = some_array
+    rho = 1
+    return InitialValues(gamma=gamma, z=z, beta=beta, rho=rho)
 
 def test_sum_covariates_returns_one_dim_array():
     covariates = np.arange(NUM_PATIENTS * NUM_FEATURES).reshape((NUM_PATIENTS, NUM_FEATURES))
@@ -163,6 +171,25 @@ def test_compute_partial_hazard_ratio_multiple_records(beta):
     target = np.array(target)
 
     np.testing.assert_array_almost_equal(ratios, target)
+
+
+def test_cant_fit_after_reset(data, initial_values):
+    features, feature_names = data
+    mock_n_party_client = MagicMock()
+
+    # It's enough if this function returns an arbitrary np array
+    mock_n_party_client.return_value.sum_relevant_values = np.arange(5)
+
+    with patch('verticox.datanode.NPartyScalarProductClient'):
+        datanode = DataNode(features, feature_names)
+        datanode.reset(Rows(rows=[]))
+        datanode.prepare(initial_values)
+
+        # After resetting the datanode is unprepared again
+        datanode.reset(Rows(rows=[]))
+
+        with pytest.raises(DataNodeException):
+            datanode.fit(Empty())
 
 
 if __name__ == '__main__':
