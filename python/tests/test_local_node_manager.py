@@ -60,7 +60,35 @@ def compute_centralized():
     return dict(zip(full_covariates.columns, model.coef_))
 
 
-def run_locally(data, event_times_column, event_happened_column, *, selection: bool = False):
+def run_test_full_dataset(node_manager: LocalNodeManager):
+    node_manager.reset()
+    node_manager.fit()
+    coefs = node_manager.betas
+    logging.info(f'Betas: {coefs}')
+    logging.info(f'Baseline hazard ratio {node_manager.baseline_hazard}')
+
+    for key, value in TARGET_COEFS.items():
+        np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
+
+
+def run_test_selection(node_manager: LocalNodeManager, full_data_length):
+    node_manager.reset()
+    node_manager.fit()
+    # Arbitrary selection for testing
+    selected_idx = select_rows(full_data_length)
+
+    # TODO: This flow is not ideal
+    node_manager.reset(selected_idx)
+    node_manager.fit()
+    coefs = node_manager.betas
+
+    logging.info(f'Betas: {coefs}')
+    logging.info(f'Baseline hazard ratio {node_manager.baseline_hazard}')
+    for key, value in SELECTED_TARGET_COEFS.items():
+        np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
+
+
+def run_locally(data, event_times_column, event_happened_column):
     df = pd.read_parquet(data)
 
     node_manager = LocalNodeManager(df, event_times_column, event_happened_column,
@@ -68,25 +96,8 @@ def run_locally(data, event_times_column, event_happened_column, *, selection: b
 
     node_manager.start_nodes()
 
-    if selection:
-        # Arbitrary selection for testing
-        selected_idx = select_rows(df.shape[0])
-
-        # TODO: This flow is not ideal
-        node_manager.reset(selected_idx)
-        target = SELECTED_TARGET_COEFS
-
-    else:
-        target = TARGET_COEFS
-
-    node_manager.fit()
-
-    coefs = node_manager.betas
-    logging.info(f'Betas: {coefs}')
-    logging.info(f'Baseline hazard ratio {node_manager.baseline_hazard}')
-
-    for key, value in target.items():
-        np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
+    run_test_full_dataset(node_manager)
+    run_test_selection(node_manager, df.shape[0])
 
     print('Test has passed.')
 
