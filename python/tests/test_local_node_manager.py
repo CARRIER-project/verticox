@@ -1,19 +1,44 @@
 import logging
 from pathlib import Path
+
 import clize
+import numpy as np
 import pandas as pd
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 from sksurv.util import Surv
+
 from test_constants import CONVERGENCE_PRECISION
 from verticox.node_manager import LocalNodeManager
-import numpy as np
 
 TEST_DATA_PATH = 'mock/data'
 COVARIATE_FILES = ['data_1.parquet', 'data_2.parquet']
 OUTCOME_FILE = 'outcome.parquet'
 DECIMAL_PRECISION = 4
 TARGET_COEFS = {'age': 0.05566997593047372, 'bmi': -0.0908968266847538}
-logger = logging.getLogger(__name__)
+SELECTED_TARGET_COEFS = {'bmi': -0.15316136, 'age': 0.05067197}
+
+NUM_SELECTED_ROWS = 20
+
+
+def select_rows(data_length, num_rows=NUM_SELECTED_ROWS):
+    """
+    Select a subset of data so that it includes both censored and non-censored data. Assuming the
+    censored data follows after the non-censored data.
+    Args:
+        data:
+
+    Returns:
+    """
+    if num_rows > data_length:
+        raise Exception(f'Selecting too many rows. There are only {data_length} available.')
+
+    num_start = num_rows // 2
+    num_end = num_rows - num_start
+
+    censored_selection = range(num_start)
+    uncensored_selection = range(data_length - num_end, data_length)
+
+    return list(censored_selection) + list(uncensored_selection)
 
 
 def compute_centralized():
@@ -35,19 +60,32 @@ def compute_centralized():
     return dict(zip(full_covariates.columns, model.coef_))
 
 
-def run_locally(data, event_times_column, event_happened_column):
+def run_locally(data, event_times_column, event_happened_column, *, selection: bool = False):
     df = pd.read_parquet(data)
 
     node_manager = LocalNodeManager(df, event_times_column, event_happened_column,
                                     {'convergence_precision': CONVERGENCE_PRECISION})
+
     node_manager.start_nodes()
+
+    if selection:
+        # Arbitrary selection for testing
+        selected_idx = select_rows(df.shape[0])
+
+        # TODO: This flow is not ideal
+        node_manager.reset(selected_idx)
+        target = SELECTED_TARGET_COEFS
+
+    else:
+        target = TARGET_COEFS
+
     node_manager.fit()
 
     coefs = node_manager.betas
     logging.info(f'Betas: {coefs}')
     logging.info(f'Baseline hazard ratio {node_manager.baseline_hazard}')
 
-    for key, value in TARGET_COEFS.items():
+    for key, value in target.items():
         np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
 
     print('Test has passed.')

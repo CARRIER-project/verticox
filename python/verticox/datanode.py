@@ -141,6 +141,8 @@ class DataNode(DataNodeServicer):
         rows = request.rows
         self.selection = self._all_features[rows, :]
 
+        return Empty()
+
     @staticmethod
     def _compute_sum_Dt(Dt, features):
         logger.debug('Computing sum dt locally')

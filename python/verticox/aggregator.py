@@ -76,8 +76,6 @@ class Aggregator:
     def prepare_datanodes(self, gamma, z, beta, rho):
         initial_values = InitialValues(gamma=gamma, z=z, beta=beta, rho=rho)
 
-        info(f'Preparing datanodes with: {initial_values}')
-
         for i in self.institutions:
             i.prepare(initial_values)
 

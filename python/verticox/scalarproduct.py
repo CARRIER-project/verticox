@@ -4,6 +4,9 @@ import requests
 from requests.exceptions import ConnectionError
 from vantage6.common import debug
 from vantage6.tools.util import info
+import logging
+
+_logger = logging.getLogger(__name__)
 
 _DEFAULT_PRECISION = 5
 _SET_PRECISION = 'setPrecisionCentral'
@@ -90,6 +93,7 @@ class NPartyScalarProductClient:
                 pass
 
     def activate_fold(self, activated: Iterable[bool]):
+        _logger.debug(f'Activating fold: {activated}')
         activated = list(activated)
         payload = {'activeRecords': activated}
         self._post('activateFold', json=payload)

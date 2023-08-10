@@ -1,17 +1,21 @@
+"""
+`node_manager` is concerned with setting up, resetting and killing the various nodes that are
+part of the verticox+ algorithm.
+"""
 import time
 from abc import ABC, abstractmethod
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import List, Any, Union, Iterable, Dict
+from typing import List, Any, Union, Iterable
 
 import numpy as np
 import pandas as pd
 from vantage6.client import ContainerClient
-from vantage6.common import info
+from vantage6.common import info, debug
 
 from verticox.aggregator import Aggregator
-from verticox.grpc.datanode_pb2 import Empty, InitialValues
+from verticox.grpc.datanode_pb2 import Empty, Rows
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 from verticox.scalarproduct import NPartyScalarProductClient
 from verticox.ssl import get_secure_stub
@@ -94,6 +98,7 @@ class BaseNodeManager(ABC):
         self._scalar_product_client = None
         self._outcome = None
         self._python_addresses = None
+        self.rows = None
 
     @property
     def data(self):
@@ -104,9 +109,17 @@ class BaseNodeManager(ABC):
         return self.data.shape[0]
 
     @property
+    def num_current_selection(self):
+        if self.rows is None:
+            return self.num_total_records
+        else:
+            return len(self.rows)
+
+    @property
     def result(self):
         if self._result is None:
             raise NodeManagerException('Trying to access results before model has been fit.')
+        return self._result
 
     @property
     def betas(self):
@@ -134,22 +147,28 @@ class BaseNodeManager(ABC):
         self._stubs = stubs
 
     def reset(self, rows: Union[None, Iterable[int]] = None):
-        self.reset_central_node(rows)
-        self.reset_java_nodes(rows)
-        self.reset_python_nodes(rows)
+        if rows is not None:
+            info('Computing on subset of data')
 
-    def reset_java_nodes(self, rows: Union[None, Iterable[int]] = None):
+        self.rows = rows
+        self._reset_central_node(rows)
+        self._reset_java_nodes(rows)
+        self._reset_python_nodes(rows)
+
+    def _reset_java_nodes(self, rows: Union[None, Iterable[int]] = None):
         if rows is None:
             selection = np.ones(self.num_total_records, dtype=bool)
         else:
             selection = np.zeros(self.num_total_records, dtype=bool)
             selection[rows] = True
 
+        selection = selection.tolist()
+        debug(selection)
         self.scalar_product_client.activate_fold(selection)
 
-    def reset_central_node(self, rows):
+    def _reset_central_node(self, rows):
         if rows is not None:
-            selection = self.data[rows]
+            selection = self.data.iloc[rows]
         else:
             selection = self.data
 
@@ -158,9 +177,11 @@ class BaseNodeManager(ABC):
 
         self._outcome = Outcome(event_times, event_happened)
 
-    def reset_python_nodes(self, rows):
+    def _reset_python_nodes(self, rows):
+        message = Rows(rows=rows)
+
         for stub in self.stubs:
-            stub.reset(rows)
+            stub.reset(message)
 
     def fit(self):
         aggregator = Aggregator(self.stubs, self._outcome.time,
@@ -168,8 +189,13 @@ class BaseNodeManager(ABC):
                                 **self._aggregator_kwargs)
 
         aggregator.fit()
-        self._betas = aggregator.get_betas()
-        self._baseline_hazard = aggregator.compute_baseline_hazard_function()
+
+        info(f'Finished fitting model')
+
+        betas = aggregator.get_betas()
+        baseline_hazard = aggregator.compute_baseline_hazard_function()
+
+        self._result = Result(betas=betas, baseline_hazard=baseline_hazard)
 
     def start_nodes(self):
         info('Starting java containers')
