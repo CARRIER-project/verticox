@@ -77,8 +77,7 @@ class ContainerAddresses:
 class BaseNodeManager(ABC):
     @abstractmethod
     def __init__(self, data: pd.DataFrame, event_times_column, event_happened_column,
-                 aggregator_kwargs, features=None, include_value=True,
-                 rows: Union[None, Iterable[int]] = None):
+                 aggregator_kwargs, features=None, include_value=True):
         # Putting the results in one tuple makes it easier to reset when a new fold needs to be
         # activated. The results are the only part of the state that need to be reset.
         self._result = None
