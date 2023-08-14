@@ -68,7 +68,6 @@ class DataNode(DataNodeServicer):
         self._censor_name = include_column
         self._censor_value = include_value
 
-        self._all_features = all_features
         self.feature_names = feature_names
         self.server = server
         # Parts that stay constant over iterations
