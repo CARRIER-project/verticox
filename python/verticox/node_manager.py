@@ -16,7 +16,7 @@ from vantage6.common import info, debug
 
 from verticox.aggregator import Aggregator
 from verticox.common import Split
-from verticox.grpc.datanode_pb2 import Empty, Rows
+from verticox.grpc.datanode_pb2 import Empty, Rows, Subset
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 from verticox.scalarproduct import NPartyScalarProductClient
 from verticox.ssl import get_secure_stub

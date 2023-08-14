@@ -164,34 +164,6 @@ def test_get_average_sigma(data, beta):
     np.testing.assert_almost_equal(target, result)
 
 
-def test_compute_partial_hazard_ratio_1_record(data, beta):
-    features, names = data
-    subset = [0]
-
-    ratios = DataNode.compute_partial_hazard_ratio(features, beta, subset)
-
-    target = np.dot(features[0], beta)
-    target = target.reshape((1,))
-
-    np.testing.assert_array_almost_equal(ratios, target)
-
-
-def test_compute_partial_hazard_ratio_multiple_records(beta):
-    total_rows = 6
-    subset = [0, 1, 2]
-
-    features = np.arange(total_rows).reshape((-1, 2))
-
-    result = DataNode.compute_partial_hazard_ratio(features, beta, subset)
-
-    ratios = np.array(result)
-
-    target = [np.dot(features[i], beta) for i in range(features.shape[0])]
-    target = np.array(target)
-
-    np.testing.assert_array_almost_equal(ratios, target)
-
-
 def test_cant_fit_after_reset(data, initial_values):
     features, feature_names = data
     mock_n_party_client = MagicMock()

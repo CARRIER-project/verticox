@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import List, Tuple, Dict
+from typing import List, Dict
 
 import numpy as np
 from numba import types, typed
@@ -13,6 +13,7 @@ from verticox.grpc.datanode_pb2 import (
     AggregatedParameters,
     InitialValues,
     Subset,
+    RecordLevelSigmaRequest,
 )
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 from verticox.likelihood import find_z
@@ -321,11 +322,13 @@ class Aggregator:
 
         return dict(zip(names, betas))
 
-    def compute_baseline_hazard_function(self) -> Function:
+    def compute_baseline_hazard_function(self, subset: Subset) -> Function:
         record_level_sigmas = np.zeros((self.num_institutions, self.num_samples))
 
+        request = RecordLevelSigmaRequest(subset=subset)
+
         for idx, institution in enumerate(self.institutions):
-            record_level_sigma = institution.getRecordLevelSigma(Empty())
+            record_level_sigma = institution.getRecordLevelSigma(request)
             record_level_sigmas[idx] = np.array(record_level_sigma.sigma)
 
         summed_record_level_sigma = record_level_sigmas.sum(axis=0)

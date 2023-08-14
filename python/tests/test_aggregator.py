@@ -7,7 +7,7 @@ from sksurv.linear_model import CoxPHSurvivalAnalysis
 
 from verticox import common
 from verticox.aggregator import Aggregator
-from verticox.grpc.datanode_pb2 import RecordLevelSigma, NumSamples, PartialHazardRatio
+from verticox.grpc.datanode_pb2 import RecordLevelSigma, NumSamples, PartialHazardRatio, Subset
 
 
 def test_compute_deaths_per_t_two_event_times_no_right_censored():
@@ -92,7 +92,7 @@ def test_compute_baseline_hazard(num_records, num_features, num_institutions):
     (
         decentralized_t,
         decentralized_hazard,
-    ) = aggregator.compute_baseline_hazard_function()
+    ) = aggregator.compute_baseline_hazard_function(Subset.ALL)
 
     np.testing.assert_almost_equal(decentralized_t, centralized_t)
     np.testing.assert_almost_equal(decentralized_hazard, centralized_hazard, decimal=5)
@@ -120,54 +120,3 @@ def compute_baseline_hazard(events, predictions):
     steps, hazard = zip(*sorted(baseline_hazard_function.items()))
 
     return steps, hazard
-
-
-@mark.parametrize(
-    "num_records,num_features,num_institutions", [(60, 2, 2), (100, 3, 3), (400, 4, 4)]
-)
-def test_predict_risk_score(num_records, num_features, num_institutions):
-    features_per_institution = num_features // num_institutions
-    features, events, names = common.get_test_dataset(num_records, num_features)
-
-    event_times, event_happened = common.unpack_events(events)
-
-    centralized_model = CoxPHSurvivalAnalysis()
-    centralized_model.fit(features, events)
-
-    one_record = features[0:1]
-
-    # Predict one record centralized
-    centralized_result = centralized_model.predict(one_record)
-
-    mock_datanodes = []
-    # Mock the datanodes
-    for i in range(num_institutions):
-        feature_idx = i * features_per_institution
-        feature_idx_end = feature_idx + features_per_institution
-        subfeatures = features[:, feature_idx:feature_idx_end]
-        coefs = centralized_model.coef_[feature_idx:feature_idx_end]
-
-        record_level_sigma = np.apply_along_axis(
-            lambda x: np.dot(x, coefs), axis=1, arr=subfeatures
-        )
-
-        datanode = MagicMock()
-        datanode.getNumSamples.return_value = NumSamples(numSamples=num_records)
-        datanode.getRecordLevelSigma.return_value = RecordLevelSigma(
-            sigma=record_level_sigma
-        )
-        datanode.computePartialHazardRatio.return_value = PartialHazardRatio(
-            partialHazardRatios=record_level_sigma[0:1]
-        )
-
-        mock_datanodes.append(datanode)
-
-    aggregator = Aggregator(
-        institutions=mock_datanodes,
-        event_times=event_times,
-        event_happened=event_happened,
-    )
-
-    decentralized_result = aggregator.predict_risk_score([0])
-
-    np.testing.assert_almost_equal(centralized_result, decentralized_result)

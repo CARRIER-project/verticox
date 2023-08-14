@@ -11,9 +11,18 @@ service DataNode{
   rpc kill(Empty) returns (Empty){};
   rpc getFeatureNames(Empty) returns (FeatureNames){};
   rpc getAverageSigma(Empty) returns (AverageSigma){};
-  rpc getRecordLevelSigma(Empty) returns (RecordLevelSigma){};
-  rpc getPartialHazardRatio(Subset) returns (PartialHazardRatio) {};
+  rpc getRecordLevelSigma(RecordLevelSigmaRequest) returns (RecordLevelSigma){};
   rpc reset(Rows) returns (Empty) {};
+}
+
+enum Subset{
+  TRAIN = 0;
+  TEST = 1;
+  ALL = 3;
+}
+
+message RecordLevelSigmaRequest{
+  Subset subset = 1;
 }
 
 message Rows{
@@ -65,10 +74,6 @@ message RecordLevelSigma{
 
 message PartialHazardRatio{
   repeated float partialHazardRatios = 1;
-}
-
-message Subset{
-  repeated int32 indices = 1;
 }
 
 message Empty{}
