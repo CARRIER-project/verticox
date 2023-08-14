@@ -1,9 +1,10 @@
-import json
+import logging
 import logging
 import time
+from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Optional, List, Any
+from typing import Optional, List, Tuple, Union
 
 import clize
 import grpc
@@ -12,6 +13,7 @@ import pandas as pd
 from vantage6.tools.util import info
 
 import verticox.ssl
+from verticox.common import Split
 from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
     NumSamples, Empty, Beta, FeatureNames, RecordLevelSigma, AverageSigma, Subset, \
     PartialHazardRatio, InitialValues, Rows
@@ -34,7 +36,6 @@ class DataNode(DataNodeServicer):
     class State:
         # The data belongs to the state because it can change based on which selection is activated
         # Parts that stay constant over iterations
-        features_selected: np.array
         features_multiplied: np.array
         beta: np.array
         rho: float
@@ -43,10 +44,6 @@ class DataNode(DataNodeServicer):
         sum_Dt: np.array
         aggregated_gamma: np.array = None
         sigma: float = None
-
-        @property
-        def num_samples(self):
-            return self.features_selected.shape[0]
 
     def __init__(self, all_features: np.array, feature_names: List[str],
                  name=None, server=None, include_column: Optional[str] = None,
@@ -64,7 +61,7 @@ class DataNode(DataNodeServicer):
         self._logger = logging.getLogger(f'{__name__} :: {self.name}')
         self._logger.setLevel(logging.DEBUG)
         self._logger.debug(f'Initializing datanode {self.name}')
-        self._all_features = all_features
+        self._all_data = all_features
         self._censor_name = include_column
         self._censor_value = include_value
 
@@ -74,12 +71,12 @@ class DataNode(DataNodeServicer):
 
         self.n_party_address = commodity_address
 
-        self.state = None
-        self._subset = None
+        self.state: Union[DataNode.State, None] = None
+        self.split: Union[Split, None] = None
 
     @property
     def num_features(self):
-        return self._all_features.shape[1]
+        return self._all_data.shape[1]
 
     @property
     def prepared(self):
@@ -90,11 +87,21 @@ class DataNode(DataNodeServicer):
     def include(event):
         return event[0]
 
-    def _select_features(self, selected_rows):
-        if not selected_rows:
-            return self._all_features
+    def _select_train_test(self, selected_rows) -> Split[np.array, np.array]:
+        """
 
-        return self._all_features[selected_rows]
+        Args:
+            selected_rows:
+
+        Returns: Tuple containing (TRAIN_DATA, TEST_DATA)
+
+        """
+        if not selected_rows:
+            return Split(self._all_data, None)
+
+        mask = np.zeros(self._all_data.shape[0], dtype=bool)
+        mask[selected_rows] = True
+        return Split(self._all_data[mask], self._all_data[~mask])
 
     def prepare(self, request: InitialValues, context=None):
         """
@@ -106,16 +113,15 @@ class DataNode(DataNodeServicer):
         Returns:
 
         """
-        num_samples = self._subset.shape[0]
-        features_multiplied = DataNode._multiply_features(self._subset)
+        num_samples = self.split.train.shape[0]
+        covariates_multiplied = DataNode._multiply_features(self.split.train)
 
         sum_Dt = self._compute_sum_Dt_n_party_scalar_product(self.feature_names,
                                                              self._censor_name,
                                                              self._censor_value,
                                                              self.n_party_address)
 
-        self.state = DataNode.State(features_selected=self._subset,
-                                    features_multiplied=features_multiplied,
+        self.state = DataNode.State(features_multiplied=covariates_multiplied,
                                     gamma=np.array(request.gamma),
                                     z=np.full((num_samples,), request.z),
                                     beta=np.array(request.beta),
@@ -139,7 +145,7 @@ class DataNode(DataNodeServicer):
 
         rows = request.rows
 
-        self._subset = self._select_features(rows)
+        self.split = self._select_train_test(rows)
 
         return Empty()
 
@@ -172,7 +178,7 @@ class DataNode(DataNodeServicer):
 
         self._logger.debug('Performing local update...')
 
-        sigma, beta = DataNode._local_update(self.state.features_selected, self.state.z,
+        sigma, beta = DataNode._local_update(self.split.train, self.state.z,
                                              self.state.gamma,
                                              self.state.rho, self.state.features_multiplied,
                                              self.state.sum_Dt)
@@ -213,7 +219,7 @@ class DataNode(DataNodeServicer):
 
     def getNumSamples(self, request, context=None):
         if self.prepared:
-            num_samples = self.state.num_samples
+            num_samples = self.split.train.shape[0]
             return NumSamples(numSamples=num_samples)
 
         raise DataNodeException('Datanode has not been prepared yet!')
@@ -246,7 +252,7 @@ class DataNode(DataNodeServicer):
         :return:
         """
 
-        sigmas = DataNode.compute_record_level_sigma(self.state.features_selected, self.state.beta)
+        sigmas = DataNode.compute_record_level_sigma(self.split.train, self.state.beta)
 
         return RecordLevelSigma(sigma=sigmas)
 
@@ -261,7 +267,7 @@ class DataNode(DataNodeServicer):
         :param context:
         :return:
         """
-        average = DataNode.compute_average_sigma(self.state.features_selected, self.state.beta)
+        average = DataNode.compute_average_sigma(self.state.data_train, self.state.beta)
 
         return AverageSigma(sigma=average)
 
@@ -280,7 +286,7 @@ class DataNode(DataNodeServicer):
         """
         indices = list(request.indices)
 
-        sigmas = DataNode.compute_partial_hazard_ratio(self.state.features_selected,
+        sigmas = DataNode.compute_partial_hazard_ratio(self.state.data_train,
                                                        self.state.beta, indices)
 
         return PartialHazardRatio(partialHazardRatios=sigmas.tolist())

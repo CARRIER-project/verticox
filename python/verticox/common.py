@@ -1,3 +1,4 @@
+from collections import namedtuple
 from typing import List, Tuple
 
 import numpy as np
@@ -6,6 +7,7 @@ from numba import typed, types
 from numpy.typing import ArrayLike
 from sksurv.datasets import load_whas500
 
+Split = namedtuple('Split', ('train', 'test'))
 
 @np.vectorize
 def _uncensored(event):
