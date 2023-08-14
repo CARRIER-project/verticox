@@ -342,14 +342,6 @@ class Aggregator:
         baseline_x, baseline_y = zip(*sorted(baseline_hazard.items()))
         return Function(baseline_x, baseline_y)
 
-    def predict_risk_score(self, indices):
-        result = np.zeros_like(indices, dtype="float")
-        for institution in self.institutions:
-            subresult = institution.computePartialHazardRatio(Subset(indices=indices))
-            result += np.array(subresult.partialHazardRatios)
-
-        return result
-
 
 class Progress:
     """
