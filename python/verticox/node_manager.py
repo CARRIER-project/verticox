@@ -15,6 +15,7 @@ from vantage6.client import ContainerClient
 from vantage6.common import info, debug
 
 from verticox.aggregator import Aggregator
+from verticox.common import Split
 from verticox.grpc.datanode_pb2 import Empty, Rows
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 from verticox.scalarproduct import NPartyScalarProductClient
@@ -91,13 +92,12 @@ class BaseNodeManager(ABC):
         self._include_value = include_value
         self._aggregator_kwargs = aggregator_kwargs
         self._data = data
-        self._selection = None
+        self._train_selection = None
 
         self._aggregator = None
         self._scalar_product_client = None
-        self._outcome = None
+        self.split: Split = None
         self._python_addresses = None
-        self.rows = None
 
     @property
     def data(self):
@@ -109,10 +109,7 @@ class BaseNodeManager(ABC):
 
     @property
     def num_current_selection(self):
-        if self.rows is None:
-            return self.num_total_records
-        else:
-            return len(self.rows)
+        return len(self._train_outcome)
 
     @property
     def result(self):
@@ -145,36 +142,49 @@ class BaseNodeManager(ABC):
     def stubs(self, stubs: List[DataNodeStub]):
         self._stubs = stubs
 
-    def reset(self, rows: Union[None, Iterable[int]] = None):
-        if rows is not None:
+    def reset(self, train_selection: Union[None, Iterable[int]] = None):
+        if train_selection is not None:
             info('Computing on subset of data')
 
-        self.rows = rows
-        self._reset_central_node(rows)
-        self._reset_java_nodes(rows)
-        self._reset_python_nodes(rows)
+        self._train_selection = train_selection
+        self._reset_central_node(train_selection)
+        self._reset_java_nodes(train_selection)
+        self._reset_python_nodes(train_selection)
 
-    def _reset_java_nodes(self, rows: Union[None, Iterable[int]] = None):
-        if rows is None:
+    def _reset_java_nodes(self, training_selection: Union[None, Iterable[int]] = None):
+        if training_selection is None:
             selection = np.ones(self.num_total_records, dtype=bool)
         else:
             selection = np.zeros(self.num_total_records, dtype=bool)
-            selection[rows] = True
+            selection[training_selection] = True
 
         selection = selection.tolist()
-        debug(selection)
         self.scalar_product_client.activate_fold(selection)
 
-    def _reset_central_node(self, rows):
-        if rows is not None:
-            selection = self.data.iloc[rows]
+    def _reset_central_node(self, train_selection: Union[Iterable[int], None]):
+        """
+
+        Args:
+            train_selection: an iterable containing the indices of the records that need to be
+            included in the training set
+
+        Returns:
+
+        """
+        if train_selection is not None:
+            train_mask = np.zeros(self.num_total_records, dtype=bool)
+            train_mask[train_selection] = True
+
+            train_data = self.data.iloc[train_mask]
+            test_data = self.data.iloc[~train_mask]
+            self.split = Split(self._get_outcome(train_data), self._get_outcome(test_data))
         else:
-            selection = self.data
+            # If there is no selection train_outcome is all data and test set is None
+            self.split = Split(self._get_outcome(self.data), None)
 
-        event_times = selection[self._event_times_column].values
-        event_happened = selection[self._event_happened_column].values
-
-        self._outcome = Outcome(event_times, event_happened)
+    def _get_outcome(self, data):
+        return Outcome(data[self._event_times_column].values,
+                       data[self._event_happened_column].values)
 
     def _reset_python_nodes(self, rows):
         message = Rows(rows=rows)
@@ -183,8 +193,10 @@ class BaseNodeManager(ABC):
             stub.reset(message)
 
     def fit(self):
-        aggregator = Aggregator(self.stubs, self._outcome.time,
-                                self._outcome.event_happened,
+        print(self.split.train.time)
+        print(self.split.train.event_happened)
+        aggregator = Aggregator(self.stubs, self.split.train.time,
+                                self.split.train.event_happened,
                                 **self._aggregator_kwargs)
 
         aggregator.fit()

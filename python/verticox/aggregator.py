@@ -34,7 +34,7 @@ class Aggregator:
     """
 
     def __init__(self, institutions: List[DataNodeStub], event_times: np.array,
-                 event_happened: types.boolean[:], convergence_precision: float = DEFAULT_PRECISION,
+                 event_happened: np.array, convergence_precision: float = DEFAULT_PRECISION,
                  newton_raphson_precision: float = DEFAULT_PRECISION, rho=RHO):
         """
         Initialize regular verticox aggregator. Note that this type of aggregator needs access to
