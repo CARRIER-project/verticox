@@ -7,7 +7,7 @@ from numba import types, typed
 from numpy.typing import ArrayLike
 from vantage6.common import info
 
-from verticox.common import group_samples_at_risk, group_samples_on_event_time
+from verticox.common import group_samples_at_risk, group_samples_on_event_time, Function
 from verticox.grpc.datanode_pb2 import (
     Empty,
     AggregatedParameters,
@@ -310,7 +310,7 @@ class Aggregator:
 
         return dict(zip(names, betas))
 
-    def compute_baseline_hazard_function(self):
+    def compute_baseline_hazard_function(self) -> Function:
         record_level_sigmas = np.zeros((self.num_institutions, self.num_samples))
 
         for idx, institution in enumerate(self.institutions):
@@ -326,7 +326,7 @@ class Aggregator:
             baseline_hazard[t] = 1 / np.exp(summed_sigmas).sum()
 
         baseline_x, baseline_y = zip(*sorted(baseline_hazard.items()))
-        return baseline_x, baseline_y
+        return Function(baseline_x, baseline_y)
 
     def predict_risk_score(self, indices):
         result = np.zeros_like(indices, dtype="float")

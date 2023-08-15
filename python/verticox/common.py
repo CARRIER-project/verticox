@@ -9,6 +9,7 @@ from sksurv.datasets import load_whas500
 
 Split = namedtuple("Split", ("train", "test"))
 
+Function = namedtuple("Function", ("x", "y"))
 
 @np.vectorize
 def _uncensored(event):
