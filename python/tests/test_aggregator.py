@@ -3,18 +3,19 @@ from unittest.mock import MagicMock
 
 import numpy as np
 from pytest import mark
+from sksurv.functions import StepFunction
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 
 from verticox import common
 from verticox.aggregator import Aggregator
-from verticox.grpc.datanode_pb2 import RecordLevelSigma, NumSamples, PartialHazardRatio, Subset
+from verticox.grpc.datanode_pb2 import RecordLevelSigma, NumSamples, Subset
 
 
 def test_compute_deaths_per_t_two_event_times_no_right_censored():
     event_times = np.array([1, 1, 2])
     event_happened = np.array([True, True, True])
 
-    result = Aggregator._compute_deaths_per_t(event_times, event_happened)
+    result = Aggregator.compute_deaths_per_t(event_times, event_happened)
     result = dict(result)
 
     TestCase().assertDictEqual(result, {1: 2, 2: 1})
@@ -24,7 +25,7 @@ def test_compute_deaths_per_t_with_right_censored():
     event_times = np.array([1, 1, 2])
     event_happened = np.array([False, True, True])
 
-    result = Aggregator._compute_deaths_per_t(event_times, event_happened)
+    result = Aggregator.compute_deaths_per_t(event_times, event_happened)
     result = dict(result)
 
     TestCase().assertDictEqual(result, {1: 1, 2: 1})
@@ -39,7 +40,7 @@ def test_compute_deaths_per_t_with_right_censored_returns_0_deaths():
     event_times = np.array([1, 1, 2])
     event_happened = np.array([True, True, False])
 
-    result = Aggregator._compute_deaths_per_t(event_times, event_happened)
+    result = Aggregator.compute_deaths_per_t(event_times, event_happened)
     result = dict(result)
 
     TestCase().assertDictEqual(result, {1: 2, 2: 0})
@@ -58,9 +59,7 @@ def test_compute_baseline_hazard(num_records, num_features, num_institutions):
     centralized_model.fit(features, events)
 
     # Compute hazard ratio in centralized way
-    predictions = np.apply_along_axis(
-        lambda x: compute_hazard_ratio(x, centralized_model.coef_), 1, features
-    )
+    predictions = predict(features, centralized_model.coef_)
 
     centralized_t, centralized_hazard = compute_baseline_hazard(events, predictions)
 
@@ -89,13 +88,49 @@ def test_compute_baseline_hazard(num_records, num_features, num_institutions):
         event_happened=event_happened,
     )
 
-    (
-        decentralized_t,
-        decentralized_hazard,
-    ) = aggregator.compute_baseline_hazard_function(Subset.ALL)
+    baseline_hazard = aggregator.compute_baseline_hazard_function(Subset.ALL)
+    decentralized_t = baseline_hazard.x
+    decentralized_hazard = baseline_hazard.y
 
     np.testing.assert_almost_equal(decentralized_t, centralized_t)
     np.testing.assert_almost_equal(decentralized_hazard, centralized_hazard, decimal=5)
+
+
+def predict(features, coefs):
+    return np.apply_along_axis(lambda x: compute_hazard_ratio(x, coefs), 1, features)
+
+
+@mark.parametrize(
+    "num_records,num_features,num_institutions", [(60, 2, 2), (100, 3, 3), (400, 4, 4)]
+)
+def test_compute_cumulative_hazard(num_records, num_features, num_institutions):
+    features_per_institution = num_features // num_institutions
+    features, events, names = common.get_test_dataset(num_records, num_features)
+
+    event_times, event_happened = common.unpack_events(events)
+
+    centralized_model = CoxPHSurvivalAnalysis()
+    centralized_model.fit(features, events)
+
+    target = centralized_model.cum_baseline_hazard_
+
+    deaths_per_t = Aggregator.compute_deaths_per_t(event_times, event_happened)
+    predictions = compute_hazard_ratio(features, centralized_model.coef_)
+    baseline_hazard = compute_baseline_hazard(events, predictions)
+
+    summed_avg_sigmas = compute_central_summed_average_sigmas(
+        centralized_model.coef_, features
+    )
+
+    result = Aggregator.compute_cumulative_hazard_central_part(
+        baseline_hazard, deaths_per_t, summed_avg_sigmas
+    )
+
+    assert result == target
+
+
+def compute_central_summed_average_sigmas(coefs, features: np.array) -> float:
+    return np.dot(coefs, features.mean(axis=0))
 
 
 def compute_hazard_ratio(features, coefficients):
@@ -119,4 +154,4 @@ def compute_baseline_hazard(events, predictions):
 
     steps, hazard = zip(*sorted(baseline_hazard_function.items()))
 
-    return steps, hazard
+    return StepFunction(steps, hazard)

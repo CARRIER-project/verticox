@@ -5,9 +5,10 @@ from typing import List, Dict
 import numpy as np
 from numba import types, typed
 from numpy.typing import ArrayLike
+from sksurv.functions import StepFunction
 from vantage6.common import info
 
-from verticox.common import group_samples_at_risk, group_samples_on_event_time, Function
+from verticox.common import group_samples_at_risk, group_samples_on_event_time
 from verticox.grpc.datanode_pb2 import (
     Empty,
     AggregatedParameters,
@@ -73,9 +74,7 @@ class Aggregator:
         self.relevant_event_times = Aggregator._group_relevant_event_times(
             self.Rt.keys()
         )
-        self.deaths_per_t = Aggregator._compute_deaths_per_t(
-            event_times, event_happened
-        )
+        self.deaths_per_t = Aggregator.compute_deaths_per_t(event_times, event_happened)
         # Initializing parameters
         self.z = np.zeros(self.num_samples)
         self.z_old = self.z
@@ -113,7 +112,7 @@ class Aggregator:
         return result
 
     @staticmethod
-    def _compute_deaths_per_t(
+    def compute_deaths_per_t(
         event_times: ArrayLike, event_happened: ArrayLike
     ) -> types.DictType(types.float64, types.int64):
         deaths_per_t = typed.Dict.empty(types.float64, types.int64)
@@ -322,14 +321,8 @@ class Aggregator:
 
         return dict(zip(names, betas))
 
-    def compute_baseline_hazard_function(self, subset: Subset) -> Function:
-        record_level_sigmas = np.zeros((self.num_institutions, self.num_samples))
-
-        request = RecordLevelSigmaRequest(subset=subset)
-
-        for idx, institution in enumerate(self.institutions):
-            record_level_sigma = institution.getRecordLevelSigma(request)
-            record_level_sigmas[idx] = np.array(record_level_sigma.sigma)
+    def compute_baseline_hazard_function(self, subset: Subset) -> StepFunction:
+        record_level_sigmas = self.compute_record_level_sigmas(subset)
 
         summed_record_level_sigma = record_level_sigmas.sum(axis=0)
 
@@ -340,7 +333,75 @@ class Aggregator:
             baseline_hazard[t] = 1 / np.exp(summed_sigmas).sum()
 
         baseline_x, baseline_y = zip(*sorted(baseline_hazard.items()))
-        return Function(baseline_x, baseline_y)
+        return StepFunction(baseline_x, baseline_y)
+
+    def compute_record_level_sigmas(self, subset: Subset):
+        """
+        Compute the risk score per record in the specified subset
+        Args:
+            subset:
+
+        Returns:
+
+        """
+        record_level_sigmas = np.zeros((self.num_institutions, self.num_samples))
+        request = RecordLevelSigmaRequest(subset=subset)
+        for idx, institution in enumerate(self.institutions):
+            record_level_sigma = institution.getRecordLevelSigma(request)
+            record_level_sigmas[idx] = np.array(record_level_sigma.sigma)
+        return record_level_sigmas
+
+    def sum_average_sigmas(self, subset: Subset):
+        summed = 0
+        for datanode in self.institutions:
+            result = datanode.getAverageSigma(subset)
+
+            summed += result.sigma
+
+        return summed
+
+    def compute_cumulative_hazard(
+        self,
+        event_times: np.array,
+        event_happened: np.array,
+        baseline_hazard: StepFunction,
+        subset: Subset,
+    ) -> StepFunction:
+        summed_average_sigmas = self.sum_average_sigmas(subset)
+
+        deaths_per_t = self.compute_deaths_per_t(event_times, event_happened)
+
+        return Aggregator.compute_cumulative_hazard_central_part(
+            baseline_hazard, deaths_per_t, summed_average_sigmas
+        )
+
+    @staticmethod
+    def compute_cumulative_hazard_central_part(
+        baseline_hazard: StepFunction,
+        deaths_per_t: Dict[float, int],
+        summed_average_sigmas: float,
+    ):
+        result = []
+        for idx, values in enumerate(zip(baseline_hazard.x, baseline_hazard.y)):
+            summed = 0
+
+            for i in range(idx + 1):
+                included_t = baseline_hazard.x[i]
+                included_hazard = baseline_hazard.y[i]
+                summed += deaths_per_t[included_t] * included_hazard
+
+            result_t = np.power(np.exp(-1 * summed), np.exp(summed_average_sigmas))
+            result.append(result_t)
+
+        return StepFunction(baseline_hazard.x, result)
+
+    def compute_auc(self, baseline_hazard_function):
+        """
+        Computes area under curve on the test data
+        Returns:
+
+        """
+        test_hazard_ratios = self.compute_record_level_sigmas(Subset.TEST)
 
 
 class Progress:

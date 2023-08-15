@@ -15,7 +15,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1cverticox/grpc/datanode.proto\"2\n\x17RecordLevelSigmaRequest\x12\x17\n\x06subset\x18\x01 \x01(\x0e\x32\x07.Subset\"\x14\n\x04Rows\x12\x0c\n\x04rows\x18\x01 \x03(\x05\"D\n\rInitialValues\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\t\n\x01z\x18\x02 \x03(\x02\x12\x0c\n\x04\x62\x65ta\x18\x03 \x03(\x02\x12\x0b\n\x03rho\x18\x04 \x01(\x02\"?\n\x14\x41ggregatedParameters\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\x12\t\n\x01z\x18\x03 \x03(\x02\"/\n\x0fLocalParameters\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\"\"\n\x0bNumFeatures\x12\x13\n\x0bnumFeatures\x18\x01 \x01(\x05\" \n\nNumSamples\x12\x12\n\nnumSamples\x18\x01 \x01(\x05\"\x14\n\x04\x42\x65ta\x12\x0c\n\x04\x62\x65ta\x18\x01 \x03(\x02\"\x1d\n\x0c\x46\x65\x61tureNames\x12\r\n\x05names\x18\x01 \x03(\t\"\x1d\n\x0c\x41verageSigma\x12\r\n\x05sigma\x18\x01 \x01(\x02\"!\n\x10RecordLevelSigma\x12\r\n\x05sigma\x18\x01 \x03(\x02\"1\n\x12PartialHazardRatio\x12\x1b\n\x13partialHazardRatios\x18\x01 \x03(\x02\"\x07\n\x05\x45mpty*&\n\x06Subset\x12\t\n\x05TRAIN\x10\x00\x12\x08\n\x04TEST\x10\x01\x12\x07\n\x03\x41LL\x10\x03\x32\xe9\x03\n\x08\x44\x61taNode\x12!\n\x03\x66it\x12\x06.Empty\x1a\x10.LocalParameters\"\x00\x12(\n\x0egetNumFeatures\x12\x06.Empty\x1a\x0c.NumFeatures\"\x00\x12&\n\rgetNumSamples\x12\x06.Empty\x1a\x0b.NumSamples\"\x00\x12\x33\n\x10updateParameters\x12\x15.AggregatedParameters\x1a\x06.Empty\"\x00\x12 \n\x0c\x63omputeGamma\x12\x06.Empty\x1a\x06.Empty\"\x00\x12\x1a\n\x07getBeta\x12\x06.Empty\x1a\x05.Beta\"\x00\x12#\n\x07prepare\x12\x0e.InitialValues\x1a\x06.Empty\"\x00\x12\x18\n\x04kill\x12\x06.Empty\x1a\x06.Empty\"\x00\x12*\n\x0fgetFeatureNames\x12\x06.Empty\x1a\r.FeatureNames\"\x00\x12*\n\x0fgetAverageSigma\x12\x06.Empty\x1a\r.AverageSigma\"\x00\x12\x44\n\x13getRecordLevelSigma\x12\x18.RecordLevelSigmaRequest\x1a\x11.RecordLevelSigma\"\x00\x12\x18\n\x05reset\x12\x05.Rows\x1a\x06.Empty\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1cverticox/grpc/datanode.proto\"2\n\x17RecordLevelSigmaRequest\x12\x17\n\x06subset\x18\x01 \x01(\x0e\x32\x07.Subset\".\n\x13\x41verageSigmaRequest\x12\x17\n\x06subset\x18\x01 \x01(\x0e\x32\x07.Subset\"\x14\n\x04Rows\x12\x0c\n\x04rows\x18\x01 \x03(\x05\"D\n\rInitialValues\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\t\n\x01z\x18\x02 \x03(\x02\x12\x0c\n\x04\x62\x65ta\x18\x03 \x03(\x02\x12\x0b\n\x03rho\x18\x04 \x01(\x02\"?\n\x14\x41ggregatedParameters\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\x12\t\n\x01z\x18\x03 \x03(\x02\"/\n\x0fLocalParameters\x12\r\n\x05gamma\x18\x01 \x03(\x02\x12\r\n\x05sigma\x18\x02 \x03(\x02\"\"\n\x0bNumFeatures\x12\x13\n\x0bnumFeatures\x18\x01 \x01(\x05\" \n\nNumSamples\x12\x12\n\nnumSamples\x18\x01 \x01(\x05\"\x14\n\x04\x42\x65ta\x12\x0c\n\x04\x62\x65ta\x18\x01 \x03(\x02\"\x1d\n\x0c\x46\x65\x61tureNames\x12\r\n\x05names\x18\x01 \x03(\t\"\x1d\n\x0c\x41verageSigma\x12\r\n\x05sigma\x18\x01 \x01(\x02\"!\n\x10RecordLevelSigma\x12\r\n\x05sigma\x18\x01 \x03(\x02\"1\n\x12PartialHazardRatio\x12\x1b\n\x13partialHazardRatios\x18\x01 \x03(\x02\"\x07\n\x05\x45mpty*&\n\x06Subset\x12\t\n\x05TRAIN\x10\x00\x12\x08\n\x04TEST\x10\x01\x12\x07\n\x03\x41LL\x10\x03\x32\xe9\x03\n\x08\x44\x61taNode\x12!\n\x03\x66it\x12\x06.Empty\x1a\x10.LocalParameters\"\x00\x12(\n\x0egetNumFeatures\x12\x06.Empty\x1a\x0c.NumFeatures\"\x00\x12&\n\rgetNumSamples\x12\x06.Empty\x1a\x0b.NumSamples\"\x00\x12\x33\n\x10updateParameters\x12\x15.AggregatedParameters\x1a\x06.Empty\"\x00\x12 \n\x0c\x63omputeGamma\x12\x06.Empty\x1a\x06.Empty\"\x00\x12\x1a\n\x07getBeta\x12\x06.Empty\x1a\x05.Beta\"\x00\x12#\n\x07prepare\x12\x0e.InitialValues\x1a\x06.Empty\"\x00\x12\x18\n\x04kill\x12\x06.Empty\x1a\x06.Empty\"\x00\x12*\n\x0fgetFeatureNames\x12\x06.Empty\x1a\r.FeatureNames\"\x00\x12*\n\x0fgetAverageSigma\x12\x06.Empty\x1a\r.AverageSigma\"\x00\x12\x44\n\x13getRecordLevelSigma\x12\x18.RecordLevelSigmaRequest\x1a\x11.RecordLevelSigma\"\x00\x12\x18\n\x05reset\x12\x05.Rows\x1a\x06.Empty\"\x00\x62\x06proto3')
 
 _SUBSET = DESCRIPTOR.enum_types_by_name['Subset']
 Subset = enum_type_wrapper.EnumTypeWrapper(_SUBSET)
@@ -25,6 +25,7 @@ ALL = 3
 
 
 _RECORDLEVELSIGMAREQUEST = DESCRIPTOR.message_types_by_name['RecordLevelSigmaRequest']
+_AVERAGESIGMAREQUEST = DESCRIPTOR.message_types_by_name['AverageSigmaRequest']
 _ROWS = DESCRIPTOR.message_types_by_name['Rows']
 _INITIALVALUES = DESCRIPTOR.message_types_by_name['InitialValues']
 _AGGREGATEDPARAMETERS = DESCRIPTOR.message_types_by_name['AggregatedParameters']
@@ -43,6 +44,13 @@ RecordLevelSigmaRequest = _reflection.GeneratedProtocolMessageType('RecordLevelS
   # @@protoc_insertion_point(class_scope:RecordLevelSigmaRequest)
   })
 _sym_db.RegisterMessage(RecordLevelSigmaRequest)
+
+AverageSigmaRequest = _reflection.GeneratedProtocolMessageType('AverageSigmaRequest', (_message.Message,), {
+  'DESCRIPTOR' : _AVERAGESIGMAREQUEST,
+  '__module__' : 'verticox.grpc.datanode_pb2'
+  # @@protoc_insertion_point(class_scope:AverageSigmaRequest)
+  })
+_sym_db.RegisterMessage(AverageSigmaRequest)
 
 Rows = _reflection.GeneratedProtocolMessageType('Rows', (_message.Message,), {
   'DESCRIPTOR' : _ROWS,
@@ -132,34 +140,36 @@ _DATANODE = DESCRIPTOR.services_by_name['DataNode']
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
-  _SUBSET._serialized_start=539
-  _SUBSET._serialized_end=577
+  _SUBSET._serialized_start=587
+  _SUBSET._serialized_end=625
   _RECORDLEVELSIGMAREQUEST._serialized_start=32
   _RECORDLEVELSIGMAREQUEST._serialized_end=82
-  _ROWS._serialized_start=84
-  _ROWS._serialized_end=104
-  _INITIALVALUES._serialized_start=106
-  _INITIALVALUES._serialized_end=174
-  _AGGREGATEDPARAMETERS._serialized_start=176
-  _AGGREGATEDPARAMETERS._serialized_end=239
-  _LOCALPARAMETERS._serialized_start=241
-  _LOCALPARAMETERS._serialized_end=288
-  _NUMFEATURES._serialized_start=290
-  _NUMFEATURES._serialized_end=324
-  _NUMSAMPLES._serialized_start=326
-  _NUMSAMPLES._serialized_end=358
-  _BETA._serialized_start=360
-  _BETA._serialized_end=380
-  _FEATURENAMES._serialized_start=382
-  _FEATURENAMES._serialized_end=411
-  _AVERAGESIGMA._serialized_start=413
-  _AVERAGESIGMA._serialized_end=442
-  _RECORDLEVELSIGMA._serialized_start=444
-  _RECORDLEVELSIGMA._serialized_end=477
-  _PARTIALHAZARDRATIO._serialized_start=479
-  _PARTIALHAZARDRATIO._serialized_end=528
-  _EMPTY._serialized_start=530
-  _EMPTY._serialized_end=537
-  _DATANODE._serialized_start=580
-  _DATANODE._serialized_end=1069
+  _AVERAGESIGMAREQUEST._serialized_start=84
+  _AVERAGESIGMAREQUEST._serialized_end=130
+  _ROWS._serialized_start=132
+  _ROWS._serialized_end=152
+  _INITIALVALUES._serialized_start=154
+  _INITIALVALUES._serialized_end=222
+  _AGGREGATEDPARAMETERS._serialized_start=224
+  _AGGREGATEDPARAMETERS._serialized_end=287
+  _LOCALPARAMETERS._serialized_start=289
+  _LOCALPARAMETERS._serialized_end=336
+  _NUMFEATURES._serialized_start=338
+  _NUMFEATURES._serialized_end=372
+  _NUMSAMPLES._serialized_start=374
+  _NUMSAMPLES._serialized_end=406
+  _BETA._serialized_start=408
+  _BETA._serialized_end=428
+  _FEATURENAMES._serialized_start=430
+  _FEATURENAMES._serialized_end=459
+  _AVERAGESIGMA._serialized_start=461
+  _AVERAGESIGMA._serialized_end=490
+  _RECORDLEVELSIGMA._serialized_start=492
+  _RECORDLEVELSIGMA._serialized_end=525
+  _PARTIALHAZARDRATIO._serialized_start=527
+  _PARTIALHAZARDRATIO._serialized_end=576
+  _EMPTY._serialized_start=578
+  _EMPTY._serialized_end=585
+  _DATANODE._serialized_start=628
+  _DATANODE._serialized_end=1117
 # @@protoc_insertion_point(module_scope)

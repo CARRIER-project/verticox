@@ -1,5 +1,6 @@
 from collections import namedtuple
-from typing import List, Tuple
+from dataclasses import dataclass
+from typing import List, Tuple, Iterable
 
 import numpy as np
 import pandas as pd
@@ -8,8 +9,6 @@ from numpy.typing import ArrayLike
 from sksurv.datasets import load_whas500
 
 Split = namedtuple("Split", ("train", "test"))
-
-Function = namedtuple("Function", ("x", "y"))
 
 
 @np.vectorize

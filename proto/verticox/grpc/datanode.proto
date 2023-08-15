@@ -25,6 +25,10 @@ message RecordLevelSigmaRequest{
   Subset subset = 1;
 }
 
+message AverageSigmaRequest{
+  Subset subset = 1;
+}
+
 message Rows{
   repeated int32 rows = 1;
 }
