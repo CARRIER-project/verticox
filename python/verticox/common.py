@@ -11,6 +11,7 @@ Split = namedtuple("Split", ("train", "test"))
 
 Function = namedtuple("Function", ("x", "y"))
 
+
 @np.vectorize
 def _uncensored(event):
     return event[0]
