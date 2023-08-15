@@ -45,10 +45,9 @@ def test_compute_deaths_per_t_with_right_censored_returns_0_deaths():
     TestCase().assertDictEqual(result, {1: 2, 2: 0})
 
 
-@mark.parametrize('num_records,num_features,num_institutions',
-                  [(60, 2, 2),
-                   (100, 3, 3),
-                   (400, 4, 4)])
+@mark.parametrize(
+    "num_records,num_features,num_institutions", [(60, 2, 2), (100, 3, 3), (400, 4, 4)]
+)
 def test_compute_baseline_hazard(num_records, num_features, num_institutions):
     features_per_institution = num_features // num_institutions
     features, events, names = common.get_test_dataset(num_records, num_features)
@@ -59,8 +58,9 @@ def test_compute_baseline_hazard(num_records, num_features, num_institutions):
     centralized_model.fit(features, events)
 
     # Compute hazard ratio in centralized way
-    predictions = np.apply_along_axis(lambda x: compute_hazard_ratio(x, centralized_model.coef_),
-                                      1, features)
+    predictions = np.apply_along_axis(
+        lambda x: compute_hazard_ratio(x, centralized_model.coef_), 1, features
+    )
 
     centralized_t, centralized_hazard = compute_baseline_hazard(events, predictions)
 
@@ -72,18 +72,27 @@ def test_compute_baseline_hazard(num_records, num_features, num_institutions):
         subfeatures = features[:, feature_idx:feature_idx_end]
         coefs = centralized_model.coef_[feature_idx:feature_idx_end]
 
-        record_level_sigma = np.apply_along_axis(lambda x: np.dot(x, coefs),
-                                                 axis=1, arr=subfeatures)
+        record_level_sigma = np.apply_along_axis(
+            lambda x: np.dot(x, coefs), axis=1, arr=subfeatures
+        )
 
         datanode = MagicMock()
         datanode.getNumSamples.return_value = NumSamples(numSamples=num_records)
-        datanode.getRecordLevelSigma.return_value = RecordLevelSigma(sigma=record_level_sigma)
+        datanode.getRecordLevelSigma.return_value = RecordLevelSigma(
+            sigma=record_level_sigma
+        )
         mock_datanodes.append(datanode)
 
-    aggregator = Aggregator(institutions=mock_datanodes, event_times=event_times,
-                            event_happened=event_happened)
+    aggregator = Aggregator(
+        institutions=mock_datanodes,
+        event_times=event_times,
+        event_happened=event_happened,
+    )
 
-    decentralized_t, decentralized_hazard = aggregator.compute_baseline_hazard_function()
+    (
+        decentralized_t,
+        decentralized_hazard,
+    ) = aggregator.compute_baseline_hazard_function()
 
     np.testing.assert_almost_equal(decentralized_t, centralized_t)
     np.testing.assert_almost_equal(decentralized_hazard, centralized_hazard, decimal=5)
@@ -113,10 +122,9 @@ def compute_baseline_hazard(events, predictions):
     return steps, hazard
 
 
-@mark.parametrize('num_records,num_features,num_institutions',
-                  [(60, 2, 2),
-                   (100, 3, 3),
-                   (400, 4, 4)])
+@mark.parametrize(
+    "num_records,num_features,num_institutions", [(60, 2, 2), (100, 3, 3), (400, 4, 4)]
+)
 def test_predict_risk_score(num_records, num_features, num_institutions):
     features_per_institution = num_features // num_institutions
     features, events, names = common.get_test_dataset(num_records, num_features)
@@ -139,19 +147,26 @@ def test_predict_risk_score(num_records, num_features, num_institutions):
         subfeatures = features[:, feature_idx:feature_idx_end]
         coefs = centralized_model.coef_[feature_idx:feature_idx_end]
 
-        record_level_sigma = np.apply_along_axis(lambda x: np.dot(x, coefs),
-                                                 axis=1, arr=subfeatures)
+        record_level_sigma = np.apply_along_axis(
+            lambda x: np.dot(x, coefs), axis=1, arr=subfeatures
+        )
 
         datanode = MagicMock()
         datanode.getNumSamples.return_value = NumSamples(numSamples=num_records)
-        datanode.getRecordLevelSigma.return_value = RecordLevelSigma(sigma=record_level_sigma)
-        datanode.computePartialHazardRatio.return_value = \
-            PartialHazardRatio(partialHazardRatios=record_level_sigma[0:1])
+        datanode.getRecordLevelSigma.return_value = RecordLevelSigma(
+            sigma=record_level_sigma
+        )
+        datanode.computePartialHazardRatio.return_value = PartialHazardRatio(
+            partialHazardRatios=record_level_sigma[0:1]
+        )
 
         mock_datanodes.append(datanode)
 
-    aggregator = Aggregator(institutions=mock_datanodes, event_times=event_times,
-                            event_happened=event_happened)
+    aggregator = Aggregator(
+        institutions=mock_datanodes,
+        event_times=event_times,
+        event_happened=event_happened,
+    )
 
     decentralized_result = aggregator.predict_risk_score([0])
 

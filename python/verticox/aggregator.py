@@ -8,7 +8,12 @@ from numpy.typing import ArrayLike
 from vantage6.common import info
 
 from verticox.common import group_samples_at_risk, group_samples_on_event_time
-from verticox.grpc.datanode_pb2 import Empty, AggregatedParameters, InitialValues, Subset
+from verticox.grpc.datanode_pb2 import (
+    Empty,
+    AggregatedParameters,
+    InitialValues,
+    Subset,
+)
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 from verticox.likelihood import find_z
 
@@ -33,9 +38,15 @@ class Aggregator:
             state. This will have to be fixed later.
     """
 
-    def __init__(self, institutions: List[DataNodeStub], event_times: np.array,
-                 event_happened: np.array, convergence_precision: float = DEFAULT_PRECISION,
-                 newton_raphson_precision: float = DEFAULT_PRECISION, rho=RHO):
+    def __init__(
+        self,
+        institutions: List[DataNodeStub],
+        event_times: np.array,
+        event_happened: np.array,
+        convergence_precision: float = DEFAULT_PRECISION,
+        newton_raphson_precision: float = DEFAULT_PRECISION,
+        rho=RHO,
+    ):
         """
         Initialize regular verticox aggregator. Note that this type of aggregator needs access to
         the event times of the samples.
@@ -58,8 +69,12 @@ class Aggregator:
         self.Rt = group_samples_at_risk(event_times)
         self.Dt = group_samples_on_event_time(event_times, event_happened)
         # I only need unique event times, therefore I use Rt.keys()
-        self.relevant_event_times = Aggregator._group_relevant_event_times(self.Rt.keys())
-        self.deaths_per_t = Aggregator._compute_deaths_per_t(event_times, event_happened)
+        self.relevant_event_times = Aggregator._group_relevant_event_times(
+            self.Rt.keys()
+        )
+        self.deaths_per_t = Aggregator._compute_deaths_per_t(
+            event_times, event_happened
+        )
         # Initializing parameters
         self.z = np.zeros(self.num_samples)
         self.z_old = self.z
@@ -67,7 +82,7 @@ class Aggregator:
         self.sigma = np.zeros(self.num_samples)
 
         self.num_iterations = 0
-        logger.debug(f'Institution stubs: {self.institutions}')
+        logger.debug(f"Institution stubs: {self.institutions}")
 
         beta = np.full(self.num_samples, BETA)
         z = np.full(self.num_samples, Z)
@@ -81,19 +96,22 @@ class Aggregator:
             i.prepare(initial_values)
 
     @staticmethod
-    def _group_relevant_event_times(unique_event_times) -> \
-            types.DictType(types.float64, types.float64[:]):
+    def _group_relevant_event_times(
+        unique_event_times,
+    ) -> types.DictType(types.float64, types.float64[:]):
         result = typed.Dict.empty(types.float64, types.float64[:])
 
         for current_t in unique_event_times:
-            result[current_t] = np.array([t for t in unique_event_times if t <= current_t])
+            result[current_t] = np.array(
+                [t for t in unique_event_times if t <= current_t]
+            )
 
         return result
 
     @staticmethod
-    def _compute_deaths_per_t(event_times: ArrayLike, event_happened: ArrayLike) -> \
-            types.DictType(types.float64, types.int64):
-
+    def _compute_deaths_per_t(
+        event_times: ArrayLike, event_happened: ArrayLike
+    ) -> types.DictType(types.float64, types.int64):
         deaths_per_t = typed.Dict.empty(types.float64, types.int64)
 
         for t, event in zip(event_times, event_happened):
@@ -117,10 +135,12 @@ class Aggregator:
         progress = Progress(max_value=0)
 
         while True:
-            logger.info('\n\n----------------------------------------\n'
-                        '          Starting new iteration...'
-                        '\n----------------------------------------')
-            info(f'Starting iteration num {self.num_iterations}')
+            logger.info(
+                "\n\n----------------------------------------\n"
+                "          Starting new iteration..."
+                "\n----------------------------------------"
+            )
+            info(f"Starting iteration num {self.num_iterations}")
 
             self.fit_one()
 
@@ -129,32 +149,49 @@ class Aggregator:
             z_diff = np.linalg.norm(self.z - self.z_old)
             z_sigma_diff = np.linalg.norm(self.z - self.sigma)
 
-            logger.debug(f'z_diff: {z_diff}')
-            logger.debug(f'sigma_diff: {z_sigma_diff}')
-            info(f'z_diff: {z_diff}')
-            info(f'sigma_diff: {z_sigma_diff}')
+            logger.debug(f"z_diff: {z_diff}")
+            logger.debug(f"sigma_diff: {z_sigma_diff}")
+            info(f"z_diff: {z_diff}")
+            info(f"sigma_diff: {z_sigma_diff}")
 
-            if z_diff <= self.convergence_precision and z_sigma_diff <= self.convergence_precision:
+            if (
+                z_diff <= self.convergence_precision
+                and z_sigma_diff <= self.convergence_precision
+            ):
                 break
 
             previous_time = current_time
             current_time = time.time()
             diff = current_time - previous_time
             total_runtime = current_time - start_time
-            progress_value = np.log10(self.convergence_precision / max(z_diff, z_sigma_diff))
+            progress_value = np.log10(
+                self.convergence_precision / max(z_diff, z_sigma_diff)
+            )
             progress.update(progress_value)
 
-            info(f'Completed current iteration after {diff} seconds')
-            info(f'Iterations are taking on average {total_runtime / self.num_iterations} seconds '
-                 f'per run')
-            info(f'Current progress: {100 * progress.get_value():.2f}%')
+            info(f"Completed current iteration after {diff} seconds")
+            info(
+                f"Iterations are taking on average {total_runtime / self.num_iterations} seconds "
+                f"per run"
+            )
+            info(f"Current progress: {100 * progress.get_value():.2f}%")
 
-        logger.info(f'Finished training after {self.num_iterations} iterations')
+        logger.info(f"Finished training after {self.num_iterations} iterations")
 
     def fit_one(self):
         # TODO: Parallelize
-        sigma_per_institution = np.zeros((self.num_institutions, self.num_samples,))
-        gamma_per_institution = np.zeros((self.num_institutions, self.num_samples,))
+        sigma_per_institution = np.zeros(
+            (
+                self.num_institutions,
+                self.num_samples,
+            )
+        )
+        gamma_per_institution = np.zeros(
+            (
+                self.num_institutions,
+                self.num_samples,
+            )
+        )
 
         for idx, institution in enumerate(self.institutions):
             updated = institution.fit(Empty())
@@ -165,24 +202,40 @@ class Aggregator:
         self.gamma = self.aggregate_gammas(gamma_per_institution)
 
         self.z_old = self.z
-        self.z = find_z(self.gamma, self.sigma, self.rho, self.Rt, self.z,
-                        self.num_institutions, self.event_times, self.Dt,
-                        self.deaths_per_t, self.relevant_event_times, self.newton_raphson_precision)
+        self.z = find_z(
+            self.gamma,
+            self.sigma,
+            self.rho,
+            self.Rt,
+            self.z,
+            self.num_institutions,
+            self.event_times,
+            self.Dt,
+            self.deaths_per_t,
+            self.relevant_event_times,
+            self.newton_raphson_precision,
+        )
 
-        z_per_institution = self.compute_z_per_institution(gamma_per_institution,
-                                                           sigma_per_institution, self.z)
+        z_per_institution = self.compute_z_per_institution(
+            gamma_per_institution, sigma_per_institution, self.z
+        )
 
         # Update parameters at datanodes
         for idx, node in enumerate(self.institutions):
-            params = AggregatedParameters(gamma=self.gamma.tolist(), sigma=self.sigma.tolist(),
-                                          z=z_per_institution[idx].tolist())
+            params = AggregatedParameters(
+                gamma=self.gamma.tolist(),
+                sigma=self.sigma.tolist(),
+                z=z_per_institution[idx].tolist(),
+            )
             node.updateParameters(params)
             node.computeGamma(Empty())
 
         self.num_iterations += 1
-        logger.debug(f'Num iterations: {self.num_iterations}')
+        logger.debug(f"Num iterations: {self.num_iterations}")
 
-    def compute_z_per_institution(self, gamma_per_institution, sigma_per_institution, z):
+    def compute_z_per_institution(
+        self, gamma_per_institution, sigma_per_institution, z
+    ):
         """
         Equation 11
         Args:
@@ -197,16 +250,22 @@ class Aggregator:
 
         for institution in range(self.num_institutions):
             for sample_idx in range(self.num_samples):
-                first_part = z[sample_idx] + sigma_per_institution[institution, sample_idx]
+                first_part = (
+                    z[sample_idx] + sigma_per_institution[institution, sample_idx]
+                )
                 second_part = gamma_per_institution[institution, sample_idx] / self.rho
 
                 # TODO: This only needs to be computed once per sample
-                third_part = sigma_per_institution[:, sample_idx] + \
-                             gamma_per_institution[:, sample_idx] / self.rho
+                third_part = (
+                    sigma_per_institution[:, sample_idx]
+                    + gamma_per_institution[:, sample_idx] / self.rho
+                )
                 third_part = third_part.sum()
                 third_part = third_part / self.num_institutions
 
-                z_per_institution[institution, sample_idx] = first_part + second_part - third_part
+                z_per_institution[institution, sample_idx] = (
+                    first_part + second_part - third_part
+                )
 
         return z_per_institution
 
@@ -238,12 +297,12 @@ class Aggregator:
     def get_betas(self) -> Dict[str, float]:
         betas = []
         names = []
-        info(f'Getting betas from {len(self.institutions)} institutions')
+        info(f"Getting betas from {len(self.institutions)} institutions")
         for institution in self.institutions:
             current_betas = institution.getBeta(Empty()).beta
             try:
                 current_names = institution.getFeatureNames(Empty()).names
-                info(f'Current names: {current_names}')
+                info(f"Current names: {current_names}")
             except Exception:
                 current_names = [None] * len(current_betas)
             betas += current_betas
@@ -270,7 +329,7 @@ class Aggregator:
         return baseline_x, baseline_y
 
     def predict_risk_score(self, indices):
-        result = np.zeros_like(indices, dtype='float')
+        result = np.zeros_like(indices, dtype="float")
         for institution in self.institutions:
             subresult = institution.computePartialHazardRatio(Subset(indices=indices))
             result += np.array(subresult.partialHazardRatios)
@@ -295,4 +354,6 @@ class Progress:
         self.current_value = value
 
     def get_value(self):
-        return (self.current_value - self.initial_value) / (self.max_value - self.initial_value)
+        return (self.current_value - self.initial_value) / (
+            self.max_value - self.initial_value
+        )

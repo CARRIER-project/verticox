@@ -10,14 +10,14 @@ def run_verticox_v6(host, port, user, password, private_key):
     while True:
         tasks = client.task.list()
 
-        if len(tasks['data']) == 0:
+        if len(tasks["data"]) == 0:
             break
 
         print(f'Deleting {len(tasks["data"])} tasks')
 
-        for t in tasks['data']:
-            client.task.delete(t['id'])
+        for t in tasks["data"]:
+            client.task.delete(t["id"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     clize.run(run_verticox_v6)
