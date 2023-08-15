@@ -7,14 +7,17 @@ from numba import typed, types
 from numpy.typing import ArrayLike
 from sksurv.datasets import load_whas500
 
-Split = namedtuple('Split', ('train', 'test'))
+Split = namedtuple("Split", ("train", "test"))
+
 
 @np.vectorize
 def _uncensored(event):
     return event[0]
 
 
-def group_samples_at_risk(event_times: ArrayLike) -> types.DictType(types.float64, types.int64[:]):
+def group_samples_at_risk(
+    event_times: ArrayLike,
+) -> types.DictType(types.float64, types.int64[:]):
     """
     Groups the indices of samples on whether they are at risk at a certain time.
 
@@ -39,8 +42,9 @@ def group_samples_at_risk(event_times: ArrayLike) -> types.DictType(types.float6
     return grouped
 
 
-def group_samples_on_event_time(event_times, event_happened) -> \
-        types.DictType(types.float64, types.int64[:]):
+def group_samples_on_event_time(
+    event_times, event_happened
+) -> types.DictType(types.float64, types.int64[:]):
     """
     Group samples based on event time. Right-censored samples are excluded.
 
@@ -65,8 +69,9 @@ def group_samples_on_event_time(event_times, event_happened) -> \
     return typed_Dt
 
 
-def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True) \
-        -> Tuple[ArrayLike, ArrayLike, List]:
+def get_test_dataset(
+    limit=None, feature_limit=None, include_right_censored=True
+) -> Tuple[ArrayLike, ArrayLike, List]:
     """
     Prepare and provide the whas500 dataset for testing purposes.
 
@@ -95,7 +100,7 @@ def get_test_dataset(limit=None, feature_limit=None, include_right_censored=True
         limit_per_type = limit // 2
 
         non_censored_idx = non_censored_idx[:limit_per_type]
-        right_censored_idx = right_censored_idx[:(limit - limit_per_type)]
+        right_censored_idx = right_censored_idx[: (limit - limit_per_type)]
 
         all_idx = np.concatenate([non_censored_idx, right_censored_idx])
 

@@ -6,14 +6,14 @@ from clize import run
 from test_constants import OUTCOME_TIME_COLUMN, OUTCOME, PRECISION
 from verticox.client import VerticoxClient
 
-IMAGE = 'harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox'
-DATABASE = 'parquet'
+IMAGE = "harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox"
+DATABASE = "parquet"
 TIMEOUT = 20 * 60
-TARGET_COEFS = {'age': 0.05566997593047372, 'bmi': -0.0908968266847538}
+TARGET_COEFS = {"age": 0.05566997593047372, "bmi": -0.0908968266847538}
 
 
-def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest'):
-    image = f'{IMAGE}:{tag}'
+def run_verticox_v6(host, port, user, password, *, private_key=None, tag="latest"):
+    image = f"{IMAGE}:{tag}"
 
     client = v6client.Client(host, port)
 
@@ -21,7 +21,7 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest
     client.setup_encryption(private_key)
     nodes = client.node.list(is_online=True)
 
-    orgs = [n['id'] for n in nodes['data']]
+    orgs = [n["id"] for n in nodes["data"]]
     orgs = sorted(orgs)
     central_node = orgs[0]
     datanodes = orgs[1:]
@@ -33,20 +33,25 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest
     column_name_results = task.get_result()
 
     for r in column_name_results:
-        print(f'organization: {r.organization}, columns: {r.content}')
+        print(f"organization: {r.organization}, columns: {r.content}")
 
     feature_columns = list(TARGET_COEFS.keys())
 
-    task = verticox_client.compute(feature_columns, OUTCOME_TIME_COLUMN, OUTCOME,
-                                   datanodes=datanodes, central_node=central_node,
-                                   precision=PRECISION,
-                                   database=DATABASE)
+    task = verticox_client.compute(
+        feature_columns,
+        OUTCOME_TIME_COLUMN,
+        OUTCOME,
+        datanodes=datanodes,
+        central_node=central_node,
+        precision=PRECISION,
+        database=DATABASE,
+    )
 
     results = task.get_result(timeout=TIMEOUT)
     for result in results:
-        print(f'Organization: {result.organization}')
-        print(f'Log: {result.log}')
-        print(f'Content: {json.dumps(result.content)}')
+        print(f"Organization: {result.organization}")
+        print(f"Log: {result.log}")
+        print(f"Content: {json.dumps(result.content)}")
 
     # Results should be close to [ 0.06169848, -0.00783813]
 
@@ -56,5 +61,5 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag='latest
         np.testing.assert_almost_equal(value, TARGET_COEFS[key], decimal=4)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run(run_verticox_v6)

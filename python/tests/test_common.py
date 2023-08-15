@@ -7,7 +7,18 @@ from verticox import common
 
 
 def test_group_samples_at_risk_numbers_descend():
-    event_times = np.array([4, 7, 7, 6, 7, 23, 2, 4, ])
+    event_times = np.array(
+        [
+            4,
+            7,
+            7,
+            6,
+            7,
+            23,
+            2,
+            4,
+        ]
+    )
     # Testing if the resulting list descends in numbers
     previous_length = len(event_times) + 1
 
@@ -32,7 +43,7 @@ def test_group_samples_at_risk():
     assert result.keys() == target.keys()
 
     for k, v in result.items():
-        print(f'Comparing {k}, {v} with {target[k]}')
+        print(f"Comparing {k}, {v} with {target[k]}")
         assert_array_equal(v, np.array(target[k]))
 
 

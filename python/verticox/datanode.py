@@ -14,17 +14,31 @@ from vantage6.tools.util import info
 
 import verticox.ssl
 from verticox.common import Split
-from verticox.grpc.datanode_pb2 import LocalParameters, NumFeatures, \
-    NumSamples, Empty, Beta, FeatureNames, RecordLevelSigma, AverageSigma, Subset, \
-    PartialHazardRatio, InitialValues, Rows
-from verticox.grpc.datanode_pb2_grpc import DataNodeServicer, add_DataNodeServicer_to_server
+from verticox.grpc.datanode_pb2 import (
+    LocalParameters,
+    NumFeatures,
+    NumSamples,
+    Empty,
+    Beta,
+    FeatureNames,
+    RecordLevelSigma,
+    AverageSigma,
+    Subset,
+    PartialHazardRatio,
+    InitialValues,
+    Rows,
+)
+from verticox.grpc.datanode_pb2_grpc import (
+    DataNodeServicer,
+    add_DataNodeServicer_to_server,
+)
 from verticox.scalarproduct import NPartyScalarProductClient
 
 logger = logging.getLogger(__name__)
 DEFAULT_PORT = 7777
 GRACE = 30
 TIMEOUT = 3600
-DEFAULT_DATA = 'whas500'
+DEFAULT_DATA = "whas500"
 
 
 class DataNodeException(Exception):
@@ -45,10 +59,16 @@ class DataNode(DataNodeServicer):
         aggregated_gamma: np.array = None
         sigma: float = None
 
-    def __init__(self, all_features: np.array, feature_names: List[str],
-                 name=None, server=None, include_column: Optional[str] = None,
-                 include_value: bool = True,
-                 commodity_address: str = None):
+    def __init__(
+        self,
+        all_features: np.array,
+        feature_names: List[str],
+        name=None,
+        server=None,
+        include_column: Optional[str] = None,
+        include_value: bool = True,
+        commodity_address: str = None,
+    ):
         """
 
         Args:
@@ -58,9 +78,9 @@ class DataNode(DataNodeServicer):
         """
 
         self.name = name
-        self._logger = logging.getLogger(f'{__name__} :: {self.name}')
+        self._logger = logging.getLogger(f"{__name__} :: {self.name}")
         self._logger.setLevel(logging.DEBUG)
-        self._logger.debug(f'Initializing datanode {self.name}')
+        self._logger.debug(f"Initializing datanode {self.name}")
         self._all_data = all_features
         self._censor_name = include_column
         self._censor_value = include_value
@@ -116,18 +136,21 @@ class DataNode(DataNodeServicer):
         num_samples = self.split.train.shape[0]
         covariates_multiplied = DataNode._multiply_features(self.split.train)
 
-        sum_Dt = self._compute_sum_Dt_n_party_scalar_product(self.feature_names,
-                                                             self._censor_name,
-                                                             self._censor_value,
-                                                             self.n_party_address)
+        sum_Dt = self._compute_sum_Dt_n_party_scalar_product(
+            self.feature_names,
+            self._censor_name,
+            self._censor_value,
+            self.n_party_address,
+        )
 
-        self.state = DataNode.State(features_multiplied=covariates_multiplied,
-                                    gamma=np.array(request.gamma),
-                                    z=np.full((num_samples,), request.z),
-                                    beta=np.array(request.beta),
-                                    rho=request.rho,
-                                    sum_Dt=sum_Dt,
-                                    )
+        self.state = DataNode.State(
+            features_multiplied=covariates_multiplied,
+            gamma=np.array(request.gamma),
+            z=np.full((num_samples,), request.z),
+            beta=np.array(request.beta),
+            rho=request.rho,
+            sum_Dt=sum_Dt,
+        )
 
         return Empty()
 
@@ -151,7 +174,7 @@ class DataNode(DataNodeServicer):
 
     @staticmethod
     def _compute_sum_Dt(Dt, features):
-        logger.debug('Computing sum dt locally')
+        logger.debug("Computing sum dt locally")
         # TODO: I think this can be simpler but for debugging's sake I will follow the paper
         result = np.zeros((features.shape[1]))
 
@@ -162,32 +185,40 @@ class DataNode(DataNodeServicer):
         return result
 
     @staticmethod
-    def _compute_sum_Dt_n_party_scalar_product(local_feature_names, censor_feature,
-                                               censor_value, commodity_address):
-        logger.info('Computing sum Dt with n party scalar product')
+    def _compute_sum_Dt_n_party_scalar_product(
+        local_feature_names, censor_feature, censor_value, commodity_address
+    ):
+        logger.info("Computing sum Dt with n party scalar product")
         client = NPartyScalarProductClient(commodity_address=commodity_address)
 
-        result = client.sum_relevant_values(local_feature_names, censor_feature,
-                                            censor_value)
+        result = client.sum_relevant_values(
+            local_feature_names, censor_feature, censor_value
+        )
 
         return np.array(result, dtype=float)
 
     def fit(self, request, context=None):
         if not self.prepared:
-            raise DataNodeException('Datanode has not been prepared!')
+            raise DataNodeException("Datanode has not been prepared!")
 
-        self._logger.debug('Performing local update...')
+        self._logger.debug("Performing local update...")
 
-        sigma, beta = DataNode._local_update(self.split.train, self.state.z,
-                                             self.state.gamma,
-                                             self.state.rho, self.state.features_multiplied,
-                                             self.state.sum_Dt)
+        sigma, beta = DataNode._local_update(
+            self.split.train,
+            self.state.z,
+            self.state.gamma,
+            self.state.rho,
+            self.state.features_multiplied,
+            self.state.sum_Dt,
+        )
 
         self.state.sigma = sigma
         self.state.beta = beta
 
-        response = LocalParameters(gamma=self.state.gamma.tolist(), sigma=sigma.tolist())
-        self._logger.debug('Finished local update, returning results.')
+        response = LocalParameters(
+            gamma=self.state.gamma.tolist(), sigma=sigma.tolist()
+        )
+        self._logger.debug("Finished local update, returning results.")
 
         return response
 
@@ -208,8 +239,9 @@ class DataNode(DataNodeServicer):
         Returns:
 
         """
-        self.state.gamma = self.state.aggregated_gamma + self.state.rho * \
-                           (self.state.sigma - self.state.z)
+        self.state.gamma = self.state.aggregated_gamma + self.state.rho * (
+            self.state.sigma - self.state.z
+        )
 
         return Empty()
 
@@ -222,12 +254,12 @@ class DataNode(DataNodeServicer):
             num_samples = self.split.train.shape[0]
             return NumSamples(numSamples=num_samples)
 
-        raise DataNodeException('Datanode has not been prepared yet!')
+        raise DataNodeException("Datanode has not been prepared yet!")
 
     def getBeta(self, request, context=None):
-        self._logger.debug('Returning beta')
+        self._logger.debug("Returning beta")
         result = self.state.beta.tolist()
-        self._logger.debug('Converted beta to list')
+        self._logger.debug("Converted beta to list")
         return Beta(beta=result)
 
     def kill(self, request, context=None):
@@ -237,13 +269,16 @@ class DataNode(DataNodeServicer):
 
     def getFeatureNames(self, request, context: grpc.ServicerContext):
         if self.feature_names is not None:
-            unicode_names = [n.encode('utf-8') for n in self.feature_names]
+            unicode_names = [n.encode("utf-8") for n in self.feature_names]
             return FeatureNames(names=unicode_names)
         else:
-            context.abort(grpc.StatusCode.NOT_FOUND, 'This datanode does not have feature names')
+            context.abort(
+                grpc.StatusCode.NOT_FOUND, "This datanode does not have feature names"
+            )
 
-    def getRecordLevelSigma(self, request,
-                            context: grpc.ServicerContext = None) -> RecordLevelSigma:
+    def getRecordLevelSigma(
+        self, request, context: grpc.ServicerContext = None
+    ) -> RecordLevelSigma:
         """
         Get the sigma value for every record. Sigma is defined as :math: `\beta_k \cdot x`
 
@@ -273,11 +308,12 @@ class DataNode(DataNodeServicer):
 
     @staticmethod
     def compute_average_sigma(features, beta):
-
         sigmas = np.tensordot(features, beta, (1, 0))
         return np.average(sigmas, axis=0)
 
-    def getPartialHazardRatio(self, request: Subset, context=None) -> PartialHazardRatio:
+    def getPartialHazardRatio(
+        self, request: Subset, context=None
+    ) -> PartialHazardRatio:
         """
         Compute the hazard ratio of a subset of records
         :param request: The indices of the subset of records
@@ -286,8 +322,9 @@ class DataNode(DataNodeServicer):
         """
         indices = list(request.indices)
 
-        sigmas = DataNode.compute_partial_hazard_ratio(self.state.data_train,
-                                                       self.state.beta, indices)
+        sigmas = DataNode.compute_partial_hazard_ratio(
+            self.state.data_train, self.state.beta, indices
+        )
 
         return PartialHazardRatio(partialHazardRatios=sigmas.tolist())
 
@@ -307,15 +344,23 @@ class DataNode(DataNodeServicer):
         # return np.square(features).sum()
 
     @staticmethod
-    def _compute_beta(features: np.array, z: np.array, gamma: np.array, rho,
-                      features_multiplied, sum_Dt):
+    def _compute_beta(
+        features: np.array,
+        z: np.array,
+        gamma: np.array,
+        rho,
+        features_multiplied,
+        sum_Dt,
+    ):
         first_component = np.linalg.inv(rho * features_multiplied)
 
         second_component = np.zeros((features.shape[1],))
 
         for sample_idx in range(features.shape[0]):
-            second_component = second_component + \
-                               (rho * z[sample_idx] - gamma[sample_idx]) * features[sample_idx]
+            second_component = (
+                second_component
+                + (rho * z[sample_idx] - gamma[sample_idx]) * features[sample_idx]
+            )
 
         second_component = second_component + sum_Dt
 
@@ -330,26 +375,49 @@ class DataNode(DataNodeServicer):
         return sigma
 
     @staticmethod
-    def _local_update(features: np.array, z: np.array, gamma: np.array, rho,
-                      features_multiplied, sum_Dt):
-        beta = DataNode._compute_beta(features, z, gamma, rho, features_multiplied, sum_Dt)
+    def _local_update(
+        features: np.array,
+        z: np.array,
+        gamma: np.array,
+        rho,
+        features_multiplied,
+        sum_Dt,
+    ):
+        beta = DataNode._compute_beta(
+            features, z, gamma, rho, features_multiplied, sum_Dt
+        )
 
         return DataNode._compute_sigma(beta, features), beta
 
 
-def serve(*, data: np.array, feature_names=None,
-          include_column=None, include_value=True,
-          commodity_address=None, port=DEFAULT_PORT,
-          timeout=TIMEOUT, secure=True, address=None):
+def serve(
+    *,
+    data: np.array,
+    feature_names=None,
+    include_column=None,
+    include_value=True,
+    commodity_address=None,
+    port=DEFAULT_PORT,
+    timeout=TIMEOUT,
+    secure=True,
+    address=None,
+):
     logging.basicConfig(level=logging.DEBUG)
-    info(f'Data shape {data.shape}')
+    info(f"Data shape {data.shape}")
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
     add_DataNodeServicer_to_server(
-        DataNode(all_features=data, feature_names=feature_names, include_column=include_column,
-                 include_value=include_value, commodity_address=commodity_address, server=server),
-        server)
+        DataNode(
+            all_features=data,
+            feature_names=feature_names,
+            include_column=include_column,
+            include_value=include_value,
+            commodity_address=commodity_address,
+            server=server,
+        ),
+        server,
+    )
 
-    server_endpoint = f'[::]:{port}'
+    server_endpoint = f"[::]:{port}"
 
     if secure:
         private_key, cert_chain = verticox.ssl.generate_self_signed_certificate(address)
@@ -359,19 +427,24 @@ def serve(*, data: np.array, feature_names=None,
 
     else:
         server.add_insecure_port(server_endpoint)
-    info(f'Starting datanode on port {port} with timeout {timeout}')
+    info(f"Starting datanode on port {port} with timeout {timeout}")
     before = time.time()
     server.start()
     server.wait_for_termination(timeout=timeout)
     total_time = time.time() - before
-    info(f'Stopped datanode after {total_time} seconds')
+    info(f"Stopped datanode after {total_time} seconds")
 
 
 def serve_standalone(*, data_path, address, commodity_address, include_column):
     data = pd.read_parquet(data_path)
-    serve(data=data.values, feature_names=data.columns, address=address,
-          commodity_address=commodity_address, include_column=include_column)
+    serve(
+        data=data.values,
+        feature_names=data.columns,
+        address=address,
+        commodity_address=commodity_address,
+        include_column=include_column,
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     clize.run(serve_standalone)

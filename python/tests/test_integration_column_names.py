@@ -3,11 +3,11 @@ from clize import run
 
 from verticox.client import VerticoxClient
 
-IMAGE = 'harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox'
+IMAGE = "harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox"
 
 
-def run_column_names_v6(host, port, user, password, private_key, tag='latest'):
-    image = f'{IMAGE}:{tag}'
+def run_column_names_v6(host, port, user, password, private_key, tag="latest"):
+    image = f"{IMAGE}:{tag}"
 
     client = v6client.Client(host, port)
 
@@ -15,7 +15,7 @@ def run_column_names_v6(host, port, user, password, private_key, tag='latest'):
     client.setup_encryption(private_key)
     nodes = client.node.list(is_online=True)
 
-    orgs = [n['id'] for n in nodes['data']]
+    orgs = [n["id"] for n in nodes["data"]]
     central_node = orgs[0]
     datanodes = orgs[1:]
 
@@ -26,5 +26,5 @@ def run_column_names_v6(host, port, user, password, private_key, tag='latest'):
     print(task.get_result())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run(run_column_names_v6)

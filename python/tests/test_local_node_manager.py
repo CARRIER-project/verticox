@@ -10,12 +10,12 @@ from sksurv.util import Surv
 from test_constants import CONVERGENCE_PRECISION
 from verticox.node_manager import LocalNodeManager
 
-TEST_DATA_PATH = 'mock/data'
-COVARIATE_FILES = ['data_1.parquet', 'data_2.parquet']
-OUTCOME_FILE = 'outcome.parquet'
+TEST_DATA_PATH = "mock/data"
+COVARIATE_FILES = ["data_1.parquet", "data_2.parquet"]
+OUTCOME_FILE = "outcome.parquet"
 DECIMAL_PRECISION = 4
-TARGET_COEFS = {'age': 0.05566997593047372, 'bmi': -0.0908968266847538}
-SELECTED_TARGET_COEFS = {'bmi': -0.15316136, 'age': 0.05067197}
+TARGET_COEFS = {"age": 0.05566997593047372, "bmi": -0.0908968266847538}
+SELECTED_TARGET_COEFS = {"bmi": -0.15316136, "age": 0.05067197}
 
 NUM_SELECTED_ROWS = 20
 
@@ -30,7 +30,9 @@ def select_rows(data_length, num_rows=NUM_SELECTED_ROWS):
     Returns:
     """
     if num_rows > data_length:
-        raise Exception(f'Selecting too many rows. There are only {data_length} available.')
+        raise Exception(
+            f"Selecting too many rows. There are only {data_length} available."
+        )
 
     num_start = num_rows // 2
     num_end = num_rows - num_start
@@ -50,7 +52,7 @@ def compute_centralized():
     full_covariates = pd.concat(all_tables, axis=1)
 
     outcome = pd.read_parquet(Path(TEST_DATA_PATH) / OUTCOME_FILE)
-    outcome_structured = Surv.from_dataframe('event_happened', 'event_time', outcome)
+    outcome_structured = Surv.from_dataframe("event_happened", "event_time", outcome)
 
     model = CoxPHSurvivalAnalysis()
 
@@ -64,8 +66,8 @@ def run_test_full_dataset(node_manager: LocalNodeManager):
     node_manager.reset()
     node_manager.fit()
     coefs = node_manager.betas
-    logging.info(f'Betas: {coefs}')
-    logging.info(f'Baseline hazard ratio {node_manager.baseline_hazard}')
+    logging.info(f"Betas: {coefs}")
+    logging.info(f"Baseline hazard ratio {node_manager.baseline_hazard}")
 
     for key, value in TARGET_COEFS.items():
         np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
@@ -82,8 +84,8 @@ def run_test_selection(node_manager: LocalNodeManager, full_data_length):
     node_manager.fit()
     coefs = node_manager.betas
 
-    logging.info(f'Betas: {coefs}')
-    logging.info(f'Baseline hazard ratio {node_manager.baseline_hazard}')
+    logging.info(f"Betas: {coefs}")
+    logging.info(f"Baseline hazard ratio {node_manager.baseline_hazard}")
     for key, value in SELECTED_TARGET_COEFS.items():
         np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
 
@@ -91,16 +93,20 @@ def run_test_selection(node_manager: LocalNodeManager, full_data_length):
 def run_locally(data, event_times_column, event_happened_column):
     df = pd.read_parquet(data)
 
-    node_manager = LocalNodeManager(df, event_times_column, event_happened_column,
-                                    {'convergence_precision': CONVERGENCE_PRECISION})
+    node_manager = LocalNodeManager(
+        df,
+        event_times_column,
+        event_happened_column,
+        {"convergence_precision": CONVERGENCE_PRECISION},
+    )
 
     node_manager.start_nodes()
 
     run_test_full_dataset(node_manager)
     run_test_selection(node_manager, df.shape[0])
 
-    print('Test has passed.')
+    print("Test has passed.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     clize.run(run_locally)
