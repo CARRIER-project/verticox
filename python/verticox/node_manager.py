@@ -106,6 +106,7 @@ class BaseNodeManager(ABC):
         self._scalar_product_client = None
         self.split: Split = None
         self._python_addresses = None
+        self._aggregator: Union[None, Aggregator] = None
 
     @property
     def data(self):
@@ -162,6 +163,7 @@ class BaseNodeManager(ABC):
         self._reset_java_nodes(train_selection)
         self._reset_python_nodes(train_selection)
 
+        self._aggregator = None
     def _reset_java_nodes(self, training_selection: Union[None, Iterable[int]] = None):
         if training_selection is None:
             selection = np.ones(self.num_total_records, dtype=bool)
@@ -210,21 +212,26 @@ class BaseNodeManager(ABC):
     def fit(self):
         print(self.split.train.time)
         print(self.split.train.event_happened)
-        aggregator = Aggregator(
+        self._aggregator = Aggregator(
             self.stubs,
             self.split.train.time,
             self.split.train.event_happened,
             **self._aggregator_kwargs,
         )
 
-        aggregator.fit()
+        self._aggregator.fit()
 
         info(f"Finished fitting model")
 
-        betas = aggregator.betas_
-        baseline_hazard = aggregator.baseline_hazard_function_
+        betas = self._aggregator.betas_
+        baseline_hazard = self._aggregator.baseline_hazard_function_
 
         self._result = Result(betas=betas, baseline_hazard=baseline_hazard)
+
+    def test(self):
+        cumulative_survival = self._aggregator.predict_cumulative_survival(Subset.TEST)
+
+        return cumulative_survival
 
     def start_nodes(self):
         info("Starting java containers")
