@@ -221,8 +221,8 @@ class BaseNodeManager(ABC):
 
         info(f"Finished fitting model")
 
-        betas = aggregator.get_betas()
-        baseline_hazard = aggregator.compute_baseline_hazard_function()
+        betas = aggregator.betas_
+        baseline_hazard = aggregator.baseline_hazard_function_
 
         self._result = Result(betas=betas, baseline_hazard=baseline_hazard)
 

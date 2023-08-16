@@ -87,6 +87,9 @@ class Aggregator:
         beta = np.full(self.num_samples, BETA)
         z = np.full(self.num_samples, Z)
         gamma = np.full(self.num_samples, GAMMA)
+
+        self.baseline_hazard_function_ = None
+        self.betas_ = None
         self.prepare_datanodes(gamma, z, beta, self.rho)
 
     def prepare_datanodes(self, gamma, z, beta, rho):
@@ -177,6 +180,14 @@ class Aggregator:
             info(f"Current progress: {100 * progress.get_value():.2f}%")
 
         logger.info(f"Finished training after {self.num_iterations} iterations")
+
+        logger.info("Retrieving betas...")
+        self.betas_ = self.retrieve_betas()
+        logger.info("Done")
+
+        logger.info("Computing baseline hazard...")
+        self.baseline_hazard_function_ = self.compute_baseline_hazard_function()
+        logger.info("Done")
 
     def fit_one(self):
         # TODO: Parallelize
@@ -294,7 +305,7 @@ class Aggregator:
         response = self.institutions[0].getNumSamples(Empty())
         return response.numSamples
 
-    def get_betas(self) -> Dict[str, float]:
+    def retrieve_betas(self) -> Dict[str, float]:
         betas = []
         names = []
         info(f"Getting betas from {len(self.institutions)} institutions")
