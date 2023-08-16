@@ -74,9 +74,6 @@ def run_test_full_dataset(node_manager: LocalNodeManager):
 
 
 def run_test_selection(node_manager: LocalNodeManager, full_data_length):
-    node_manager.reset()
-    node_manager.fit()
-    # Arbitrary selection for testing
     selected_idx = select_rows(full_data_length)
 
     # TODO: This flow is not ideal
@@ -89,11 +86,9 @@ def run_test_selection(node_manager: LocalNodeManager, full_data_length):
     for key, value in SELECTED_TARGET_COEFS.items():
         np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
 
-    cum_survival = node_manager.test()
+    auc = node_manager.test()
 
-
-
-    logging.info(f"Cumulative survival: {cum_survival}")
+    print(f'AUC: {auc}')
 
 
 def run_locally(data, event_times_column, event_happened_column):

@@ -333,12 +333,10 @@ class Aggregator:
     def compute_baseline_hazard_function(self, subset: Subset) -> StepFunction:
         record_level_sigmas = self.compute_record_level_sigmas(subset)
 
-        summed_record_level_sigma = record_level_sigmas.sum(axis=0)
-
         baseline_hazard = {}
 
         for t, group in self.Rt.items():
-            summed_sigmas = summed_record_level_sigma[group]
+            summed_sigmas = record_level_sigmas[group]
             baseline_hazard[t] = 1 / np.exp(summed_sigmas).sum()
 
         baseline_x, baseline_y = zip(*sorted(baseline_hazard.items()))
@@ -353,11 +351,16 @@ class Aggregator:
         Returns:
 
         """
-        record_level_sigmas = np.zeros((self.num_institutions, self.num_samples))
+        record_level_sigmas = None
         request = RecordLevelSigmaRequest(subset=subset)
         for idx, institution in enumerate(self.institutions):
-            record_level_sigma = institution.getRecordLevelSigma(request)
-            record_level_sigmas[idx] = np.array(record_level_sigma.sigma)
+            record_level_sigma_institution = institution.getRecordLevelSigma(request)
+
+            if record_level_sigmas is None:
+                record_level_sigmas = np.array(record_level_sigma_institution. sigma)
+            else:
+                record_level_sigmas = record_level_sigmas +  np.array(record_level_sigma_institution.sigma)
+
         return record_level_sigmas
 
     def sum_average_sigmas(self, subset: Subset):
@@ -415,13 +418,46 @@ class Aggregator:
             result[idx] = summed
         return StepFunction(x=baseline_hazard.x, y=result)
 
-    def compute_auc(self, baseline_hazard_function):
+    def compute_auc(self):
         """
         Computes area under curve on the test data
         Returns:
 
         """
-        test_hazard_ratios = self.compute_record_level_sigmas(Subset.TEST)
+        record_level_sigmas = self.compute_record_level_sigmas(Subset.TEST)
+
+        # Compute cumulative hazard per record
+        record_level_cum_survival = []
+        for sigma in record_level_sigmas:
+            cum_survival = self.compute_cumulative_survival(
+                self.baseline_survival_function_, np.array([sigma])
+            )
+            record_level_cum_survival.append(cum_survival)
+
+        auc = []
+
+        for i in range(self.baseline_survival_function_.x.shape[0]):
+            value_at_t = 0
+            second_value_at_t = 0
+            for idx, record_cum_survival in enumerate(record_level_cum_survival):
+                record_cum_survival_t = record_cum_survival.y[i]
+                value_at_t += record_cum_survival_t
+                for idx2, record_cum_survival2 in enumerate(record_level_cum_survival):
+                    if record_level_sigmas[idx] > record_level_sigmas[idx2]:
+                        second_value_at_t += (
+                            1 - record_cum_survival_t
+                        ) * record_level_cum_survival[idx2].y[i]
+
+            value_at_t = value_at_t / record_level_sigmas.shape[0]
+            second_value_at_t = second_value_at_t / np.square(
+                record_level_sigmas.shape[0]
+            )
+
+            auc.append(second_value_at_t / ((1 - value_at_t) * value_at_t))
+
+        auc = np.array(auc)
+
+        return StepFunction(x=self.baseline_survival_function_.x, y=auc)
 
 
 class Progress:
