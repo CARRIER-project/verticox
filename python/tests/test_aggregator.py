@@ -100,34 +100,14 @@ def predict(features, coefs):
     return np.apply_along_axis(lambda x: compute_hazard_ratio(x, coefs), 1, features)
 
 
-@mark.parametrize(
-    "num_records,num_features,num_institutions", [(60, 2, 2), (100, 3, 3), (400, 4, 4)]
-)
-def test_compute_cumulative_hazard(num_records, num_features, num_institutions):
-    features_per_institution = num_features // num_institutions
-    features, events, names = common.get_test_dataset(num_records, num_features)
+def test_summed_cumulative_hazard():
+    event_times = np.array([1, 1, 2])
+    event_happened = np.array([True, True, True])
 
-    event_times, event_happened = common.unpack_events(events)
+    hazard_t = np.arange(4)
+    hazard_y = np.arange(4)
 
-    centralized_model = CoxPHSurvivalAnalysis()
-    centralized_model.fit(features, events)
-
-    target = centralized_model.cum_baseline_hazard_
-
-    deaths_per_t = Aggregator.compute_deaths_per_t(event_times, event_happened)
-    predictions = compute_hazard_ratio(features, centralized_model.coef_)
-    baseline_hazard = compute_baseline_hazard(events, predictions)
-
-    summed_avg_sigmas = compute_central_summed_average_sigmas(
-        centralized_model.coef_, features
-    )
-
-    result = Aggregator.compute_cumulative_hazard_central_part(
-        baseline_hazard, deaths_per_t, summed_avg_sigmas
-    )
-
-    assert result == target
-
+    target =
 
 def compute_central_summed_average_sigmas(coefs, features: np.array) -> float:
     return np.dot(coefs, features.mean(axis=0))

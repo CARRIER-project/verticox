@@ -360,40 +360,33 @@ class Aggregator:
 
         return summed
 
-    def compute_cumulative_hazard(
+    def compute_cumulative_survival_function(
         self,
-        event_times: np.array,
-        event_happened: np.array,
-        baseline_hazard: StepFunction,
-        subset: Subset,
-    ) -> StepFunction:
-        summed_average_sigmas = self.sum_average_sigmas(subset)
-
-        deaths_per_t = self.compute_deaths_per_t(event_times, event_happened)
-
-        return Aggregator.compute_cumulative_hazard_central_part(
-            baseline_hazard, deaths_per_t, summed_average_sigmas
+    ):
+        cum_hazard = Aggregator.compute_cumulative_hazard_function(
+            self.deaths_per_t, self.baseline_hazard_function_
         )
 
+        cum_survival = np.exp(cum_hazard.y * -1)
+        cumulative_survival = StepFunction(self.baseline_hazard_function_.x, cum_survival)
+
+        return cumulative_survival
+
+
     @staticmethod
-    def compute_cumulative_hazard_central_part(
-        baseline_hazard: StepFunction,
-        deaths_per_t: Dict[float, int],
-        summed_average_sigmas: float,
-    ):
-        result = []
-        for idx, values in enumerate(zip(baseline_hazard.x, baseline_hazard.y)):
+    def compute_cumulative_hazard_function(
+        deaths_per_t: Dict[float, int], baseline_hazard: StepFunction
+    ) -> StepFunction:
+        result = np.array(baseline_hazard.x.shape[0])
+
+        for idx, t in enumerate(baseline_hazard.x):
             summed = 0
+            for previous_idx in range(idx + 1):
+                previous_t = baseline_hazard.x[previous_idx]
+                summed += deaths_per_t[previous_t] * baseline_hazard.y[previous_idx]
 
-            for i in range(idx + 1):
-                included_t = baseline_hazard.x[i]
-                included_hazard = baseline_hazard.y[i]
-                summed += deaths_per_t[included_t] * included_hazard
-
-            result_t = np.power(np.exp(-1 * summed), np.exp(summed_average_sigmas))
-            result.append(result_t)
-
-        return StepFunction(baseline_hazard.x, result)
+            result[idx] = summed
+        return StepFunction(x=baseline_hazard.x, y=result)
 
     def compute_auc(self, baseline_hazard_function):
         """
