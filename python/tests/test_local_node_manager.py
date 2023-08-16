@@ -89,6 +89,10 @@ def run_test_selection(node_manager: LocalNodeManager, full_data_length):
     for key, value in SELECTED_TARGET_COEFS.items():
         np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
 
+    cum_survival = node_manager.test()
+
+    logging.info(f"Cumulative survival: {cum_survival}")
+
 
 def run_locally(data, event_times_column, event_happened_column):
     df = pd.read_parquet(data)

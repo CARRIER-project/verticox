@@ -61,7 +61,9 @@ def test_compute_baseline_hazard(num_records, num_features, num_institutions):
     # Compute hazard ratio in centralized way
     predictions = predict(features, centralized_model.coef_)
 
-    centralized_t, centralized_hazard = compute_baseline_hazard(events, predictions)
+    centralized_baseline_hazard = compute_baseline_hazard(events, predictions)
+    centralized_t = centralized_baseline_hazard.x
+    centralized_hazard = centralized_baseline_hazard.y
 
     mock_datanodes = []
     # Mock the datanodes
@@ -100,14 +102,35 @@ def predict(features, coefs):
     return np.apply_along_axis(lambda x: compute_hazard_ratio(x, coefs), 1, features)
 
 
-def test_summed_cumulative_hazard():
-    event_times = np.array([1, 1, 2])
-    event_happened = np.array([True, True, True])
+def test_compute_cumulative_survival_right_length():
+    subpopulation_sigmas = 2
 
-    hazard_t = np.arange(4)
-    hazard_y = np.arange(4)
+    survival = np.array([1, 0.5, 0.1])
+    survival_func = StepFunction(np.arange(3), survival)
 
-    target =
+    cum_survival = Aggregator.compute_cumulative_survival(
+        survival_func, subpopulation_sigmas
+    )
+
+    assert len(cum_survival.x) == 3
+    assert len(cum_survival.y) == 3
+
+
+def test_compute_cumulative_survival_decreases():
+    subpopulation_sigmas = 2
+
+    survival = np.array([1, 0.5, 0.1])
+    survival_func = StepFunction(np.arange(3), survival)
+
+    cum_survival = Aggregator.compute_cumulative_survival(
+        survival_func, subpopulation_sigmas
+    )
+
+    previous = cum_survival.y[0]
+    for s in cum_survival.y:
+        assert previous >= s
+        previous = s
+
 
 def compute_central_summed_average_sigmas(coefs, features: np.array) -> float:
     return np.dot(coefs, features.mean(axis=0))
