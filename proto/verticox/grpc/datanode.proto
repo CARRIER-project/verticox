@@ -10,7 +10,7 @@ service DataNode{
   rpc prepare(InitialValues) returns (Empty){};
   rpc kill(Empty) returns (Empty){};
   rpc getFeatureNames(Empty) returns (FeatureNames){};
-  rpc getAverageSigma(Empty) returns (AverageSigma){};
+  rpc getAverageSigma(AverageSigmaRequest) returns (AverageSigma){};
   rpc getRecordLevelSigma(RecordLevelSigmaRequest) returns (RecordLevelSigma){};
   rpc reset(Rows) returns (Empty) {};
 }
