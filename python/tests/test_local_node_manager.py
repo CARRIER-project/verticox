@@ -91,6 +91,8 @@ def run_test_selection(node_manager: LocalNodeManager, full_data_length):
 
     cum_survival = node_manager.test()
 
+
+
     logging.info(f"Cumulative survival: {cum_survival}")
 
 

@@ -15,6 +15,7 @@ from verticox.grpc.datanode_pb2 import (
     InitialValues,
     Subset,
     RecordLevelSigmaRequest,
+    AverageSigmaRequest,
 )
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 from verticox.likelihood import find_z
@@ -187,7 +188,9 @@ class Aggregator:
         logger.info("Done")
 
         logger.info("Computing baseline hazard...")
-        self.baseline_hazard_function_ = self.compute_baseline_hazard_function(Subset.TRAIN)
+        self.baseline_hazard_function_ = self.compute_baseline_hazard_function(
+            Subset.TRAIN
+        )
         info(f"Baseline hazard_function: {self.baseline_hazard_function_}")
         logger.info("Done")
 
@@ -360,7 +363,7 @@ class Aggregator:
     def sum_average_sigmas(self, subset: Subset):
         summed = 0
         for datanode in self.institutions:
-            result = datanode.getAverageSigma(subset)
+            result = datanode.getAverageSigma(AverageSigmaRequest(subset=subset))
 
             summed += result.sigma
 
@@ -390,7 +393,7 @@ class Aggregator:
         )
 
         cum_survival = np.exp(cum_hazard.y * -1)
-        info(f"Cumulative survival: {cum_survival}")
+
         cumulative_survival = StepFunction(
             self.baseline_hazard_function_.x, cum_survival
         )
@@ -401,7 +404,7 @@ class Aggregator:
     def compute_cumulative_hazard_function(
         deaths_per_t: Dict[float, int], baseline_hazard: StepFunction
     ) -> StepFunction:
-        result = np.array(baseline_hazard.x.shape[0])
+        result = np.zeros(baseline_hazard.x.shape[0])
 
         for idx, t in enumerate(baseline_hazard.x):
             summed = 0
