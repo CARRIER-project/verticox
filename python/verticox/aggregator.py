@@ -90,6 +90,7 @@ class Aggregator:
 
         self.baseline_hazard_function_ = None
         self.betas_ = None
+        self.baseline_survival_function_ = None
         self.prepare_datanodes(gamma, z, beta, self.rho)
 
     def prepare_datanodes(self, gamma, z, beta, rho):
@@ -186,7 +187,12 @@ class Aggregator:
         logger.info("Done")
 
         logger.info("Computing baseline hazard...")
-        self.baseline_hazard_function_ = self.compute_baseline_hazard_function()
+        self.baseline_hazard_function_ = self.compute_baseline_hazard_function(Subset.TRAIN)
+        info(f"Baseline hazard_function: {self.baseline_hazard_function_}")
+        logger.info("Done")
+
+        logger.info("Computing baseline survival...")
+        self.baseline_survival_function_ = self.compute_baseline_survival_function()
         logger.info("Done")
 
     def fit_one(self):
@@ -333,7 +339,7 @@ class Aggregator:
             baseline_hazard[t] = 1 / np.exp(summed_sigmas).sum()
 
         baseline_x, baseline_y = zip(*sorted(baseline_hazard.items()))
-        return StepFunction(baseline_x, baseline_y)
+        return StepFunction(np.array(baseline_x), np.array(baseline_y))
 
     def compute_record_level_sigmas(self, subset: Subset):
         """
@@ -360,7 +366,23 @@ class Aggregator:
 
         return summed
 
-    def compute_cumulative_survival_function(
+    def predict_cumulative_survival(self, subset: Subset):
+        average_sigmas = self.sum_average_sigmas(subset)
+
+        return self.compute_cumulative_survival(
+            self.baseline_survival_function_, average_sigmas
+        )
+
+    @staticmethod
+    def compute_cumulative_survival(
+        baseline_survival_function: StepFunction, subpopulation_sigmas
+    ):
+        cum_survival = np.power(
+            baseline_survival_function.y, np.exp(subpopulation_sigmas)
+        )
+        return StepFunction(x=baseline_survival_function.x, y=cum_survival)
+
+    def compute_baseline_survival_function(
         self,
     ):
         cum_hazard = Aggregator.compute_cumulative_hazard_function(
@@ -368,10 +390,12 @@ class Aggregator:
         )
 
         cum_survival = np.exp(cum_hazard.y * -1)
-        cumulative_survival = StepFunction(self.baseline_hazard_function_.x, cum_survival)
+        info(f"Cumulative survival: {cum_survival}")
+        cumulative_survival = StepFunction(
+            self.baseline_hazard_function_.x, cum_survival
+        )
 
         return cumulative_survival
-
 
     @staticmethod
     def compute_cumulative_hazard_function(
