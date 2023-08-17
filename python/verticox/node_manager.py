@@ -229,10 +229,10 @@ class BaseNodeManager(ABC):
         self._result = Result(betas=betas, baseline_hazard=baseline_hazard)
 
     def test(self):
-        cumulative_survival = self._aggregator.predict_average_cumulative_survival(Subset.TEST)
+        avg_cumulative_survival = self._aggregator.predict_average_cumulative_survival(Subset.TEST)
 
         auc = self._aggregator.compute_auc()
-        return auc, cumulative_survival
+        return auc, avg_cumulative_survival
 
     def start_nodes(self):
         info("Starting java containers")

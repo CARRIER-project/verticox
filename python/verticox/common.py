@@ -129,8 +129,11 @@ def unpack_events(events):
     :param events:
     :return: (lenfol array, fstat array)
     """
-    df = pd.DataFrame(events)
-    times = df.lenfol.values
-    right_censored = df.fstat.values
+    times = []
+    right_censored = []
 
-    return times, right_censored
+    for event in events:
+        times.append(event[0])
+        right_censored.append(event[1])
+
+    return np.array(times), np.array(right_censored)
