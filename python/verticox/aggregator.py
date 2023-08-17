@@ -372,7 +372,7 @@ class Aggregator:
 
         return summed
 
-    def predict_cumulative_survival(self, subset: Subset):
+    def predict_average_cumulative_survival(self, subset: Subset):
         average_sigmas = self.sum_average_sigmas(subset)
 
         return self.compute_cumulative_survival(
@@ -417,6 +417,7 @@ class Aggregator:
 
             result[idx] = summed
         return StepFunction(x=baseline_hazard.x, y=result)
+
 
     def compute_auc(self):
         """

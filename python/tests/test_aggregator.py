@@ -6,8 +6,10 @@ from pytest import mark
 from sksurv.functions import StepFunction
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 
+from common import compare_stepfunctions
 from verticox import common
 from verticox.aggregator import Aggregator
+from verticox.common import unpack_events
 from verticox.grpc.datanode_pb2 import RecordLevelSigma, NumSamples, Subset
 
 
@@ -132,6 +134,23 @@ def test_compute_cumulative_survival_decreases():
         previous = s
 
 
+def test_compute_cumulative_hazard():
+    features, outcome, column_names = common.get_test_dataset(20, 2)
+
+    central_model = CoxPHSurvivalAnalysis()
+    central_model.fit(features, outcome)
+    target = central_model.cum_baseline_hazard_
+    events, event_happened = unpack_events(outcome)
+    predictions = predict(features, central_model.coef_)
+    deaths_per_t = Aggregator.compute_deaths_per_t(events, event_happened)
+    baseline_hazard = compute_baseline_hazard(outcome, predictions)
+    cum_baseline_hazard = Aggregator.compute_cumulative_hazard_function(
+        deaths_per_t, baseline_hazard
+    )
+
+    compare_stepfunctions(cum_baseline_hazard, target)
+
+
 def compute_central_summed_average_sigmas(coefs, features: np.array) -> float:
     return np.dot(coefs, features.mean(axis=0))
 
@@ -140,8 +159,8 @@ def compute_hazard_ratio(features, coefficients):
     return np.exp(np.dot(features, coefficients))
 
 
-def compute_baseline_hazard(events, predictions):
-    event_times, event_happened = common.unpack_events(events)
+def compute_baseline_hazard(outcome, predictions):
+    event_times, event_happened = common.unpack_events(outcome)
 
     at_risk_per_event_time = common.group_samples_at_risk(event_times)
 
@@ -157,4 +176,4 @@ def compute_baseline_hazard(events, predictions):
 
     steps, hazard = zip(*sorted(baseline_hazard_function.items()))
 
-    return StepFunction(steps, hazard)
+    return StepFunction(np.array(steps), np.array(hazard))

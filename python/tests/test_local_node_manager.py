@@ -4,9 +4,11 @@ from pathlib import Path
 import clize
 import numpy as np
 import pandas as pd
+from sksurv.functions import StepFunction
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 from sksurv.util import Surv
 
+from common import compare_stepfunctions
 from test_constants import CONVERGENCE_PRECISION
 from verticox.node_manager import LocalNodeManager
 
@@ -86,9 +88,64 @@ def run_test_selection(node_manager: LocalNodeManager, full_data_length):
     for key, value in SELECTED_TARGET_COEFS.items():
         np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
 
-    auc = node_manager.test()
+    auc, cum_survival = node_manager.test()
 
-    print(f'AUC: {auc}')
+    target_cum_survival = StepFunction(
+        x=np.array(
+            [
+                1.000e00,
+                6.100e01,
+                2.970e02,
+                8.650e02,
+                9.050e02,
+                9.200e02,
+                1.496e03,
+                1.671e03,
+                1.887e03,
+                1.920e03,
+                1.933e03,
+                1.939e03,
+                1.940e03,
+                1.941e03,
+                2.025e03,
+                2.084e03,
+                2.125e03,
+                2.145e03,
+                2.353e03,
+                2.358e03,
+            ]
+        ),
+        y=np.array(
+            [
+                0.07249093,
+                0.15056992,
+                0.23714948,
+                0.32836868,
+                0.42773521,
+                0.53714691,
+                0.66458971,
+                0.79631463,
+                0.79631463,
+                0.79631463,
+                0.79631463,
+                0.79631463,
+                0.79631463,
+                0.79631463,
+                0.79631463,
+                0.79631463,
+                0.79631463,
+                0.79631463,
+                3.49244316,
+                22.0327954,
+            ]
+        ),
+        a=0.5212312346521621,
+        b=0.0,
+    )
+
+    compare_stepfunctions(cum_survival, target_cum_survival)
+
+    print(f"AUC: {auc}")
 
 
 def run_locally(data, event_times_column, event_happened_column):
