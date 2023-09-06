@@ -42,13 +42,13 @@ class Aggregator:
     """
 
     def __init__(
-        self,
-        institutions: List[DataNodeStub],
-        event_times: np.array,
-        event_happened: np.array,
-        convergence_precision: float = DEFAULT_PRECISION,
-        newton_raphson_precision: float = DEFAULT_PRECISION,
-        rho=RHO,
+            self,
+            institutions: List[DataNodeStub],
+            event_times: np.array,
+            event_happened: np.array,
+            convergence_precision: float = DEFAULT_PRECISION,
+            newton_raphson_precision: float = DEFAULT_PRECISION,
+            rho=RHO,
     ):
         """
         Initialize regular verticox aggregator. Note that this type of aggregator needs access to
@@ -102,7 +102,7 @@ class Aggregator:
 
     @staticmethod
     def _group_relevant_event_times(
-        unique_event_times,
+            unique_event_times,
     ) -> types.DictType(types.float64, types.float64[:]):
         result = typed.Dict.empty(types.float64, types.float64[:])
 
@@ -115,7 +115,7 @@ class Aggregator:
 
     @staticmethod
     def compute_deaths_per_t(
-        event_times: ArrayLike, event_happened: ArrayLike
+            event_times: ArrayLike, event_happened: ArrayLike
     ) -> types.DictType(types.float64, types.int64):
         deaths_per_t = typed.Dict.empty(types.float64, types.int64)
 
@@ -160,8 +160,8 @@ class Aggregator:
             info(f"sigma_diff: {z_sigma_diff}")
 
             if (
-                z_diff <= self.convergence_precision
-                and z_sigma_diff <= self.convergence_precision
+                    z_diff <= self.convergence_precision
+                    and z_sigma_diff <= self.convergence_precision
             ):
                 break
 
@@ -254,7 +254,7 @@ class Aggregator:
         logger.debug(f"Num iterations: {self.num_iterations}")
 
     def compute_z_per_institution(
-        self, gamma_per_institution, sigma_per_institution, z
+            self, gamma_per_institution, sigma_per_institution, z
     ):
         """
         Equation 11
@@ -271,20 +271,20 @@ class Aggregator:
         for institution in range(self.num_institutions):
             for sample_idx in range(self.num_samples):
                 first_part = (
-                    z[sample_idx] + sigma_per_institution[institution, sample_idx]
+                        z[sample_idx] + sigma_per_institution[institution, sample_idx]
                 )
                 second_part = gamma_per_institution[institution, sample_idx] / self.rho
 
                 # TODO: This only needs to be computed once per sample
                 third_part = (
-                    sigma_per_institution[:, sample_idx]
-                    + gamma_per_institution[:, sample_idx] / self.rho
+                        sigma_per_institution[:, sample_idx]
+                        + gamma_per_institution[:, sample_idx] / self.rho
                 )
                 third_part = third_part.sum()
                 third_part = third_part / self.num_institutions
 
                 z_per_institution[institution, sample_idx] = (
-                    first_part + second_part - third_part
+                        first_part + second_part - third_part
                 )
 
         return z_per_institution
@@ -357,9 +357,10 @@ class Aggregator:
             record_level_sigma_institution = institution.getRecordLevelSigma(request)
 
             if record_level_sigmas is None:
-                record_level_sigmas = np.array(record_level_sigma_institution. sigma)
+                record_level_sigmas = np.array(record_level_sigma_institution.sigma)
             else:
-                record_level_sigmas = record_level_sigmas +  np.array(record_level_sigma_institution.sigma)
+                record_level_sigmas = record_level_sigmas + np.array(
+                    record_level_sigma_institution.sigma)
 
         return record_level_sigmas
 
@@ -381,7 +382,7 @@ class Aggregator:
 
     @staticmethod
     def compute_cumulative_survival(
-        baseline_survival_function: StepFunction, subpopulation_sigmas
+            baseline_survival_function: StepFunction, subpopulation_sigmas
     ):
         cum_survival = np.power(
             baseline_survival_function.y, np.exp(subpopulation_sigmas)
@@ -389,7 +390,7 @@ class Aggregator:
         return StepFunction(x=baseline_survival_function.x, y=cum_survival)
 
     def compute_baseline_survival_function(
-        self,
+            self,
     ):
         cum_hazard = Aggregator.compute_cumulative_hazard_function(
             self.deaths_per_t, self.baseline_hazard_function_
@@ -405,7 +406,7 @@ class Aggregator:
 
     @staticmethod
     def compute_cumulative_hazard_function(
-        deaths_per_t: Dict[float, int], baseline_hazard: StepFunction
+            deaths_per_t: Dict[float, int], baseline_hazard: StepFunction
     ) -> StepFunction:
         result = np.zeros(baseline_hazard.x.shape[0])
 
@@ -413,11 +414,10 @@ class Aggregator:
             summed = 0
             for previous_idx in range(idx + 1):
                 previous_t = baseline_hazard.x[previous_idx]
-                summed += deaths_per_t[previous_t] * baseline_hazard.y[previous_idx]
+                summed += deaths_per_t.get(previous_t, 0) * baseline_hazard.y[previous_idx]
 
             result[idx] = summed
         return StepFunction(x=baseline_hazard.x, y=result)
-
 
     def compute_auc(self):
         """
@@ -446,8 +446,8 @@ class Aggregator:
                 for idx2, record_cum_survival2 in enumerate(record_level_cum_survival):
                     if record_level_sigmas[idx] > record_level_sigmas[idx2]:
                         second_value_at_t += (
-                            1 - record_cum_survival_t
-                        ) * record_level_cum_survival[idx2].y[i]
+                                                     1 - record_cum_survival_t
+                                             ) * record_level_cum_survival[idx2].y[i]
 
             value_at_t = value_at_t / record_level_sigmas.shape[0]
             second_value_at_t = second_value_at_t / np.square(
@@ -479,5 +479,5 @@ class Progress:
 
     def get_value(self):
         return (self.current_value - self.initial_value) / (
-            self.max_value - self.initial_value
+                self.max_value - self.initial_value
         )

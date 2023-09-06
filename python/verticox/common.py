@@ -127,13 +127,16 @@ def unpack_events(events):
     """
     Unpacks outcome arrays from sksurv into two separate arrays with censor and event time
     :param events:
-    :return: (lenfol array, fstat array)
+    :return: (status array, times array)
     """
     times = []
     right_censored = []
 
     for event in events:
-        times.append(event[0])
-        right_censored.append(event[1])
+        times.append(event[1])
+        right_censored.append(event[0])
 
-    return np.array(times), np.array(right_censored)
+    right_censored = np.array(right_censored)
+    if right_censored.dtype != bool:
+        raise Exception('Status is not boolean.')
+    return np.array(times), right_censored

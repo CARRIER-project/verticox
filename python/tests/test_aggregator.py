@@ -64,8 +64,6 @@ def test_compute_baseline_hazard(num_records, num_features, num_institutions):
     predictions = predict(features, centralized_model.coef_)
 
     centralized_baseline_hazard = compute_baseline_hazard(events, predictions)
-    centralized_t = centralized_baseline_hazard.x
-    centralized_hazard = centralized_baseline_hazard.y
 
     mock_datanodes = []
     # Mock the datanodes
@@ -93,11 +91,8 @@ def test_compute_baseline_hazard(num_records, num_features, num_institutions):
     )
 
     baseline_hazard = aggregator.compute_baseline_hazard_function(Subset.ALL)
-    decentralized_t = baseline_hazard.x
-    decentralized_hazard = baseline_hazard.y
 
-    np.testing.assert_almost_equal(decentralized_t, centralized_t)
-    np.testing.assert_almost_equal(decentralized_hazard, centralized_hazard, decimal=5)
+    compare_stepfunctions(baseline_hazard, centralized_baseline_hazard)
 
 
 def predict(features, coefs):
@@ -140,9 +135,9 @@ def test_compute_cumulative_hazard():
     central_model = CoxPHSurvivalAnalysis()
     central_model.fit(features, outcome)
     target = central_model.cum_baseline_hazard_
-    events, event_happened = unpack_events(outcome)
+    event_times, event_happened = unpack_events(outcome)
     predictions = predict(features, central_model.coef_)
-    deaths_per_t = Aggregator.compute_deaths_per_t(events, event_happened)
+    deaths_per_t = Aggregator.compute_deaths_per_t(event_times, event_happened)
     baseline_hazard = compute_baseline_hazard(outcome, predictions)
     cum_baseline_hazard = Aggregator.compute_cumulative_hazard_function(
         deaths_per_t, baseline_hazard
