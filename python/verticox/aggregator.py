@@ -1,18 +1,21 @@
 import logging
 import time
-from typing import List, Tuple, Dict
+from typing import List, Dict
 
 import numpy as np
 from numba import types, typed
 from numpy.typing import ArrayLike
+from sksurv.functions import StepFunction
 from vantage6.common import info
 
-from verticox.common import group_samples_at_risk, group_samples_on_event_time, Function
+from verticox.common import group_samples_at_risk, group_samples_on_event_time
 from verticox.grpc.datanode_pb2 import (
     Empty,
     AggregatedParameters,
     InitialValues,
     Subset,
+    RecordLevelSigmaRequest,
+    AverageSigmaRequest,
 )
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
 from verticox.likelihood import find_z
@@ -39,13 +42,13 @@ class Aggregator:
     """
 
     def __init__(
-        self,
-        institutions: List[DataNodeStub],
-        event_times: np.array,
-        event_happened: np.array,
-        convergence_precision: float = DEFAULT_PRECISION,
-        newton_raphson_precision: float = DEFAULT_PRECISION,
-        rho=RHO,
+            self,
+            institutions: List[DataNodeStub],
+            event_times: np.array,
+            event_happened: np.array,
+            convergence_precision: float = DEFAULT_PRECISION,
+            newton_raphson_precision: float = DEFAULT_PRECISION,
+            rho=RHO,
     ):
         """
         Initialize regular verticox aggregator. Note that this type of aggregator needs access to
@@ -72,9 +75,7 @@ class Aggregator:
         self.relevant_event_times = Aggregator._group_relevant_event_times(
             self.Rt.keys()
         )
-        self.deaths_per_t = Aggregator._compute_deaths_per_t(
-            event_times, event_happened
-        )
+        self.deaths_per_t = Aggregator.compute_deaths_per_t(event_times, event_happened)
         # Initializing parameters
         self.z = np.zeros(self.num_samples)
         self.z_old = self.z
@@ -90,6 +91,7 @@ class Aggregator:
 
         self.baseline_hazard_function_ = None
         self.betas_ = None
+        self.baseline_survival_function_ = None
         self.prepare_datanodes(gamma, z, beta, self.rho)
 
     def prepare_datanodes(self, gamma, z, beta, rho):
@@ -100,7 +102,7 @@ class Aggregator:
 
     @staticmethod
     def _group_relevant_event_times(
-        unique_event_times,
+            unique_event_times,
     ) -> types.DictType(types.float64, types.float64[:]):
         result = typed.Dict.empty(types.float64, types.float64[:])
 
@@ -112,8 +114,8 @@ class Aggregator:
         return result
 
     @staticmethod
-    def _compute_deaths_per_t(
-        event_times: ArrayLike, event_happened: ArrayLike
+    def compute_deaths_per_t(
+            event_times: ArrayLike, event_happened: ArrayLike
     ) -> types.DictType(types.float64, types.int64):
         deaths_per_t = typed.Dict.empty(types.float64, types.int64)
 
@@ -158,8 +160,8 @@ class Aggregator:
             info(f"sigma_diff: {z_sigma_diff}")
 
             if (
-                z_diff <= self.convergence_precision
-                and z_sigma_diff <= self.convergence_precision
+                    z_diff <= self.convergence_precision
+                    and z_sigma_diff <= self.convergence_precision
             ):
                 break
 
@@ -186,7 +188,14 @@ class Aggregator:
         logger.info("Done")
 
         logger.info("Computing baseline hazard...")
-        self.baseline_hazard_function_ = self.compute_baseline_hazard_function()
+        self.baseline_hazard_function_ = self.compute_baseline_hazard_function(
+            Subset.TRAIN
+        )
+        info(f"Baseline hazard_function: {self.baseline_hazard_function_}")
+        logger.info("Done")
+
+        logger.info("Computing baseline survival...")
+        self.baseline_survival_function_ = self.compute_baseline_survival_function()
         logger.info("Done")
 
     def fit_one(self):
@@ -245,7 +254,7 @@ class Aggregator:
         logger.debug(f"Num iterations: {self.num_iterations}")
 
     def compute_z_per_institution(
-        self, gamma_per_institution, sigma_per_institution, z
+            self, gamma_per_institution, sigma_per_institution, z
     ):
         """
         Equation 11
@@ -262,20 +271,20 @@ class Aggregator:
         for institution in range(self.num_institutions):
             for sample_idx in range(self.num_samples):
                 first_part = (
-                    z[sample_idx] + sigma_per_institution[institution, sample_idx]
+                        z[sample_idx] + sigma_per_institution[institution, sample_idx]
                 )
                 second_part = gamma_per_institution[institution, sample_idx] / self.rho
 
                 # TODO: This only needs to be computed once per sample
                 third_part = (
-                    sigma_per_institution[:, sample_idx]
-                    + gamma_per_institution[:, sample_idx] / self.rho
+                        sigma_per_institution[:, sample_idx]
+                        + gamma_per_institution[:, sample_idx] / self.rho
                 )
                 third_part = third_part.sum()
                 third_part = third_part / self.num_institutions
 
                 z_per_institution[institution, sample_idx] = (
-                    first_part + second_part - third_part
+                        first_part + second_part - third_part
                 )
 
         return z_per_institution
@@ -321,31 +330,141 @@ class Aggregator:
 
         return dict(zip(names, betas))
 
-    def compute_baseline_hazard_function(self) -> Function:
-        record_level_sigmas = np.zeros((self.num_institutions, self.num_samples))
-
-        for idx, institution in enumerate(self.institutions):
-            record_level_sigma = institution.getRecordLevelSigma(Empty())
-            record_level_sigmas[idx] = np.array(record_level_sigma.sigma)
-
-        summed_record_level_sigma = record_level_sigmas.sum(axis=0)
+    def compute_baseline_hazard_function(self, subset: Subset) -> StepFunction:
+        record_level_sigmas = self.compute_record_level_sigmas(subset)
 
         baseline_hazard = {}
 
         for t, group in self.Rt.items():
-            summed_sigmas = summed_record_level_sigma[group]
+            summed_sigmas = record_level_sigmas[group]
             baseline_hazard[t] = 1 / np.exp(summed_sigmas).sum()
 
         baseline_x, baseline_y = zip(*sorted(baseline_hazard.items()))
-        return Function(baseline_x, baseline_y)
+        return StepFunction(np.array(baseline_x), np.array(baseline_y))
 
-    def predict_risk_score(self, indices):
-        result = np.zeros_like(indices, dtype="float")
-        for institution in self.institutions:
-            subresult = institution.computePartialHazardRatio(Subset(indices=indices))
-            result += np.array(subresult.partialHazardRatios)
+    def compute_record_level_sigmas(self, subset: Subset):
+        """
+        Compute the risk score per record in the specified subset
+        Args:
+            subset:
 
-        return result
+        Returns:
+
+        """
+        record_level_sigmas = None
+        request = RecordLevelSigmaRequest(subset=subset)
+        for idx, institution in enumerate(self.institutions):
+            record_level_sigma_institution = institution.getRecordLevelSigma(request)
+
+            if record_level_sigmas is None:
+                record_level_sigmas = np.array(record_level_sigma_institution.sigma)
+            else:
+                record_level_sigmas = record_level_sigmas + np.array(
+                    record_level_sigma_institution.sigma)
+
+        return record_level_sigmas
+
+    def sum_average_sigmas(self, subset: Subset):
+        summed = 0
+        for datanode in self.institutions:
+            result = datanode.getAverageSigma(AverageSigmaRequest(subset=subset))
+
+            summed += result.sigma
+
+        return summed
+
+    def predict_average_cumulative_survival(self, subset: Subset):
+        average_sigmas = self.sum_average_sigmas(subset)
+
+        return self.compute_cumulative_survival(
+            self.baseline_survival_function_, average_sigmas
+        )
+
+    @staticmethod
+    def compute_cumulative_survival(
+            baseline_survival_function: StepFunction, subpopulation_sigmas
+    ):
+        cum_survival = np.power(
+            baseline_survival_function.y, np.exp(subpopulation_sigmas)
+        )
+        return StepFunction(x=baseline_survival_function.x, y=cum_survival)
+
+    def compute_baseline_survival_function(
+            self,
+    ):
+        cum_hazard = Aggregator.compute_cumulative_hazard_function(
+            self.deaths_per_t, self.baseline_hazard_function_
+        )
+
+        cum_survival = np.exp(cum_hazard.y * -1)
+
+        cumulative_survival = StepFunction(
+            self.baseline_hazard_function_.x, cum_survival
+        )
+
+        return cumulative_survival
+
+    @staticmethod
+    def compute_cumulative_hazard_function(
+            deaths_per_t: Dict[float, int], baseline_hazard: StepFunction
+    ) -> StepFunction:
+        result = np.zeros(baseline_hazard.x.shape[0])
+
+        for idx, t in enumerate(baseline_hazard.x):
+            summed = 0
+            for previous_idx in range(idx + 1):
+                previous_t = baseline_hazard.x[previous_idx]
+                summed += deaths_per_t.get(previous_t, 0) * baseline_hazard.y[previous_idx]
+
+            result[idx] = summed
+        return StepFunction(x=baseline_hazard.x, y=result)
+
+    def compute_auc(self):
+        """
+        Computes area under curve on the test data
+        Returns:
+
+        """
+        record_level_sigmas_test = self.compute_record_level_sigmas(Subset.TEST)
+
+        # Compute cumulative hazard per record
+        record_level_cum_survival = []
+        for sigma in record_level_sigmas_test:
+            cum_survival = self.compute_cumulative_survival(
+                self.baseline_survival_function_, np.array([sigma])
+            )
+            record_level_cum_survival.append(cum_survival.y)
+
+        auc = []
+        record_level_cum_survival = np.array(record_level_cum_survival)
+
+        num_test_records = record_level_sigmas_test.shape[0]
+
+        # Lambda1 is the sum of all cumulative survival values
+        lambda1 = record_level_cum_survival.sum(axis=0) / num_test_records
+
+        # For every time t
+        for t_index in range(self.baseline_survival_function_.x.shape[0]):
+
+            lambda2 = 0
+
+            # For every record in TEST
+            for idx, single_cum_survival in enumerate(record_level_cum_survival):
+
+                # For every other record
+                for idx2, record_cum_survival2 in enumerate(record_level_cum_survival):
+                    if record_level_sigmas_test[idx] > record_level_sigmas_test[idx2]:
+                        lambda2 += (
+                                           1 - single_cum_survival[t_index]
+                                   ) * record_cum_survival2[t_index]
+
+            lambda2 = lambda2 / np.square(num_test_records)
+
+            auc.append(lambda2 / ((1 - lambda1[t_index]) * lambda1[t_index]))
+
+        auc = np.array(auc)
+
+        return StepFunction(x=self.baseline_survival_function_.x, y=auc)
 
 
 class Progress:
@@ -366,5 +485,5 @@ class Progress:
 
     def get_value(self):
         return (self.current_value - self.initial_value) / (
-            self.max_value - self.initial_value
+                self.max_value - self.initial_value
         )

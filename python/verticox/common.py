@@ -1,5 +1,6 @@
 from collections import namedtuple
-from typing import List, Tuple
+from dataclasses import dataclass
+from typing import List, Tuple, Iterable
 
 import numpy as np
 import pandas as pd
@@ -9,7 +10,6 @@ from sksurv.datasets import load_whas500
 
 Split = namedtuple("Split", ("train", "test"))
 
-Function = namedtuple("Function", ("x", "y"))
 
 @np.vectorize
 def _uncensored(event):
@@ -127,10 +127,16 @@ def unpack_events(events):
     """
     Unpacks outcome arrays from sksurv into two separate arrays with censor and event time
     :param events:
-    :return: (lenfol array, fstat array)
+    :return: (status array, times array)
     """
-    df = pd.DataFrame(events)
-    times = df.lenfol.values
-    right_censored = df.fstat.values
+    times = []
+    right_censored = []
 
-    return times, right_censored
+    for event in events:
+        times.append(event[1])
+        right_censored.append(event[0])
+
+    right_censored = np.array(right_censored)
+    if right_censored.dtype != bool:
+        raise Exception('Status is not boolean.')
+    return np.array(times), right_censored

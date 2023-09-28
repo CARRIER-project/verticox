@@ -3,18 +3,21 @@ from unittest.mock import MagicMock
 
 import numpy as np
 from pytest import mark
+from sksurv.functions import StepFunction
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 
+from common import compare_stepfunctions
 from verticox import common
 from verticox.aggregator import Aggregator
-from verticox.grpc.datanode_pb2 import RecordLevelSigma, NumSamples, PartialHazardRatio
+from verticox.common import unpack_events
+from verticox.grpc.datanode_pb2 import RecordLevelSigma, NumSamples, Subset
 
 
 def test_compute_deaths_per_t_two_event_times_no_right_censored():
     event_times = np.array([1, 1, 2])
     event_happened = np.array([True, True, True])
 
-    result = Aggregator._compute_deaths_per_t(event_times, event_happened)
+    result = Aggregator.compute_deaths_per_t(event_times, event_happened)
     result = dict(result)
 
     TestCase().assertDictEqual(result, {1: 2, 2: 1})
@@ -24,7 +27,7 @@ def test_compute_deaths_per_t_with_right_censored():
     event_times = np.array([1, 1, 2])
     event_happened = np.array([False, True, True])
 
-    result = Aggregator._compute_deaths_per_t(event_times, event_happened)
+    result = Aggregator.compute_deaths_per_t(event_times, event_happened)
     result = dict(result)
 
     TestCase().assertDictEqual(result, {1: 1, 2: 1})
@@ -39,7 +42,7 @@ def test_compute_deaths_per_t_with_right_censored_returns_0_deaths():
     event_times = np.array([1, 1, 2])
     event_happened = np.array([True, True, False])
 
-    result = Aggregator._compute_deaths_per_t(event_times, event_happened)
+    result = Aggregator.compute_deaths_per_t(event_times, event_happened)
     result = dict(result)
 
     TestCase().assertDictEqual(result, {1: 2, 2: 0})
@@ -58,11 +61,9 @@ def test_compute_baseline_hazard(num_records, num_features, num_institutions):
     centralized_model.fit(features, events)
 
     # Compute hazard ratio in centralized way
-    predictions = np.apply_along_axis(
-        lambda x: compute_hazard_ratio(x, centralized_model.coef_), 1, features
-    )
+    predictions = predict(features, centralized_model.coef_)
 
-    centralized_t, centralized_hazard = compute_baseline_hazard(events, predictions)
+    centralized_baseline_hazard = compute_baseline_hazard(events, predictions)
 
     mock_datanodes = []
     # Mock the datanodes
@@ -89,21 +90,72 @@ def test_compute_baseline_hazard(num_records, num_features, num_institutions):
         event_happened=event_happened,
     )
 
-    (
-        decentralized_t,
-        decentralized_hazard,
-    ) = aggregator.compute_baseline_hazard_function()
+    baseline_hazard = aggregator.compute_baseline_hazard_function(Subset.ALL)
 
-    np.testing.assert_almost_equal(decentralized_t, centralized_t)
-    np.testing.assert_almost_equal(decentralized_hazard, centralized_hazard, decimal=5)
+    compare_stepfunctions(baseline_hazard, centralized_baseline_hazard)
+
+
+def predict(features, coefs):
+    return np.apply_along_axis(lambda x: compute_hazard_ratio(x, coefs), 1, features)
+
+
+def test_compute_cumulative_survival_right_length():
+    subpopulation_sigmas = 2
+
+    survival = np.array([1, 0.5, 0.1])
+    survival_func = StepFunction(np.arange(3), survival)
+
+    cum_survival = Aggregator.compute_cumulative_survival(
+        survival_func, subpopulation_sigmas
+    )
+
+    assert len(cum_survival.x) == 3
+    assert len(cum_survival.y) == 3
+
+
+def test_compute_cumulative_survival_decreases():
+    subpopulation_sigmas = 2
+
+    survival = np.array([1, 0.5, 0.1])
+    survival_func = StepFunction(np.arange(3), survival)
+
+    cum_survival = Aggregator.compute_cumulative_survival(
+        survival_func, subpopulation_sigmas
+    )
+
+    previous = cum_survival.y[0]
+    for s in cum_survival.y:
+        assert previous >= s
+        previous = s
+
+
+def test_compute_cumulative_hazard():
+    features, outcome, column_names = common.get_test_dataset(20, 2)
+
+    central_model = CoxPHSurvivalAnalysis()
+    central_model.fit(features, outcome)
+    target = central_model.cum_baseline_hazard_
+    event_times, event_happened = unpack_events(outcome)
+    predictions = predict(features, central_model.coef_)
+    deaths_per_t = Aggregator.compute_deaths_per_t(event_times, event_happened)
+    baseline_hazard = compute_baseline_hazard(outcome, predictions)
+    cum_baseline_hazard = Aggregator.compute_cumulative_hazard_function(
+        deaths_per_t, baseline_hazard
+    )
+
+    compare_stepfunctions(cum_baseline_hazard, target)
+
+
+def compute_central_summed_average_sigmas(coefs, features: np.array) -> float:
+    return np.dot(coefs, features.mean(axis=0))
 
 
 def compute_hazard_ratio(features, coefficients):
     return np.exp(np.dot(features, coefficients))
 
 
-def compute_baseline_hazard(events, predictions):
-    event_times, event_happened = common.unpack_events(events)
+def compute_baseline_hazard(outcome, predictions):
+    event_times, event_happened = common.unpack_events(outcome)
 
     at_risk_per_event_time = common.group_samples_at_risk(event_times)
 
@@ -119,55 +171,4 @@ def compute_baseline_hazard(events, predictions):
 
     steps, hazard = zip(*sorted(baseline_hazard_function.items()))
 
-    return steps, hazard
-
-
-@mark.parametrize(
-    "num_records,num_features,num_institutions", [(60, 2, 2), (100, 3, 3), (400, 4, 4)]
-)
-def test_predict_risk_score(num_records, num_features, num_institutions):
-    features_per_institution = num_features // num_institutions
-    features, events, names = common.get_test_dataset(num_records, num_features)
-
-    event_times, event_happened = common.unpack_events(events)
-
-    centralized_model = CoxPHSurvivalAnalysis()
-    centralized_model.fit(features, events)
-
-    one_record = features[0:1]
-
-    # Predict one record centralized
-    centralized_result = centralized_model.predict(one_record)
-
-    mock_datanodes = []
-    # Mock the datanodes
-    for i in range(num_institutions):
-        feature_idx = i * features_per_institution
-        feature_idx_end = feature_idx + features_per_institution
-        subfeatures = features[:, feature_idx:feature_idx_end]
-        coefs = centralized_model.coef_[feature_idx:feature_idx_end]
-
-        record_level_sigma = np.apply_along_axis(
-            lambda x: np.dot(x, coefs), axis=1, arr=subfeatures
-        )
-
-        datanode = MagicMock()
-        datanode.getNumSamples.return_value = NumSamples(numSamples=num_records)
-        datanode.getRecordLevelSigma.return_value = RecordLevelSigma(
-            sigma=record_level_sigma
-        )
-        datanode.computePartialHazardRatio.return_value = PartialHazardRatio(
-            partialHazardRatios=record_level_sigma[0:1]
-        )
-
-        mock_datanodes.append(datanode)
-
-    aggregator = Aggregator(
-        institutions=mock_datanodes,
-        event_times=event_times,
-        event_happened=event_happened,
-    )
-
-    decentralized_result = aggregator.predict_risk_score([0])
-
-    np.testing.assert_almost_equal(centralized_result, decentralized_result)
+    return StepFunction(np.array(steps), np.array(hazard))

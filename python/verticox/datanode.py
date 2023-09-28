@@ -1,10 +1,9 @@
 import logging
 import logging
 import time
-from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Optional, List, Tuple, Union
+from typing import Optional, List, Union
 
 import clize
 import grpc
@@ -24,9 +23,10 @@ from verticox.grpc.datanode_pb2 import (
     RecordLevelSigma,
     AverageSigma,
     Subset,
-    PartialHazardRatio,
     InitialValues,
     Rows,
+    RecordLevelSigmaRequest,
+    AverageSigmaRequest,
 )
 from verticox.grpc.datanode_pb2_grpc import (
     DataNodeServicer,
@@ -277,7 +277,7 @@ class DataNode(DataNodeServicer):
             )
 
     def getRecordLevelSigma(
-        self, request, context: grpc.ServicerContext = None
+        self, request: RecordLevelSigmaRequest, context: grpc.ServicerContext = None
     ) -> RecordLevelSigma:
         """
         Get the sigma value for every record. Sigma is defined as :math: `\beta_k \cdot x`
@@ -286,53 +286,44 @@ class DataNode(DataNodeServicer):
         :param context:
         :return:
         """
+        if request.subset == Subset.TRAIN:
+            data = self.split.train
+        elif request.subset == Subset.TEST:
+            data = self.split.test
+        else:
+            data = self._all_data
 
-        sigmas = DataNode.compute_record_level_sigma(self.split.train, self.state.beta)
+        sigmas = DataNode.compute_record_level_sigma(data, self.state.beta)
 
         return RecordLevelSigma(sigma=sigmas)
 
     @staticmethod
-    def compute_record_level_sigma(features, beta):
-        return np.tensordot(features, beta, (1, 0))
+    def compute_record_level_sigma(covariates, beta):
+        return np.tensordot(covariates, beta, (1, 0))
 
-    def getAverageSigma(self, request: Empty, context=None) -> AverageSigma:
+    def getAverageSigma(
+        self, request: AverageSigmaRequest, context=None
+    ) -> AverageSigma:
         """
         Get sigma value averaged over all records.
         :param request:
         :param context:
         :return:
         """
-        average = DataNode.compute_average_sigma(self.state.data_train, self.state.beta)
+        if request.subset == Subset.TRAIN:
+            average = DataNode.compute_average_sigma(self.split.train, self.state.beta)
+        elif request.subset == Subset.TEST:
+            average = DataNode.compute_average_sigma(self.split.test, self.state.beta)
+        else:
+            average = DataNode.compute_average_sigma(self._all_data, self.state.beta)
 
         return AverageSigma(sigma=average)
 
     @staticmethod
-    def compute_average_sigma(features, beta):
-        sigmas = np.tensordot(features, beta, (1, 0))
-        return np.average(sigmas, axis=0)
-
-    def getPartialHazardRatio(
-        self, request: Subset, context=None
-    ) -> PartialHazardRatio:
-        """
-        Compute the hazard ratio of a subset of records
-        :param request: The indices of the subset of records
-        :param context:
-        :return:
-        """
-        indices = list(request.indices)
-
-        sigmas = DataNode.compute_partial_hazard_ratio(
-            self.state.data_train, self.state.beta, indices
-        )
-
-        return PartialHazardRatio(partialHazardRatios=sigmas.tolist())
-
-    @staticmethod
-    def compute_partial_hazard_ratio(features, beta, indices):
-        indices = list(indices)
-        subset = features[indices, :]
-        return np.tensordot(subset, beta, (1, 0))
+    def compute_average_sigma(features: np.array, beta: np.array):
+        average_covariates = features.mean(axis=0)
+        sigmas = np.dot(average_covariates, beta)
+        return sigmas
 
     @staticmethod
     def _sum_covariates(covariates: np.array):
