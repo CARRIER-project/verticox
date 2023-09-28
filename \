@@ -1,9 +1,0 @@
-Calculating baseline hazard and betas within "fit" function
-# Please enter the commit message for your changes. Lines starting
-# with '#' will be ignored, and an empty message aborts the commit.
-#
-# On branch compute-baseline-hazard-within-fit
-# Changes to be committed:
-#	modified:   verticox/aggregator.py
-#	modified:   verticox/node_manager.py
-#
