@@ -425,36 +425,42 @@ class Aggregator:
         Returns:
 
         """
-        record_level_sigmas = self.compute_record_level_sigmas(Subset.TEST)
+        record_level_sigmas_test = self.compute_record_level_sigmas(Subset.TEST)
 
         # Compute cumulative hazard per record
         record_level_cum_survival = []
-        for sigma in record_level_sigmas:
+        for sigma in record_level_sigmas_test:
             cum_survival = self.compute_cumulative_survival(
                 self.baseline_survival_function_, np.array([sigma])
             )
-            record_level_cum_survival.append(cum_survival)
+            record_level_cum_survival.append(cum_survival.y)
 
         auc = []
+        record_level_cum_survival = np.array(record_level_cum_survival)
 
-        for i in range(self.baseline_survival_function_.x.shape[0]):
-            value_at_t = 0
-            second_value_at_t = 0
-            for idx, record_cum_survival in enumerate(record_level_cum_survival):
-                record_cum_survival_t = record_cum_survival.y[i]
-                value_at_t += record_cum_survival_t
+        num_test_records = record_level_sigmas_test.shape[0]
+
+        # Lambda1 is the sum of all cumulative survival values
+        lambda1 = record_level_cum_survival.sum(axis=0) / num_test_records
+
+        # For every time t
+        for t_index in range(self.baseline_survival_function_.x.shape[0]):
+
+            lambda2 = 0
+
+            # For every record in TEST
+            for idx, single_cum_survival in enumerate(record_level_cum_survival):
+
+                # For every other record
                 for idx2, record_cum_survival2 in enumerate(record_level_cum_survival):
-                    if record_level_sigmas[idx] > record_level_sigmas[idx2]:
-                        second_value_at_t += (
-                                                     1 - record_cum_survival_t
-                                             ) * record_level_cum_survival[idx2].y[i]
+                    if record_level_sigmas_test[idx] > record_level_sigmas_test[idx2]:
+                        lambda2 += (
+                                           1 - single_cum_survival[t_index]
+                                   ) * record_cum_survival2[t_index]
 
-            value_at_t = value_at_t / record_level_sigmas.shape[0]
-            second_value_at_t = second_value_at_t / np.square(
-                record_level_sigmas.shape[0]
-            )
+            lambda2 = lambda2 / np.square(num_test_records)
 
-            auc.append(second_value_at_t / ((1 - value_at_t) * value_at_t))
+            auc.append(lambda2 / ((1 - lambda1[t_index]) * lambda1[t_index]))
 
         auc = np.array(auc)
 

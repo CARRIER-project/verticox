@@ -70,7 +70,7 @@ def compute_centralized():
 
 
 def run_test_full_dataset(
-    node_manager: LocalNodeManager, all_data_features, all_data_outcome
+        node_manager: LocalNodeManager, all_data_features, all_data_outcome
 ):
     node_manager.reset()
     node_manager.fit()
@@ -93,10 +93,10 @@ def collect_all_test_data(data_path):
 
 
 def run_test_selection(
-    node_manager: LocalNodeManager,
-    full_data_length,
-    all_data_features,
-    all_data_outcome,
+        node_manager: LocalNodeManager,
+        full_data_length,
+        all_data_features,
+        all_data_outcome,
 ):
     selected_idx = select_rows(full_data_length)
 
