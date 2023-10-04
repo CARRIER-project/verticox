@@ -11,6 +11,7 @@ from typing import List, Any, Union, Iterable
 
 import numpy as np
 import pandas as pd
+from sksurv.metrics import concordance_index_censored
 from vantage6.client import ContainerClient
 from vantage6.common import info, debug
 
@@ -232,10 +233,29 @@ class BaseNodeManager(ABC):
         self._result = Result(betas=betas, baseline_hazard=baseline_hazard)
 
     def test(self):
-        avg_cumulative_survival = self._aggregator.predict_average_cumulative_survival(Subset.TEST)
+        c_index = self.compute_c_index(subset=Subset.TEST)
 
-        auc = self._aggregator.compute_auc()
-        return auc, avg_cumulative_survival
+        return c_index
+
+    def compute_c_index(self, subset=Subset.TEST):
+        """
+        Concordance index based on the concordance_index_censored
+        implementation from sksurv.
+
+        Args:
+            subset:
+
+        Returns:
+
+        .._Concordance_index_censored implementation:
+            https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.metrics.concordance_index_censored.html
+        """
+        estimates = self._aggregator.compute_record_level_sigmas(subset)
+
+        print(f'Estimates: {estimates}')
+        c_index = concordance_index_censored(self.split.test.event_happened,
+                                             self.split.test.time, estimates)
+        return c_index
 
     def start_nodes(self):
         info("Starting java containers")

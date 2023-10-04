@@ -419,6 +419,7 @@ class Aggregator:
             result[idx] = summed
         return StepFunction(x=baseline_hazard.x, y=result)
 
+
     def compute_auc(self):
         """
         Computes area under curve on the test data
@@ -465,6 +466,9 @@ class Aggregator:
         auc = np.array(auc)
 
         return StepFunction(x=self.baseline_survival_function_.x, y=auc)
+
+
+
 
 
 class Progress:
