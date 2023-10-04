@@ -8,12 +8,29 @@ from numpy.testing import assert_array_almost_equal
 
 import verticox.ssl
 from verticox.datanode import DataNode, serve, DataNodeException
-from verticox.grpc.datanode_pb2 import Empty, InitialValues, Rows
+from verticox.grpc.datanode_pb2 import Empty, InitialValues, Rows, Subset, RecordLevelSigmaRequest
 
 NUM_PATIENTS = 3
 NUM_FEATURES = 5
 FEATURE_NAMES = "12345"
 PORT = 9999
+
+
+class MockNPartyClient:
+
+    def __init__(self, num_columns):
+        mock_n_party_client = MagicMock()
+
+        # It's enough if this function returns an arbitrary np array
+        mock_n_party_client.return_value.sum_relevant_values.return_value = np.arange(num_columns)
+
+        self._patch = patch("verticox.datanode.NPartyScalarProductClient", mock_n_party_client)
+
+    def __enter__(self):
+        self._patch.__enter__()
+
+    def __exit__(self, *exc_info):
+        self._patch.__exit__(*exc_info)
 
 
 @pytest.fixture()
@@ -166,12 +183,8 @@ def test_get_average_sigma(data, beta):
 
 def test_cant_fit_after_reset(data, initial_values):
     features, feature_names = data
-    mock_n_party_client = MagicMock()
 
-    # It's enough if this function returns an arbitrary np array
-    mock_n_party_client.return_value.sum_relevant_values = np.arange(5)
-
-    with patch("verticox.datanode.NPartyScalarProductClient"):
+    with MockNPartyClient(features.shape[1]):
         datanode = DataNode(features, feature_names)
         datanode.reset(Rows(rows=[]))
         datanode.prepare(initial_values)
@@ -181,6 +194,25 @@ def test_cant_fit_after_reset(data, initial_values):
 
         with pytest.raises(DataNodeException):
             datanode.fit(Empty())
+
+
+@pytest.mark.parametrize("subset, num_records",
+                         [(Subset.TRAIN, 3), (Subset.TEST, 1), (Subset.ALL, 4)])
+def test_get_recordlevelsigma_uses_right_subset(initial_values, subset, num_records):
+    num_rows = 4
+    feature_names = ['a', 'b']
+    num_columns = len(feature_names)
+    selection = [0, 1, 2]
+
+    data = np.arange(num_rows * num_columns).reshape((num_rows, num_columns))
+    with MockNPartyClient(num_columns):
+        datanode = DataNode(data, feature_names)
+        datanode.reset(Rows(rows=selection))
+        datanode.prepare(initial_values)
+
+        sigmas = datanode.getRecordLevelSigma(RecordLevelSigmaRequest(subset=subset))
+
+        assert len(sigmas.sigma) == num_records
 
 
 if __name__ == "__main__":

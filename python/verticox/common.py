@@ -8,7 +8,7 @@ from numba import typed, types
 from numpy.typing import ArrayLike
 from sksurv.datasets import load_whas500
 
-Split = namedtuple("Split", ("train", "test"))
+Split = namedtuple("Split", ("train", "test", "all"))
 
 
 @np.vectorize

@@ -1,5 +1,4 @@
 import logging
-import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -60,14 +59,14 @@ class DataNode(DataNodeServicer):
         sigma: float = None
 
     def __init__(
-        self,
-        all_features: np.array,
-        feature_names: List[str],
-        name=None,
-        server=None,
-        include_column: Optional[str] = None,
-        include_value: bool = True,
-        commodity_address: str = None,
+            self,
+            all_features: np.array,
+            feature_names: List[str],
+            name=None,
+            server=None,
+            include_column: Optional[str] = None,
+            include_value: bool = True,
+            commodity_address: str = None,
     ):
         """
 
@@ -107,7 +106,7 @@ class DataNode(DataNodeServicer):
     def include(event):
         return event[0]
 
-    def _select_train_test(self, selected_rows) -> Split[np.array, np.array]:
+    def _select_train_test(self, selected_rows) -> Split[np.array, np.array, np.array]:
         """
 
         Args:
@@ -117,11 +116,11 @@ class DataNode(DataNodeServicer):
 
         """
         if not selected_rows:
-            return Split(self._all_data, None)
+            return Split(self._all_data, self._all_data, self._all_data)
 
         mask = np.zeros(self._all_data.shape[0], dtype=bool)
         mask[selected_rows] = True
-        return Split(self._all_data[mask], self._all_data[~mask])
+        return Split(self._all_data[mask], self._all_data[~mask], self._all_data)
 
     def prepare(self, request: InitialValues, context=None):
         """
@@ -133,26 +132,27 @@ class DataNode(DataNodeServicer):
         Returns:
 
         """
+        self._prepare(request.gamma, request.z, request.beta, request.rho)
+
+        return Empty()
+
+    def _prepare(self, gamma, z, beta, rho):
         num_samples = self.split.train.shape[0]
         covariates_multiplied = DataNode._multiply_features(self.split.train)
-
         sum_Dt = self._compute_sum_Dt_n_party_scalar_product(
             self.feature_names,
             self._censor_name,
             self._censor_value,
             self.n_party_address,
         )
-
         self.state = DataNode.State(
             features_multiplied=covariates_multiplied,
-            gamma=np.array(request.gamma),
-            z=np.full((num_samples,), request.z),
-            beta=np.array(request.beta),
-            rho=request.rho,
+            gamma=np.array(gamma),
+            z=np.array(z),
+            beta=np.array(beta),
+            rho=rho,
             sum_Dt=sum_Dt,
         )
-
-        return Empty()
 
     def reset(self, request: Rows, context=None):
         """
@@ -186,7 +186,7 @@ class DataNode(DataNodeServicer):
 
     @staticmethod
     def _compute_sum_Dt_n_party_scalar_product(
-        local_feature_names, censor_feature, censor_value, commodity_address
+            local_feature_names, censor_feature, censor_value, commodity_address
     ):
         logger.info("Computing sum Dt with n party scalar product")
         client = NPartyScalarProductClient(commodity_address=commodity_address)
@@ -240,7 +240,7 @@ class DataNode(DataNodeServicer):
 
         """
         self.state.gamma = self.state.aggregated_gamma + self.state.rho * (
-            self.state.sigma - self.state.z
+                self.state.sigma - self.state.z
         )
 
         return Empty()
@@ -277,7 +277,7 @@ class DataNode(DataNodeServicer):
             )
 
     def getRecordLevelSigma(
-        self, request: RecordLevelSigmaRequest, context: grpc.ServicerContext = None
+            self, request: RecordLevelSigmaRequest, context: grpc.ServicerContext = None
     ) -> RecordLevelSigma:
         """
         Get the sigma value for every record. Sigma is defined as :math: `\beta_k \cdot x`
@@ -286,23 +286,28 @@ class DataNode(DataNodeServicer):
         :param context:
         :return:
         """
-        if request.subset == Subset.TRAIN:
-            data = self.split.train
-        elif request.subset == Subset.TEST:
-            data = self.split.test
-        else:
-            data = self._all_data
+        data = self.retrieve_subset(request.subset)
 
         sigmas = DataNode.compute_record_level_sigma(data, self.state.beta)
 
         return RecordLevelSigma(sigma=sigmas)
+
+    def retrieve_subset(self, subset: Subset):
+        match subset:
+            case Subset.TEST:
+                data = self.split.test
+            case Subset.TRAIN:
+                data = self.split.train
+            case Subset.ALL:
+                data = self.split.all
+        return data
 
     @staticmethod
     def compute_record_level_sigma(covariates, beta):
         return np.tensordot(covariates, beta, (1, 0))
 
     def getAverageSigma(
-        self, request: AverageSigmaRequest, context=None
+            self, request: AverageSigmaRequest, context=None
     ) -> AverageSigma:
         """
         Get sigma value averaged over all records.
@@ -336,12 +341,12 @@ class DataNode(DataNodeServicer):
 
     @staticmethod
     def _compute_beta(
-        features: np.array,
-        z: np.array,
-        gamma: np.array,
-        rho,
-        features_multiplied,
-        sum_Dt,
+            features: np.array,
+            z: np.array,
+            gamma: np.array,
+            rho,
+            features_multiplied,
+            sum_Dt,
     ):
         first_component = np.linalg.inv(rho * features_multiplied)
 
@@ -349,8 +354,8 @@ class DataNode(DataNodeServicer):
 
         for sample_idx in range(features.shape[0]):
             second_component = (
-                second_component
-                + (rho * z[sample_idx] - gamma[sample_idx]) * features[sample_idx]
+                    second_component
+                    + (rho * z[sample_idx] - gamma[sample_idx]) * features[sample_idx]
             )
 
         second_component = second_component + sum_Dt
@@ -367,12 +372,12 @@ class DataNode(DataNodeServicer):
 
     @staticmethod
     def _local_update(
-        features: np.array,
-        z: np.array,
-        gamma: np.array,
-        rho,
-        features_multiplied,
-        sum_Dt,
+            features: np.array,
+            z: np.array,
+            gamma: np.array,
+            rho,
+            features_multiplied,
+            sum_Dt,
     ):
         beta = DataNode._compute_beta(
             features, z, gamma, rho, features_multiplied, sum_Dt
@@ -382,16 +387,16 @@ class DataNode(DataNodeServicer):
 
 
 def serve(
-    *,
-    data: np.array,
-    feature_names=None,
-    include_column=None,
-    include_value=True,
-    commodity_address=None,
-    port=DEFAULT_PORT,
-    timeout=TIMEOUT,
-    secure=True,
-    address=None,
+        *,
+        data: np.array,
+        feature_names=None,
+        include_column=None,
+        include_value=True,
+        commodity_address=None,
+        port=DEFAULT_PORT,
+        timeout=TIMEOUT,
+        secure=True,
+        address=None,
 ):
     logging.basicConfig(level=logging.DEBUG)
     info(f"Data shape {data.shape}")
