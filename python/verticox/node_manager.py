@@ -79,13 +79,13 @@ class ContainerAddresses:
 class BaseNodeManager(ABC):
     @abstractmethod
     def __init__(
-        self,
-        data: pd.DataFrame,
-        event_times_column,
-        event_happened_column,
-        aggregator_kwargs,
-        features=None,
-        include_value=True,
+            self,
+            data: pd.DataFrame,
+            event_times_column,
+            event_happened_column,
+            aggregator_kwargs,
+            features=None,
+            include_value=True,
     ):
         # Putting the results in one tuple makes it easier to reset when a new fold needs to be
         # activated. The results are the only part of the state that need to be reset.
@@ -164,6 +164,7 @@ class BaseNodeManager(ABC):
         self._reset_python_nodes(train_selection)
 
         self._aggregator = None
+
     def _reset_java_nodes(self, training_selection: Union[None, Iterable[int]] = None):
         if training_selection is None:
             selection = np.ones(self.num_total_records, dtype=bool)
@@ -191,11 +192,13 @@ class BaseNodeManager(ABC):
             train_data = self.data.iloc[train_mask]
             test_data = self.data.iloc[~train_mask]
             self.split = Split(
-                self._get_outcome(train_data), self._get_outcome(test_data)
+                self._get_outcome(train_data),
+                self._get_outcome(test_data),
+                self.data
             )
         else:
             # If there is no selection train_outcome is all data and test set is None
-            self.split = Split(self._get_outcome(self.data), None)
+            self.split = Split(self._get_outcome(self.data), None, self.data)
 
     def _get_outcome(self, data):
         return Outcome(
@@ -270,15 +273,15 @@ class BaseNodeManager(ABC):
 
 class LocalNodeManager(BaseNodeManager):
     def __init__(
-        self,
-        data: pd.DataFrame,
-        event_times_column,
-        event_happened_column,
-        aggregator_kwargs,
-        commodity_address=DOCKER_COMPOSE_COMMODITY_NODE,
-        python_datanode_addresses=DOCKER_COMPOSE_PYTHON_NODES,
-        other_java_addresses=DOCKER_COMPOSE_JAVA_NODES,
-        **kwargs,
+            self,
+            data: pd.DataFrame,
+            event_times_column,
+            event_happened_column,
+            aggregator_kwargs,
+            commodity_address=DOCKER_COMPOSE_COMMODITY_NODE,
+            python_datanode_addresses=DOCKER_COMPOSE_PYTHON_NODES,
+            other_java_addresses=DOCKER_COMPOSE_JAVA_NODES,
+            **kwargs,
     ):
         super().__init__(
             data=data,
@@ -314,17 +317,17 @@ class LocalNodeManager(BaseNodeManager):
 
 class V6NodeManager(BaseNodeManager):
     def __init__(
-        self,
-        v6_client: ContainerClient,
-        data: pd.DataFrame,
-        datanode_organizations: List[int],
-        central_organization: int,
-        event_happened_column: str,
-        event_times_column: str,
-        features: List[str],
-        include_value: Any,
-        rows: Union[Iterable, None] = None,
-        **aggregator_kwargs,
+            self,
+            v6_client: ContainerClient,
+            data: pd.DataFrame,
+            datanode_organizations: List[int],
+            central_organization: int,
+            event_happened_column: str,
+            event_times_column: str,
+            features: List[str],
+            include_value: Any,
+            rows: Union[Iterable, None] = None,
+            **aggregator_kwargs,
     ):
         """
         Node manager for vantage6 infrastructure. Will take care of starting and shutting the
@@ -409,7 +412,7 @@ class V6NodeManager(BaseNodeManager):
         self.scalar_product_client.kill_nodes()
 
     def _get_algorithm_addresses(
-        self, expected_amount: int, task_id
+            self, expected_amount: int, task_id
     ) -> ContainerAddresses:
         retries = 0
         # Wait for nodes to get ready
