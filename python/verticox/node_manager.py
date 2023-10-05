@@ -119,7 +119,7 @@ class BaseNodeManager(ABC):
 
     @property
     def num_current_selection(self):
-        return len(self._train_outcome)
+        return len(self.split.train)
 
     @property
     def result(self):
@@ -233,6 +233,8 @@ class BaseNodeManager(ABC):
         self._result = Result(betas=betas, baseline_hazard=baseline_hazard)
 
     def test(self):
+        print(f'Num training samples: {len(self.split.train.time)}')
+        print(f'Num test samples: {len(self.split.test.time)}')
         c_index = self.compute_c_index(subset=Subset.TEST)
 
         return c_index

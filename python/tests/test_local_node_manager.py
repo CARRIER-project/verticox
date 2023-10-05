@@ -99,6 +99,8 @@ def run_test_selection(
         all_data_outcome,
 ):
     selected_idx = select_rows(full_data_length)
+    mask = np.zeros(full_data_length, dtype=bool)
+    mask[selected_idx] = True
 
     # TODO: This flow is not ideal
     node_manager.reset(selected_idx)
@@ -112,12 +114,12 @@ def run_test_selection(
 
     c_index = node_manager.test()
 
-    all_data_features_train = all_data_features.iloc[selected_idx]
-    all_data_outcome_train = all_data_outcome[selected_idx]
+    all_data_features_train = all_data_features.iloc[mask]
+    all_data_outcome_train = all_data_outcome[mask]
 
-    all_data_features_test = all_data_features.iloc[~selected_idx]
-    all_data_outcome_test = all_data_outcome[~selected_idx]
-
+    all_data_features_test = all_data_features.iloc[~mask]
+    all_data_outcome_test = all_data_outcome[~mask]
+    print(f'Number of test samples: {all_data_features_test.shape[0]}')
     event_time, event_indicator = unpack_events(all_data_outcome_test)
 
     central_model = CoxPHSurvivalAnalysis()
