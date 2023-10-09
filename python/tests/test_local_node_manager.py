@@ -8,7 +8,7 @@ from numpy import vectorize
 from sksurv.datasets import get_x_y
 from sksurv.functions import StepFunction
 from sksurv.linear_model import CoxPHSurvivalAnalysis
-from sksurv.metrics import cumulative_dynamic_auc
+from sksurv.metrics import cumulative_dynamic_auc, concordance_index_censored
 from sksurv.util import Surv
 from vantage6.common import info
 
@@ -99,6 +99,8 @@ def run_test_selection(
         all_data_outcome,
 ):
     selected_idx = select_rows(full_data_length)
+    mask = np.zeros(full_data_length, dtype=bool)
+    mask[selected_idx] = True
 
     # TODO: This flow is not ideal
     node_manager.reset(selected_idx)
@@ -110,32 +112,24 @@ def run_test_selection(
     for key, value in SELECTED_TARGET_COEFS.items():
         np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
 
-    auc, cum_survival = node_manager.test()
+    c_index = node_manager.test()
 
-    all_data_features_train = all_data_features.iloc[selected_idx]
-    all_data_outcome_train = all_data_outcome[selected_idx]
+    all_data_features_train = all_data_features.iloc[mask]
+    all_data_outcome_train = all_data_outcome[mask]
 
-    all_data_features_test = all_data_features.iloc[~selected_idx]
-    all_data_outcome_test = all_data_outcome[~selected_idx]
+    all_data_features_test = all_data_features.iloc[~mask]
+    all_data_outcome_test = all_data_outcome[~mask]
+    print(f'Number of test samples: {all_data_features_test.shape[0]}')
+    event_time, event_indicator = unpack_events(all_data_outcome_test)
 
     central_model = CoxPHSurvivalAnalysis()
     central_model.fit(all_data_features_train, all_data_outcome_train)
 
-    # Because of how auc is computed all test times need to be within the range of the training set
-    within_range = outcome_lower_equal_than_x(
-        all_data_outcome_test, np.max(node_manager.baseline_hazard.x)
-    )
-
-    all_data_features_test = all_data_features_test.iloc[within_range]
-    all_data_outcome_test = all_data_outcome_test[within_range]
-
     central_predictions = central_model.predict(all_data_features_test)
+    print(f'Central predictions: {central_predictions}')
+    central_c_index = concordance_index_censored(event_indicator, event_time, central_predictions)
 
-    times = node_manager.baseline_hazard.x
-
-    info(f"AUC: {auc}")
-
-    #compare_stepfunctions(auc, target_auc)
+    np.testing.assert_almost_equal(c_index, central_c_index, decimal=DECIMAL_PRECISION)
 
 
 @vectorize

@@ -185,37 +185,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-#
-# localhost: 8080 / setPrecisionCentral?precision = 5
-#
-# {
-#     'value': null,
-#     'range': true,
-#     'upperLimit': {
-#         'type': 'numeric',
-#         'value': '10',
-#         'attributeName': 'x1',
-#         'id': null,
-#         'uknown': false
-#     },
-#     'lowerLimit': {
-#         'type': 'numeric',
-#         'value': '-inf',
-#         'attributeName': 'x1',
-#         'id': null,
-#         'uknown': false
-#     },
-#     'name': 'x1'
-# }
-#
-# // If
-# value is used
-# it is a
-# direct
-# comparison, so
-# requirement is fullfilled if value == attribute
-# // If
-# range is used
-# then
-# lower <= attribue < upperLimit
