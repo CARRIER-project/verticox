@@ -6,13 +6,10 @@ import numpy as np
 import pandas as pd
 from numpy import vectorize
 from sksurv.datasets import get_x_y
-from sksurv.functions import StepFunction
 from sksurv.linear_model import CoxPHSurvivalAnalysis
-from sksurv.metrics import cumulative_dynamic_auc, concordance_index_censored
+from sksurv.metrics import concordance_index_censored
 from sksurv.util import Surv
-from vantage6.common import info
 
-from common import compare_stepfunctions
 from test_constants import CONVERGENCE_PRECISION
 from verticox.common import unpack_events
 from verticox.node_manager import LocalNodeManager
