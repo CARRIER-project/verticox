@@ -12,6 +12,7 @@ from sksurv.util import Surv
 
 from test_constants import CONVERGENCE_PRECISION
 from verticox.common import unpack_events
+from verticox.cross_validation import cross_validate
 from verticox.node_manager import LocalNodeManager
 
 _logger = logging.getLogger()
@@ -79,9 +80,9 @@ def run_test_full_dataset(
     )
     node_manager.reset()
     node_manager.fit()
-    coefs = node_manager.betas
-    _logger.info(f"Betas: {coefs}")
-    _logger.info(f"Baseline hazard ratio {node_manager.baseline_hazard}")
+    coefs = node_manager.coefs
+    logging.info(f"Betas: {coefs}")
+    logging.info(f"Baseline hazard ratio {node_manager.baseline_hazard}")
 
     for key, value in TARGET_COEFS.items():
         np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
@@ -115,7 +116,7 @@ def run_test_selection(
     # TODO: This flow is not ideal
     node_manager.reset(selected_idx)
     node_manager.fit()
-    coefs = node_manager.betas
+    coefs = node_manager.coefs
 
     _logger.info(f"Betas: {coefs}")
     _logger.info(f"Baseline hazard ratio {node_manager.baseline_hazard}")
@@ -146,6 +147,12 @@ def outcome_lower_equal_than_x(outcome, x):
     return outcome[1] <= x
 
 
+def run_test_cross_validation(node_manager):
+    print("Running cross validation")
+    cross_validate(node_manager)
+    print("Cross validation done")
+
+
 def run_locally(local_data, all_data, event_times_column, event_happened_column):
     df = pd.read_parquet(local_data)
     all_data_df = collect_all_test_data(all_data)
@@ -165,7 +172,7 @@ def run_locally(local_data, all_data, event_times_column, event_happened_column)
 
     run_test_full_dataset(node_manager, all_data_features, all_data_outcome)
     run_test_selection(node_manager, df.shape[0], all_data_features, all_data_outcome)
-
+    run_test_cross_validation(node_manager)
     print("Test has passed.")
 
 
