@@ -257,9 +257,7 @@ class DataNode(DataNodeServicer):
         raise DataNodeException("Datanode has not been prepared yet!")
 
     def getBeta(self, request, context=None):
-        self._logger.debug("Returning beta")
         result = self.state.beta.tolist()
-        self._logger.debug("Converted beta to list")
         return Beta(beta=result)
 
     def kill(self, request, context=None):
