@@ -214,8 +214,8 @@ def run_locally(local_data, all_data, event_times_column, event_happened_column)
 
     node_manager.start_nodes()
 
-    # run_test_full_dataset(node_manager, all_data_features, all_data_outcome)
-    # run_test_selection(node_manager, df.shape[0], all_data_features, all_data_outcome)
+    run_test_full_dataset(node_manager, all_data_features, all_data_outcome)
+    run_test_selection(node_manager, df.shape[0], all_data_features, all_data_outcome)
     run_test_cross_validation(node_manager, all_data_features, all_data_outcome)
     print("Test has passed.")
 
