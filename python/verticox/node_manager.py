@@ -254,7 +254,6 @@ class BaseNodeManager(ABC):
         """
         estimates = self._aggregator.compute_record_level_sigmas(subset)
 
-        print(f'Estimates: {estimates}')
         c_index = concordance_index_censored(self.split.test.event_happened,
                                              self.split.test.time, estimates)
         return c_index

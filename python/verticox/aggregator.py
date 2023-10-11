@@ -6,7 +6,6 @@ import numpy as np
 from numba import types, typed
 from numpy.typing import ArrayLike
 from sksurv.functions import StepFunction
-from vantage6.common import info
 
 from verticox.common import group_samples_at_risk, group_samples_on_event_time
 from verticox.grpc.datanode_pb2 import (
@@ -145,7 +144,7 @@ class Aggregator:
                 "          Starting new iteration..."
                 "\n----------------------------------------"
             )
-            info(f"Starting iteration num {self.num_iterations}")
+            logger.info(f"Starting iteration num {self.num_iterations}")
 
             self.fit_one()
 
@@ -153,11 +152,6 @@ class Aggregator:
             # flip the > sign
             z_diff = np.linalg.norm(self.z - self.z_old)
             z_sigma_diff = np.linalg.norm(self.z - self.sigma)
-
-            logger.debug(f"z_diff: {z_diff}")
-            logger.debug(f"sigma_diff: {z_sigma_diff}")
-            info(f"z_diff: {z_diff}")
-            info(f"sigma_diff: {z_sigma_diff}")
 
             if (
                     z_diff <= self.convergence_precision
@@ -174,24 +168,24 @@ class Aggregator:
             )
             progress.update(progress_value)
 
-            info(f"Completed current iteration after {diff} seconds")
-            info(
+            logger.info(f"Completed current iteration after {diff} seconds")
+            logger.info(
                 f"Iterations are taking on average {total_runtime / self.num_iterations} seconds "
                 f"per run"
             )
-            info(f"Current progress: {100 * progress.get_value():.2f}%")
+            logger.info(f"Current progress: {100 * progress.get_value():.2f}%")
 
         logger.info(f"Finished training after {self.num_iterations} iterations")
 
-        logger.info("Retrieving betas...")
+        logger.debug("Retrieving betas...")
         self.betas_ = self.retrieve_betas()
         logger.info("Done")
 
-        logger.info("Computing baseline hazard...")
+        logger.debug("Computing baseline hazard...")
         self.baseline_hazard_function_ = self.compute_baseline_hazard_function(
             Subset.TRAIN
         )
-        info(f"Baseline hazard_function: {self.baseline_hazard_function_}")
+        logger.debug(f"Baseline hazard_function: {self.baseline_hazard_function_}")
         logger.info("Done")
 
         logger.info("Computing baseline survival...")
@@ -317,12 +311,11 @@ class Aggregator:
     def retrieve_betas(self) -> Dict[str, float]:
         betas = []
         names = []
-        info(f"Getting betas from {len(self.institutions)} institutions")
+        logger.debug(f"Getting betas from {len(self.institutions)} institutions")
         for institution in self.institutions:
             current_betas = institution.getBeta(Empty()).beta
             try:
                 current_names = institution.getFeatureNames(Empty()).names
-                info(f"Current names: {current_names}")
             except Exception:
                 current_names = [None] * len(current_betas)
             betas += current_betas
@@ -419,7 +412,6 @@ class Aggregator:
             result[idx] = summed
         return StepFunction(x=baseline_hazard.x, y=result)
 
-
     def compute_auc(self):
         """
         Computes area under curve on the test data
@@ -466,9 +458,6 @@ class Aggregator:
         auc = np.array(auc)
 
         return StepFunction(x=self.baseline_survival_function_.x, y=auc)
-
-
-
 
 
 class Progress:

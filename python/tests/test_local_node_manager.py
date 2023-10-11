@@ -123,7 +123,6 @@ def run_test_selection(
     central_model.fit(all_data_features_train, all_data_outcome_train)
 
     central_predictions = central_model.predict(all_data_features_test)
-    print(f'Central predictions: {central_predictions}')
     central_c_index = concordance_index_censored(event_indicator, event_time, central_predictions)
 
     np.testing.assert_almost_equal(c_index, central_c_index, decimal=DECIMAL_PRECISION)
