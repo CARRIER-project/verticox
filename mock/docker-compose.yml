@@ -76,5 +76,5 @@ services:
       commodity:
         condition: service_healthy
     environment:
-      - LOGLEVEL=DEBUG
+      - LOGLEVEL=INFO
 

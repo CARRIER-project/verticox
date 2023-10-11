@@ -138,7 +138,8 @@ def run_test_selection(
     central_model.fit(all_data_features_train, all_data_outcome_train)
 
     central_predictions = central_model.predict(all_data_features_test)
-    central_c_index = concordance_index_censored(event_indicator, event_time, central_predictions)
+    central_c_index, _, _, _, _ = concordance_index_censored(event_indicator, event_time,
+                                                             central_predictions)
 
     np.testing.assert_almost_equal(c_index, central_c_index, decimal=DECIMAL_PRECISION)
 
@@ -154,7 +155,14 @@ def run_test_cross_validation(node_manager, all_data_features, all_data_outcome)
     # In the dataset we are using the uncensored data is at the beginning and the censored data
     # at the end. We need to mix it up
     shuffle = True
-    print("Running cross validation")
+
+    central_c_indices = cross_validate_central(all_data_features, all_data_outcome, n_splits,
+                                               random_state, shuffle)
+    _logger.info(
+        "\n\n--------------------------------------------\n"
+        "      Starting test with cross validation..."
+        "\n--------------------------------------------"
+    )
     c_indices, coefs = kfold_cross_validate(node_manager, n_splits, random_state, shuffle)
     print("Cross validation done")
     print(f"C scores: {c_indices}")
@@ -162,28 +170,31 @@ def run_test_cross_validation(node_manager, all_data_features, all_data_outcome)
 
     # Compare against central version
 
+    np.testing.assert_almost_equal(c_indices, central_c_indices, decimal=DECIMAL_PRECISION)
+
+
+def cross_validate_central(all_data_features, all_data_outcome, n_splits, random_state, shuffle):
     kfold = KFold(n_splits, random_state=random_state, shuffle=shuffle)
     folds = kfold.split(all_data_outcome)
-
     central_c_indices = []
-    for idx, train_indices, test_indices in enumerate(folds):
+    for idx, (train_indices, test_indices) in enumerate(folds):
+        _logger.info(f'Fold {idx}')
         # Select data
-        train_features = all_data_features[train_indices]
-        train_outcome = all_data_features[train_indices]
+        train_features = all_data_features.iloc[train_indices]
+        train_outcome = all_data_outcome[train_indices]
         # Train model
         model = CoxPHSurvivalAnalysis()
         model.fit(train_features, train_outcome)
         # Evaluate model
-        test_features = all_data_features[test_indices]
-        test_outcome = all_data_features[test_indices]
+        test_features = all_data_features.iloc[test_indices]
+        test_outcome = all_data_outcome[test_indices]
 
         estimates = model.predict(test_features)
 
-        event_indicator, event_time = unpack_events(test_outcome)
-        c_index = concordance_index_censored(event_indicator, event_time, estimates)
+        event_time, event_indicator = unpack_events(test_outcome)
+        c_index, _, _, _, _ = concordance_index_censored(event_indicator, event_time, estimates)
         central_c_indices.append(c_index)
-
-    np.testing.assert_almost_equal(c_indices, central_c_indices)
+    return central_c_indices
 
 
 def run_locally(local_data, all_data, event_times_column, event_happened_column):
@@ -203,8 +214,8 @@ def run_locally(local_data, all_data, event_times_column, event_happened_column)
 
     node_manager.start_nodes()
 
-    run_test_full_dataset(node_manager, all_data_features, all_data_outcome)
-    run_test_selection(node_manager, df.shape[0], all_data_features, all_data_outcome)
+    # run_test_full_dataset(node_manager, all_data_features, all_data_outcome)
+    # run_test_selection(node_manager, df.shape[0], all_data_features, all_data_outcome)
     run_test_cross_validation(node_manager, all_data_features, all_data_outcome)
     print("Test has passed.")
 

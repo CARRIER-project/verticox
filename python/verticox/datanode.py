@@ -78,7 +78,6 @@ class DataNode(DataNodeServicer):
 
         self.name = name
         self._logger = logging.getLogger(f"{__name__} :: {self.name}")
-        self._logger.setLevel(logging.DEBUG)
         self._logger.debug(f"Initializing datanode {self.name}")
         self._all_data = all_features
         self._censor_name = include_column
@@ -395,8 +394,13 @@ def serve(
         timeout=TIMEOUT,
         secure=True,
         address=None,
+        verbose=False
 ):
-    logging.basicConfig(level=logging.DEBUG)
+    if verbose:
+        loglevel = logging.DEBUG
+    else:
+        loglevel = logging.INFO
+    logging.basicConfig(level=loglevel)
     info(f"Data shape {data.shape}")
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
     add_DataNodeServicer_to_server(

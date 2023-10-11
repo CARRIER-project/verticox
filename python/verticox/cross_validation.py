@@ -26,7 +26,7 @@ def kfold_cross_validate(node_manager: BaseNodeManager,
     coefs = []
 
     for idx, (train_split, test_split) in enumerate(folds):
-        logging.debug(f'Training on fold {idx}')
+        logging.info(f'Training on fold {idx}')
 
         node_manager.reset(train_split)
         node_manager.fit()
