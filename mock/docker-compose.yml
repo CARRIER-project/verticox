@@ -75,7 +75,6 @@ services:
     depends_on:
       commodity:
         condition: service_healthy
-    restart: on-failure
     environment:
       - LOGLEVEL=DEBUG
 
