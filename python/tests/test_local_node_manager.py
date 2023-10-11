@@ -14,6 +14,9 @@ from test_constants import CONVERGENCE_PRECISION
 from verticox.common import unpack_events
 from verticox.node_manager import LocalNodeManager
 
+_logger = logging.getLogger()
+_logger.setLevel(logging.INFO)
+
 TEST_DATA_PATH = "mock/data"
 COVARIATE_FILES = ["data_1.parquet", "data_2.parquet"]
 OUTCOME_FILE = "outcome.parquet"
@@ -69,11 +72,16 @@ def compute_centralized():
 def run_test_full_dataset(
         node_manager: LocalNodeManager, all_data_features, all_data_outcome
 ):
+    _logger.info(
+        "\n\n----------------------------------------\n"
+        "       Starting test on full dataset..."
+        "\n----------------------------------------"
+    )
     node_manager.reset()
     node_manager.fit()
     coefs = node_manager.betas
-    logging.info(f"Betas: {coefs}")
-    logging.info(f"Baseline hazard ratio {node_manager.baseline_hazard}")
+    _logger.info(f"Betas: {coefs}")
+    _logger.info(f"Baseline hazard ratio {node_manager.baseline_hazard}")
 
     for key, value in TARGET_COEFS.items():
         np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
@@ -95,6 +103,11 @@ def run_test_selection(
         all_data_features,
         all_data_outcome,
 ):
+    _logger.info(
+        "\n\n----------------------------------------\n"
+        "          Starting test on selection..."
+        "\n----------------------------------------"
+    )
     selected_idx = select_rows(full_data_length)
     mask = np.zeros(full_data_length, dtype=bool)
     mask[selected_idx] = True
@@ -104,8 +117,8 @@ def run_test_selection(
     node_manager.fit()
     coefs = node_manager.betas
 
-    logging.info(f"Betas: {coefs}")
-    logging.info(f"Baseline hazard ratio {node_manager.baseline_hazard}")
+    _logger.info(f"Betas: {coefs}")
+    _logger.info(f"Baseline hazard ratio {node_manager.baseline_hazard}")
     for key, value in SELECTED_TARGET_COEFS.items():
         np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
 

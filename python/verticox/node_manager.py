@@ -214,8 +214,6 @@ class BaseNodeManager(ABC):
             stub.reset(message)
 
     def fit(self):
-        print(self.split.train.time)
-        print(self.split.train.event_happened)
         self._aggregator = Aggregator(
             self.stubs,
             self.split.train.time,
