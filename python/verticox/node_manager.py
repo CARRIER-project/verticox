@@ -252,8 +252,8 @@ class BaseNodeManager(ABC):
         """
         estimates = self._aggregator.compute_record_level_sigmas(subset)
 
-        c_index = concordance_index_censored(self.split.test.event_happened,
-                                             self.split.test.time, estimates)
+        c_index, _, _, _, _ = concordance_index_censored(self.split.test.event_happened,
+                                                         self.split.test.time, estimates)
         return c_index
 
     def start_nodes(self):
@@ -518,4 +518,3 @@ class V6NodeManager(BaseNodeManager):
         self._scalar_product_client.initialize_servers()
 
         self._commodity_address = commodity_address
-

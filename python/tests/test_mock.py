@@ -5,6 +5,7 @@ import clize
 import numpy as np
 import pandas as pd
 from numpy import vectorize
+from sklearn.model_selection import KFold
 from sksurv.datasets import get_x_y
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 from sksurv.metrics import concordance_index_censored
@@ -12,7 +13,7 @@ from sksurv.util import Surv
 
 from test_constants import CONVERGENCE_PRECISION
 from verticox.common import unpack_events
-from verticox.cross_validation import cross_validate
+from verticox.cross_validation import kfold_cross_validate
 from verticox.node_manager import LocalNodeManager
 
 _logger = logging.getLogger()
@@ -81,8 +82,8 @@ def run_test_full_dataset(
     node_manager.reset()
     node_manager.fit()
     coefs = node_manager.coefs
-    logging.info(f"Betas: {coefs}")
-    logging.info(f"Baseline hazard ratio {node_manager.baseline_hazard}")
+    print(f"Betas: {coefs}")
+    print(f"Baseline hazard ratio {node_manager.baseline_hazard}")
 
     for key, value in TARGET_COEFS.items():
         np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
@@ -147,10 +148,42 @@ def outcome_lower_equal_than_x(outcome, x):
     return outcome[1] <= x
 
 
-def run_test_cross_validation(node_manager):
+def run_test_cross_validation(node_manager, all_data_features, all_data_outcome):
+    n_splits = 5
+    random_state = 0
+    # In the dataset we are using the uncensored data is at the beginning and the censored data
+    # at the end. We need to mix it up
+    shuffle = True
     print("Running cross validation")
-    cross_validate(node_manager)
+    c_indices, coefs = kfold_cross_validate(node_manager, n_splits, random_state, shuffle)
     print("Cross validation done")
+    print(f"C scores: {c_indices}")
+    print(f"Coefs: {coefs}")
+
+    # Compare against central version
+
+    kfold = KFold(n_splits, random_state=random_state, shuffle=shuffle)
+    folds = kfold.split(all_data_outcome)
+
+    central_c_indices = []
+    for idx, train_indices, test_indices in enumerate(folds):
+        # Select data
+        train_features = all_data_features[train_indices]
+        train_outcome = all_data_features[train_indices]
+        # Train model
+        model = CoxPHSurvivalAnalysis()
+        model.fit(train_features, train_outcome)
+        # Evaluate model
+        test_features = all_data_features[test_indices]
+        test_outcome = all_data_features[test_indices]
+
+        estimates = model.predict(test_features)
+
+        event_indicator, event_time = unpack_events(test_outcome)
+        c_index = concordance_index_censored(event_indicator, event_time, estimates)
+        central_c_indices.append(c_index)
+
+    np.testing.assert_almost_equal(c_indices, central_c_indices)
 
 
 def run_locally(local_data, all_data, event_times_column, event_happened_column):
@@ -172,7 +205,7 @@ def run_locally(local_data, all_data, event_times_column, event_happened_column)
 
     run_test_full_dataset(node_manager, all_data_features, all_data_outcome)
     run_test_selection(node_manager, df.shape[0], all_data_features, all_data_outcome)
-    run_test_cross_validation(node_manager)
+    run_test_cross_validation(node_manager, all_data_features, all_data_outcome)
     print("Test has passed.")
 
 

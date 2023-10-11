@@ -5,14 +5,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_NUM_SPLIT = 10
+
+_DEFAULT_NUM_SPLIT = 5
 _DEFAULT_SEED = 0
 
 
-def cross_validate(node_manager: BaseNodeManager,
-                   n_splits=_DEFAULT_NUM_SPLIT,
-                   random_state=_DEFAULT_SEED,
-                   shuffle=True):
+def kfold_cross_validate(node_manager: BaseNodeManager,
+                         n_splits=_DEFAULT_NUM_SPLIT,
+                         random_state=_DEFAULT_SEED,
+                         shuffle=True):
     num_records = node_manager.num_total_records
     indices = np.arange(num_records)
 
@@ -32,3 +33,5 @@ def cross_validate(node_manager: BaseNodeManager,
 
         c_indices.append(node_manager.test())
         coefs.append(node_manager.coefs)
+
+    return c_indices, coefs
