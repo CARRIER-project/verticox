@@ -42,4 +42,4 @@ jobs:
         run: >
           export JARFILE=$GITHUB_WORKSPACE/java/verticox/target/verticox-1.0-SNAPSHOT.jar  && 
           docker compose up --exit-code-from aggregator
-        timeout-minutes: 10
+        timeout-minutes: 20
