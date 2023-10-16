@@ -85,7 +85,7 @@ def verticox(
         info(f"Verticox algorithm complete after {duration} seconds")
 
         info("Killing datanodes")
-        return manager.betas, manager.baseline_hazard
+        return manager.coefs, manager.baseline_hazard
     except Exception as e:
         info(f"Algorithm ended with exception {e}")
         info(traceback.format_exc())

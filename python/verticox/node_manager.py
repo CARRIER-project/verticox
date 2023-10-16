@@ -42,7 +42,7 @@ DOCKER_COMPOSE_COMMODITY_NODE = "commodity:80"
 
 Outcome = namedtuple("Outcome", "time event_happened")
 
-Result = namedtuple("Result", "betas baseline_hazard")
+Result = namedtuple("Result", "coefs baseline_hazard")
 
 
 class NodeManagerException(Exception):
@@ -90,7 +90,7 @@ class BaseNodeManager(ABC):
     ):
         # Putting the results in one tuple makes it easier to reset when a new fold needs to be
         # activated. The results are the only part of the state that need to be reset.
-        self._result = None
+        self._result: Result = None
 
         self._scalar_product_client = None
         self._stubs = None
@@ -130,8 +130,8 @@ class BaseNodeManager(ABC):
         return self._result
 
     @property
-    def betas(self):
-        return self.result.betas
+    def coefs(self):
+        return self.result.coefs
 
     @property
     def baseline_hazard(self):
@@ -228,7 +228,7 @@ class BaseNodeManager(ABC):
         betas = self._aggregator.betas_
         baseline_hazard = self._aggregator.baseline_hazard_function_
 
-        self._result = Result(betas=betas, baseline_hazard=baseline_hazard)
+        self._result = Result(coefs=betas, baseline_hazard=baseline_hazard)
 
     def test(self):
         print(f'Num training samples: {len(self.split.train.time)}')
@@ -252,8 +252,8 @@ class BaseNodeManager(ABC):
         """
         estimates = self._aggregator.compute_record_level_sigmas(subset)
 
-        c_index = concordance_index_censored(self.split.test.event_happened,
-                                             self.split.test.time, estimates)
+        c_index, _, _, _, _ = concordance_index_censored(self.split.test.event_happened,
+                                                         self.split.test.time, estimates)
         return c_index
 
     def start_nodes(self):
@@ -375,7 +375,6 @@ class V6NodeManager(BaseNodeManager):
             aggregator_kwargs,
             features=features,
             include_value=include_value,
-            rows=rows,
         )
 
         self._v6_client = v6_client

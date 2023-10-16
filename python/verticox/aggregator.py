@@ -139,12 +139,12 @@ class Aggregator:
         progress = Progress(max_value=0)
 
         while True:
-            logger.info(
+            logger.debug(
                 "\n\n----------------------------------------\n"
                 "          Starting new iteration..."
                 "\n----------------------------------------"
             )
-            logger.info(f"Starting iteration num {self.num_iterations}")
+            logger.debug(f"Starting iteration num {self.num_iterations}")
 
             self.fit_one()
 
@@ -168,8 +168,8 @@ class Aggregator:
             )
             progress.update(progress_value)
 
-            logger.info(f"Completed current iteration after {diff} seconds")
-            logger.info(
+            logger.debug(f"Completed current iteration after {diff} seconds")
+            logger.debug(
                 f"Iterations are taking on average {total_runtime / self.num_iterations} seconds "
                 f"per run"
             )

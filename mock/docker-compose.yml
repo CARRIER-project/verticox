@@ -70,11 +70,11 @@ services:
       - ../python:/app
       - ./data:/data
     command: >
-      poetry run python tests/test_local_node_manager.py /data/outcome.parquet /data event_time 
+      poetry run python tests/test_mock.py /data/outcome.parquet /data event_time 
       event_happened
     depends_on:
       commodity:
         condition: service_healthy
     environment:
-      - LOGLEVEL=DEBUG
+      - LOGLEVEL=INFO
 
