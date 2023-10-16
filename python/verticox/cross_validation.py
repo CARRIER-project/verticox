@@ -1,3 +1,4 @@
+from verticox.defaults import DEFAULT_KFOLD_SPLITS, DEFAULT_KFOLD_SEED
 from verticox.node_manager import BaseNodeManager
 from sklearn.model_selection import KFold
 import numpy as np
@@ -6,13 +7,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-_DEFAULT_NUM_SPLIT = 5
-_DEFAULT_SEED = 0
-
-
 def kfold_cross_validate(node_manager: BaseNodeManager,
-                         n_splits=_DEFAULT_NUM_SPLIT,
-                         random_state=_DEFAULT_SEED,
+                         n_splits=DEFAULT_KFOLD_SPLITS,
+                         random_state=DEFAULT_KFOLD_SEED,
                          shuffle=True):
     num_records = node_manager.num_total_records
     indices = np.arange(num_records)

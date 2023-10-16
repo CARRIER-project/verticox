@@ -14,11 +14,11 @@ _DEFAULT_PRECISION = 1e-5
 
 class VerticoxClient:
     def __init__(
-        self,
-        v6client: Client,
-        collaboration=None,
-        log_level=logging.INFO,
-        image=_VERTICOX_IMAGE,
+            self,
+            v6client: Client,
+            collaboration=None,
+            log_level=logging.INFO,
+            image=_VERTICOX_IMAGE,
     ):
         self._logger = logging.getLogger(__name__)
         self._logger.setLevel(log_level)
@@ -49,15 +49,15 @@ class VerticoxClient:
         )
         return task
 
-    def compute(
-        self,
-        feature_columns,
-        outcome_time_column,
-        right_censor_column,
-        datanodes,
-        central_node,
-        precision=_DEFAULT_PRECISION,
-        database="default",
+    def fit(
+            self,
+            feature_columns,
+            outcome_time_column,
+            right_censor_column,
+            datanodes,
+            central_node,
+            precision=_DEFAULT_PRECISION,
+            database="default",
     ):
         input_params = {
             "feature_columns": feature_columns,
@@ -69,11 +69,32 @@ class VerticoxClient:
         }
 
         return self._run_task(
-            "verticox", True, [central_node], kwargs=input_params, database=database
+            "fit", True, [central_node], kwargs=input_params, database=database
+        )
+
+    def cross_validate(self,
+                       feature_columns,
+                       outcome_time_column,
+                       right_censor_column,
+                       datanodes,
+                       central_node,
+                       precision=_DEFAULT_PRECISION,
+                       database="default"):
+        input_params = {
+            "feature_columns": feature_columns,
+            "event_times_column": outcome_time_column,
+            "event_happened_column": right_censor_column,
+            "datanode_ids": datanodes,
+            "central_node_id": central_node,
+            "precision": precision,
+        }
+
+        return self._run_task(
+            "cross_validate", True, [central_node], kwargs=input_params, database=database
         )
 
     def _run_task(
-        self, method, master, organizations: List[int], kwargs=None, database="default"
+            self, method, master, organizations: List[int], kwargs=None, database="default"
     ):
         if kwargs is None:
             kwargs = {}
