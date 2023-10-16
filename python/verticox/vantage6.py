@@ -11,6 +11,8 @@ from vantage6.client import ContainerClient
 from vantage6.tools.util import info
 
 from verticox import datanode, node_manager
+from verticox.cross_validation import kfold_cross_validate
+from verticox.defaults import DEFAULT_KFOLD_SPLITS
 
 DATABASE_URI = "DATABASE_URI"
 DATANODE_TIMEOUT = None
@@ -26,19 +28,19 @@ _WORKAROUND_DATABASE_URI = "default.parquet"
 NO_OP = "no_op"
 
 
-def verticox(
-    client: ContainerClient,
-    data: pd.DataFrame,
-    feature_columns: List[str],
-    event_times_column: str,
-    event_happened_column: str,
-    include_value=True,
-    datanode_ids: List[int] = None,
-    central_node_id: int = None,
-    precision: float = DEFAULT_PRECISION,
-    rho=DEFAULT_RHO,
-    *_args,
-    **_kwargs,
+def fit(
+        client: ContainerClient,
+        data: pd.DataFrame,
+        feature_columns: List[str],
+        event_times_column: str,
+        event_happened_column: str,
+        include_value=True,
+        datanode_ids: List[int] = None,
+        central_node_id: int = None,
+        precision: float = DEFAULT_PRECISION,
+        rho=DEFAULT_RHO,
+        *_args,
+        **_kwargs,
 ):
     """
 
@@ -85,7 +87,54 @@ def verticox(
         info(f"Verticox algorithm complete after {duration} seconds")
 
         info("Killing datanodes")
-        return manager.coefs, manager.baseline_hazard
+        return manager.coefs, (list(manager.baseline_hazard.x), list(manager.baseline_hazard.y))
+    except Exception as e:
+        info(f"Algorithm ended with exception {e}")
+        info(traceback.format_exc())
+    finally:
+        manager.kill_all_algorithms()
+
+
+def cross_validate(client: ContainerClient,
+                     data: pd.DataFrame,
+                     feature_columns: List[str],
+                     event_times_column: str,
+                     event_happened_column: str,
+                     include_value=True,
+                     datanode_ids: List[int] = None,
+                     central_node_id: int = None,
+                     precision: float = DEFAULT_PRECISION,
+                     rho=DEFAULT_RHO,
+                     n_splits=DEFAULT_KFOLD_SPLITS,
+                     *_args,
+                     **_kwargs):
+    manager = node_manager.V6NodeManager(
+        client,
+        data,
+        datanode_ids,
+        central_node_id,
+        event_happened_column,
+        event_times_column,
+        feature_columns,
+        include_value,
+        convergence_precision=precision,
+        rho=rho,
+    )
+    try:
+        info(f"Start running verticox on features: {feature_columns}")
+
+        info(f"My database: {client.database}")
+
+        manager.start_nodes()
+
+        start_time = time.time()
+        result = kfold_cross_validate(manager, n_splits=n_splits)
+        end_time = time.time()
+        duration = end_time - start_time
+        info(f"Verticox algorithm complete after {duration} seconds")
+
+        info("Killing datanodes")
+        return result
     except Exception as e:
         info(f"Algorithm ended with exception {e}")
         info(traceback.format_exc())
@@ -144,15 +193,15 @@ def _filter_algorithm_addresses(addresses, label):
 
 
 def RPC_run_datanode(
-    data: pd.DataFrame,
-    *args,
-    feature_columns: List[str] = (),
-    event_time_column: str = None,
-    include_column: str = None,
-    include_value: bool = None,
-    external_commodity_address=None,
-    address=None,
-    **kwargs,
+        data: pd.DataFrame,
+        *args,
+        feature_columns: List[str] = (),
+        event_time_column: str = None,
+        include_column: str = None,
+        include_value: bool = None,
+        external_commodity_address=None,
+        address=None,
+        **kwargs,
 ):
     """
     Starts the datanode as gRPC server
@@ -220,7 +269,7 @@ def RPC_run_java_server(_data, *_args, **_kwargs):
 
 
 def RPC_test_sum_local_features(
-    data: pd.DataFrame, features: List[str], mask, *args, **kwargs
+        data: pd.DataFrame, features: List[str], mask, *args, **kwargs
 ):
     # Only check requested features
     data = data[features]

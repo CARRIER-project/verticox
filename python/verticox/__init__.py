@@ -12,5 +12,5 @@ from verticox.vantage6 import (
     RPC_run_datanode,
     RPC_run_java_server,
     RPC_test_sum_local_features,
-    verticox,
+    fit, cross_validate
 )

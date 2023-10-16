@@ -75,10 +75,11 @@ print(result.get_result())
 >> Result(organization_id=3, content=['afb', 'age', 'av3', 'bmi', 'chf', 'cvd', 'diasbp', 'outcome_time', 'outcome'])]
 ``` 
 Now you know which data resides at what node you can run the verticox algorithm:
+
 ```python
 feature_columns = ['afb', 'age', 'gender']
 
-task = verticox_client.compute(feature_columns, 'outcome_time', 'outcome', [3,5], 2)
+task = verticox_client.fit(feature_columns, 'outcome_time', 'outcome', [3, 5], 2)
 
 # This will take a while
 task.get_result()

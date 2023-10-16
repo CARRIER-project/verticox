@@ -12,10 +12,10 @@ TIMEOUT = 20 * 60
 TARGET_COEFS = {"age": 0.05566997593047372, "bmi": -0.0908968266847538}
 
 
-def run_verticox_v6(host, port, user, password, *, private_key=None, tag="latest"):
+def run_verticox_v6(host, port, user, password, *, private_key=None, tag="latest", method="fit"):
     image = f"{IMAGE}:{tag}"
 
-    client = v6client.Client(host, port)
+    client = v6client.Client(host, port, log_level="warning")
 
     client.authenticate(user, password)
     client.setup_encryption(private_key)
@@ -37,15 +37,29 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag="latest
 
     feature_columns = list(TARGET_COEFS.keys())
 
-    task = verticox_client.compute(
-        feature_columns,
-        OUTCOME_TIME_COLUMN,
-        OUTCOME,
-        datanodes=datanodes,
-        central_node=central_node,
-        precision=PRECISION,
-        database=DATABASE,
-    )
+    print(f'Using feature columns: {feature_columns}')
+
+    match method:
+        case "fit":
+            task = verticox_client.fit(
+                feature_columns,
+                OUTCOME_TIME_COLUMN,
+                OUTCOME,
+                datanodes=datanodes,
+                central_node=central_node,
+                precision=PRECISION,
+                database=DATABASE,
+            )
+        case "crossval":
+            task = verticox_client.cross_validate(
+                feature_columns,
+                OUTCOME_TIME_COLUMN,
+                OUTCOME,
+                datanodes=datanodes,
+                central_node=central_node,
+                precision=PRECISION,
+                database=DATABASE,
+            )
 
     results = task.get_result(timeout=TIMEOUT)
     for result in results:
@@ -54,7 +68,6 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag="latest
         print(f"Content: {json.dumps(result.content)}")
 
     # Results should be close to [ 0.06169848, -0.00783813]
-
     coefs = dict(results[0].content[0])
 
     for key, value in coefs.items():
