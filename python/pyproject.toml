@@ -20,6 +20,7 @@ numba = "^0.56.0"
 pyarrow = "^12.0.1"
 fastparquet = "^2023.7.0"
 clize = "^5.0.1"
+sphinx-autoapi = "^3.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
