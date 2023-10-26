@@ -22,7 +22,7 @@ services:
     volumes:
       - $JARFILE:/app/application.jar
       - ${PWD}/application-outcomenode.properties:/app/application.properties
-      - data:/data
+      - ./data:/data
     working_dir: /app
     command: java -jar ./application.jar -DPROP_FILE=application.properties
 
@@ -31,7 +31,7 @@ services:
     volumes:
       - $JARFILE:/app/application.jar
       - ${PWD}/application-datanode1.properties:/app/application.properties
-      - data:/data
+      - ./data:/data
     working_dir: /app
     command: java -jar ./application.jar -DPROP_FILE=application.properties
 
@@ -40,7 +40,7 @@ services:
     volumes:
       - $JARFILE:/app/application.jar
       - ${PWD}/application-datanode2.properties:/app/application.properties
-      - data:/data
+      - ./data:/data
     working_dir: /app
     command: java -jar ./application.jar -DPROP_FILE=application.properties
 
@@ -48,9 +48,10 @@ services:
     build: ../
     volumes:
       - ../python:/app
-      - data:/data
+      - ./data:/data
     command: >
-      poetry run python -m verticox.datanode --data-path /data/data_1.parquet --commodity-address 
+      poetry run python -m verticox.datanode --data-path /data/features_0.parquet 
+      --commodity-address 
       commodity --address pythonnode1 --include-column event_happened
 
 
@@ -58,16 +59,17 @@ services:
     build: ../
     volumes:
       - ../python:/app
-      - data:/data
+      - ./data:/data
     command: >
-      poetry run python -m verticox.datanode --data-path /data/data_2.parquet --commodity-address 
+      poetry run python -m verticox.datanode --data-path /data/features_1.parquet 
+      --commodity-address 
       commodity --address pythonnode2 --include-column event_happened
 
   aggregator:
     build: ../
     volumes:
       - ../python:/app
-      - data:/data
+      - ./data:/data
     command: >
       poetry run python tests/test_mock.py /data/outcome.parquet /data event_time 
       event_happened
@@ -77,5 +79,5 @@ services:
     environment:
       - LOGLEVEL=INFO
 
-volumes:
-  data:
+#volumes:
+#  data:
