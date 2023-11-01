@@ -67,11 +67,12 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag="latest
         print(f"Log: {result.log}")
         print(f"Content: {json.dumps(result.content)}")
 
-    # Results should be close to [ 0.06169848, -0.00783813]
-    coefs = dict(results[0].content[0])
+    if method == "fit":
+        # Results should be close to [ 0.06169848, -0.00783813]
+        coefs = dict(results[0].content[0])
 
-    for key, value in coefs.items():
-        np.testing.assert_almost_equal(value, TARGET_COEFS[key], decimal=4)
+        for key, value in coefs.items():
+            np.testing.assert_almost_equal(value, TARGET_COEFS[key], decimal=4)
 
 
 if __name__ == "__main__":

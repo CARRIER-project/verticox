@@ -163,9 +163,11 @@ def run_test_cross_validation(node_manager, all_data_features, all_data_outcome)
         "      Starting test with cross validation..."
         "\n--------------------------------------------"
     )
-    c_indices, coefs = kfold_cross_validate(node_manager, n_splits, random_state, shuffle)
+    c_indices, coefs, baseline_hazards = kfold_cross_validate(node_manager, n_splits, random_state,
+                                                              shuffle)
     print("Cross validation done")
     print(f"C scores: {c_indices}")
+    print(f"Baseline hazards: {baseline_hazards}")
     print(f"Coefs: {coefs}")
 
     # Compare against central version
