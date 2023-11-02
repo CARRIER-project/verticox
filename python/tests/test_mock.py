@@ -1,4 +1,6 @@
 import logging
+from abc import ABC
+from datetime import datetime
 from pathlib import Path
 
 import clize
@@ -27,6 +29,151 @@ TARGET_COEFS = {"age": 0.05566997593047372, "bmi": -0.0908968266847538}
 SELECTED_TARGET_COEFS = {"bmi": -0.15316136, "age": 0.05067197}
 
 NUM_SELECTED_ROWS = 20
+
+
+class IntegrationTest(ABC):
+
+    def run(self, local_data, all_data, event_times_column, event_happened_column):
+        """
+        Run an integration test
+        Args:
+            local_data: the outcome data file to pass to the aggregator
+            all_data: the directory that contains all the data, for validation
+            event_times_column: the column name of outcome event times
+            event_happened_column: the column name of whether the outcome event has happened
+            benchmark: If True, run time will be returned as additional value. Default = False
+
+        Returns:
+
+        """
+        all_data_features, all_data_outcome, node_manager = prepare_test(all_data,
+                                                                         event_happened_column,
+                                                                         event_times_column,
+                                                                         local_data)
+
+        start_time = datetime.now()
+        results = self.run_integration_test(all_data_features, all_data_outcome, node_manager)
+        end_time = datetime.now()
+        runtime = end_time - start_time
+
+        print(f"Runtime: {runtime.total_seconds()}")
+
+        return runtime.total_seconds()
+
+    @staticmethod
+    def run_integration_test(all_data_features, all_data_outcome, node_manager):
+        pass
+
+
+class OnlyTrain(IntegrationTest):
+    """
+    Train the model on the full dataset. Compare resulting coefficients to a central model.
+    """
+
+    @staticmethod
+    def run_integration_test(all_data_features, all_data_outcome, node_manager):
+        _logger.info(
+            "\n\n----------------------------------------\n"
+            "       Starting test on full dataset..."
+            "\n----------------------------------------"
+        )
+        node_manager.reset()
+        node_manager.fit()
+        coefs = node_manager.coefs
+        print(f"Betas: {coefs}")
+        print(f"Baseline hazard ratio {node_manager.baseline_hazard}")
+
+        for key, value in TARGET_COEFS.items():
+            np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
+
+
+class TrainTest(IntegrationTest):
+    @staticmethod
+    def run_integration_test(all_data_features, all_data_outcome, node_manager):
+        """
+        Split the data in a training and test set. Train on the training set, test performance on the
+        test set.
+        Args:
+            local_data:
+            all_data:
+            event_times_column:
+            event_happened_column:
+
+        Returns:
+
+        """
+
+        _logger.info(
+            "\n\n----------------------------------------\n"
+            "          Starting test on selection..."
+            "\n----------------------------------------"
+        )
+        full_data_length = node_manager.num_total_records
+        selected_idx = select_rows(full_data_length)
+        mask = np.zeros(full_data_length, dtype=bool)
+        mask[selected_idx] = True
+
+        # TODO: This flow is not ideal
+        node_manager.reset(selected_idx)
+        node_manager.fit()
+        coefs = node_manager.coefs
+
+        _logger.info(f"Betas: {coefs}")
+        _logger.info(f"Baseline hazard ratio {node_manager.baseline_hazard}")
+        for key, value in SELECTED_TARGET_COEFS.items():
+            np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
+
+        c_index = node_manager.test()
+
+        all_data_features_train = all_data_features.iloc[mask]
+        all_data_outcome_train = all_data_outcome[mask]
+
+        all_data_features_test = all_data_features.iloc[~mask]
+        all_data_outcome_test = all_data_outcome[~mask]
+        print(f'Number of test samples: {all_data_features_test.shape[0]}')
+        event_time, event_indicator = unpack_events(all_data_outcome_test)
+
+        central_model = CoxPHSurvivalAnalysis()
+        central_model.fit(all_data_features_train, all_data_outcome_train)
+
+        central_predictions = central_model.predict(all_data_features_test)
+        central_c_index, _, _, _, _ = concordance_index_censored(event_indicator, event_time,
+                                                                 central_predictions)
+
+        np.testing.assert_almost_equal(c_index, central_c_index, decimal=DECIMAL_PRECISION)
+
+
+class CrossValidation(IntegrationTest):
+    """
+    Performs the crossvalidation integration test.
+    """
+
+    @staticmethod
+    def run_integration_test(all_data_features, all_data_outcome, node_manager):
+        n_splits = 5
+        random_state = 0
+        # In the dataset we are using the uncensored data is at the beginning and the censored data
+        # at the end. We need to mix it up
+        shuffle = True
+
+        central_c_indices = cross_validate_central(all_data_features, all_data_outcome, n_splits,
+                                                   random_state, shuffle)
+        _logger.info(
+            "\n\n--------------------------------------------\n"
+            "      Starting test with cross validation..."
+            "\n--------------------------------------------"
+        )
+        c_indices, coefs, baseline_hazards = kfold_cross_validate(node_manager, n_splits,
+                                                                  random_state,
+                                                                  shuffle)
+        print("Cross validation done")
+        print(f"C scores: {c_indices}")
+        print(f"Baseline hazards: {baseline_hazards}")
+        print(f"Coefs: {coefs}")
+
+        # Compare against central version
+
+        np.testing.assert_almost_equal(c_indices, central_c_indices, decimal=DECIMAL_PRECISION)
 
 
 def select_rows(data_length, num_rows=NUM_SELECTED_ROWS):
@@ -71,38 +218,6 @@ def compute_centralized():
     return dict(zip(full_covariates.columns, model.coef_))
 
 
-def run_test_full_dataset(
-        local_data, all_data, event_times_column, event_happened_column
-):
-    """
-    Train the model on the full dataset. Compare resulting coefficients to a central model.
-    Args:
-        local_data:
-        all_data:
-        event_times_column:
-        event_happened_column:
-
-    Returns:
-
-    """
-    all_data_features, all_data_outcome, node_manager = prepare_test(all_data,
-                                                                     event_happened_column,
-                                                                     event_times_column, local_data)
-    _logger.info(
-        "\n\n----------------------------------------\n"
-        "       Starting test on full dataset..."
-        "\n----------------------------------------"
-    )
-    node_manager.reset()
-    node_manager.fit()
-    coefs = node_manager.coefs
-    print(f"Betas: {coefs}")
-    print(f"Baseline hazard ratio {node_manager.baseline_hazard}")
-
-    for key, value in TARGET_COEFS.items():
-        np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
-
-
 def collect_all_test_data(data_path):
     data_path = Path(data_path)
 
@@ -113,107 +228,9 @@ def collect_all_test_data(data_path):
     return pd.concat(dfs, axis=1)
 
 
-def run_test_selection(local_data, all_data, event_times_column, event_happened_column):
-    """
-    Split the data in a training and test set. Train on the training set, test performance on the
-    test set.
-    Args:
-        local_data:
-        all_data:
-        event_times_column:
-        event_happened_column:
-
-    Returns:
-
-    """
-    all_data_features, all_data_outcome, node_manager = prepare_test(all_data,
-                                                                     event_happened_column,
-                                                                     event_times_column, local_data)
-
-    _logger.info(
-        "\n\n----------------------------------------\n"
-        "          Starting test on selection..."
-        "\n----------------------------------------"
-    )
-    full_data_length = node_manager.num_total_records
-    selected_idx = select_rows(full_data_length)
-    mask = np.zeros(full_data_length, dtype=bool)
-    mask[selected_idx] = True
-
-    # TODO: This flow is not ideal
-    node_manager.reset(selected_idx)
-    node_manager.fit()
-    coefs = node_manager.coefs
-
-    _logger.info(f"Betas: {coefs}")
-    _logger.info(f"Baseline hazard ratio {node_manager.baseline_hazard}")
-    for key, value in SELECTED_TARGET_COEFS.items():
-        np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
-
-    c_index = node_manager.test()
-
-    all_data_features_train = all_data_features.iloc[mask]
-    all_data_outcome_train = all_data_outcome[mask]
-
-    all_data_features_test = all_data_features.iloc[~mask]
-    all_data_outcome_test = all_data_outcome[~mask]
-    print(f'Number of test samples: {all_data_features_test.shape[0]}')
-    event_time, event_indicator = unpack_events(all_data_outcome_test)
-
-    central_model = CoxPHSurvivalAnalysis()
-    central_model.fit(all_data_features_train, all_data_outcome_train)
-
-    central_predictions = central_model.predict(all_data_features_test)
-    central_c_index, _, _, _, _ = concordance_index_censored(event_indicator, event_time,
-                                                             central_predictions)
-
-    np.testing.assert_almost_equal(c_index, central_c_index, decimal=DECIMAL_PRECISION)
-
-
 @vectorize
 def outcome_lower_equal_than_x(outcome, x):
     return outcome[1] <= x
-
-
-def run_test_cross_validation(local_data, all_data, event_times_column, event_happened_column):
-    """
-    Perform the crossvalidation integration test.
-    Args:
-        local_data:
-        all_data:
-        event_times_column:
-        event_happened_column:
-
-    Returns:
-
-    """
-    all_data_features, all_data_outcome, node_manager = prepare_test(all_data,
-                                                                     event_happened_column,
-                                                                     event_times_column, local_data)
-
-    n_splits = 5
-    random_state = 0
-    # In the dataset we are using the uncensored data is at the beginning and the censored data
-    # at the end. We need to mix it up
-    shuffle = True
-
-    central_c_indices = cross_validate_central(all_data_features, all_data_outcome, n_splits,
-                                               random_state, shuffle)
-    _logger.info(
-        "\n\n--------------------------------------------\n"
-        "      Starting test with cross validation..."
-        "\n--------------------------------------------"
-    )
-    c_indices, coefs, baseline_hazards = kfold_cross_validate(node_manager, n_splits, random_state,
-                                                              shuffle)
-    print("Cross validation done")
-    print(f"C scores: {c_indices}")
-    print(f"Baseline hazards: {baseline_hazards}")
-    print(f"Coefs: {coefs}")
-
-    # Compare against central version
-
-    np.testing.assert_almost_equal(c_indices, central_c_indices, decimal=DECIMAL_PRECISION)
 
 
 def cross_validate_central(all_data_features, all_data_outcome, n_splits, random_state, shuffle):
@@ -255,9 +272,9 @@ def run_all(local_data, all_data, event_times_column, event_happened_column):
     Returns:
 
     """
-    run_test_full_dataset(local_data, all_data, event_times_column, event_happened_column)
-    run_test_selection(local_data, all_data, event_times_column, event_happened_column)
-    run_test_cross_validation(local_data, all_data, event_times_column, event_happened_column)
+    OnlyTrain().run(local_data, all_data, event_times_column, event_happened_column)
+    TrainTest().run(local_data, all_data, event_times_column, event_happened_column)
+    CrossValidation().run(local_data, all_data, event_times_column, event_happened_column)
     print("Test has passed.")
 
 
@@ -278,6 +295,6 @@ def prepare_test(all_data, event_happened_column, event_times_column, local_data
 
 
 if __name__ == "__main__":
-    subcommands = {"all": run_all, "train": run_test_full_dataset, "split": run_test_selection,
-                   "crossval": run_test_cross_validation}
+    subcommands = {"all": run_all, "train": OnlyTrain().run, "split": TrainTest.run,
+                   "crossval": CrossValidation.run}
     clize.run(subcommands)

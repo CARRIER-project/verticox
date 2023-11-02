@@ -5,16 +5,17 @@ from typing import List
 import numpy as np
 import pandas as pd
 from python_on_whales import docker
-
+import re
 from verticox.common import get_test_dataset, unpack_events
 
 _BENCHMARK_DIR = Path(__file__).parent
 _DATA_DIR = _BENCHMARK_DIR / "data"
 
+_RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]*)\n")
 
 def main():
     # Prepare dataset
-    features, outcome, column_names = get_test_dataset(100, feature_limit=2)
+    features, outcome, column_names = get_test_dataset(20, feature_limit=2)
     features = pd.DataFrame(features, columns=column_names)
 
     feature_sets = [features[[c]] for c in column_names]
@@ -25,7 +26,14 @@ def main():
     print(f"Data dir content: {list(_DATA_DIR.iterdir())}")
 
     # Run test
-    docker.compose.up(force_recreate=True)
+    docker.compose.up(force_recreate=True, abort_on_container_exit=True)
+
+    log = docker.compose.logs(services=["aggregator"], tail=10)
+    runtime = re.match(_RUNTIME_PATTERN, log)
+    seconds = runtime.groups()[0]
+    seconds = float(seconds)
+
+    print(f"Run took {seconds} seconds")
 
 
 def prepare_dataset(feature_sets: List[pd.DataFrame], outcome: np.array):
