@@ -5,15 +5,14 @@ from typing import List
 import numpy as np
 import pandas as pd
 from python_on_whales import docker
+
 from verticox.common import get_test_dataset, unpack_events
 
-_COMPOSE_DIR = Path(__file__).parent
-_DATA_DIR = _COMPOSE_DIR / "data"
+_BENCHMARK_DIR = Path(__file__).parent
+_DATA_DIR = _BENCHMARK_DIR / "data"
 
 
 def main():
-    os.chdir(_COMPOSE_DIR)
-
     # Prepare dataset
     features, outcome, column_names = get_test_dataset(100, feature_limit=2)
     features = pd.DataFrame(features, columns=column_names)
@@ -23,6 +22,7 @@ def main():
     prepare_dataset(feature_sets, outcome)
 
     # Check data dir
+    print(f"Data dir content: {list(_DATA_DIR.iterdir())}")
 
     # Run test
     docker.compose.up(force_recreate=True)
