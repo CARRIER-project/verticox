@@ -17,7 +17,7 @@ def _uncensored(event):
 
 
 def group_samples_at_risk(
-    event_times: ArrayLike,
+        event_times: ArrayLike,
 ) -> types.DictType(types.float64, types.int64[:]):
     """
     Groups the indices of samples on whether they are at risk at a certain time.
@@ -44,7 +44,7 @@ def group_samples_at_risk(
 
 
 def group_samples_on_event_time(
-    event_times, event_happened
+        event_times, event_happened
 ) -> types.DictType(types.float64, types.int64[:]):
     """
     Group samples based on event time. Right-censored samples are excluded.
@@ -71,7 +71,7 @@ def group_samples_on_event_time(
 
 
 def get_test_dataset(
-    limit=None, feature_limit=None, include_right_censored=True
+        limit=None, feature_limit=None, include_right_censored=True
 ) -> Tuple[ArrayLike, ArrayLike, List]:
     """
     Prepare and provide the whas500 dataset for testing purposes.
@@ -127,7 +127,7 @@ def unpack_events(events):
     """
     Unpacks outcome arrays from sksurv into two separate arrays with censor and event time
     :param events:
-    :return: (status array, times array)
+    :return: (times array, status array)
     """
     times = []
     right_censored = []

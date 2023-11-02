@@ -29,11 +29,13 @@ def main():
 
 
 def prepare_dataset(feature_sets: List[pd.DataFrame], outcome: np.array):
+    _DATA_DIR.mkdir(exist_ok=True)
+
     for idx, feature_set in enumerate(feature_sets):
         filename = f"features_{idx}.parquet"
         feature_set.to_parquet(_DATA_DIR / filename)
 
-    event_happened, event_time = unpack_events(outcome)
+    event_time, event_happened = unpack_events(outcome)
 
     outcome_df = pd.DataFrame({"event_happened": event_happened, "event_time": event_time})
     outcome_df.to_parquet(_DATA_DIR / "outcome.parquet")
