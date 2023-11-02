@@ -4,9 +4,10 @@ import subprocess
 import time
 import traceback
 from pathlib import Path
-from typing import List
+from typing import List, Union, Tuple
 
 import pandas as pd
+from sksurv.functions import StepFunction
 from vantage6.client import ContainerClient
 from vantage6.tools.util import info
 
@@ -96,18 +97,18 @@ def fit(
 
 
 def cross_validate(client: ContainerClient,
-                     data: pd.DataFrame,
-                     feature_columns: List[str],
-                     event_times_column: str,
-                     event_happened_column: str,
-                     include_value=True,
-                     datanode_ids: List[int] = None,
-                     central_node_id: int = None,
-                     precision: float = DEFAULT_PRECISION,
-                     rho=DEFAULT_RHO,
-                     n_splits=DEFAULT_KFOLD_SPLITS,
-                     *_args,
-                     **_kwargs):
+                   data: pd.DataFrame,
+                   feature_columns: List[str],
+                   event_times_column: str,
+                   event_happened_column: str,
+                   include_value=True,
+                   datanode_ids: List[int] = None,
+                   central_node_id: int = None,
+                   precision: float = DEFAULT_PRECISION,
+                   rho=DEFAULT_RHO,
+                   n_splits=DEFAULT_KFOLD_SPLITS,
+                   *_args,
+                   **_kwargs):
     manager = node_manager.V6NodeManager(
         client,
         data,
@@ -128,18 +129,37 @@ def cross_validate(client: ContainerClient,
         manager.start_nodes()
 
         start_time = time.time()
-        result = kfold_cross_validate(manager, n_splits=n_splits)
+        c_indices, coefs, baseline_hazards = kfold_cross_validate(manager, n_splits=n_splits)
         end_time = time.time()
         duration = end_time - start_time
         info(f"Verticox algorithm complete after {duration} seconds")
 
         info("Killing datanodes")
-        return result
+        # Make baseline hazard functions serializable
+        baseline_hazards = [stepfunction_to_tuple(f) for f in baseline_hazards]
+
+        return c_indices, coefs, baseline_hazards
     except Exception as e:
         info(f"Algorithm ended with exception {e}")
         info(traceback.format_exc())
     finally:
         manager.kill_all_algorithms()
+
+
+def stepfunction_to_tuple(f: StepFunction) -> Tuple[
+    List[Union[int, float]], List[Union[int, float]]]:
+    """
+    Converts stepfunction to a tuple of lists. This makes the object serializable.
+    Args:
+        f:
+
+    Returns:
+
+    """
+    x = f.x.tolist()
+    y = f.y.tolist()
+
+    return x, y
 
 
 # TODO: Remove this ugly workaround!
