@@ -72,8 +72,22 @@ def compute_centralized():
 
 
 def run_test_full_dataset(
-        node_manager: LocalNodeManager, all_data_features, all_data_outcome
+        local_data, all_data, event_times_column, event_happened_column
 ):
+    """
+    Train the model on the full dataset. Compare resulting coefficients to a central model.
+    Args:
+        local_data:
+        all_data:
+        event_times_column:
+        event_happened_column:
+
+    Returns:
+
+    """
+    all_data_features, all_data_outcome, node_manager = prepare_test(all_data,
+                                                                     event_happened_column,
+                                                                     event_times_column, local_data)
     _logger.info(
         "\n\n----------------------------------------\n"
         "       Starting test on full dataset..."
@@ -99,17 +113,29 @@ def collect_all_test_data(data_path):
     return pd.concat(dfs, axis=1)
 
 
-def run_test_selection(
-        node_manager: LocalNodeManager,
-        full_data_length,
-        all_data_features,
-        all_data_outcome,
-):
+def run_test_selection(local_data, all_data, event_times_column, event_happened_column):
+    """
+    Split the data in a training and test set. Train on the training set, test performance on the
+    test set.
+    Args:
+        local_data:
+        all_data:
+        event_times_column:
+        event_happened_column:
+
+    Returns:
+
+    """
+    all_data_features, all_data_outcome, node_manager = prepare_test(all_data,
+                                                                     event_happened_column,
+                                                                     event_times_column, local_data)
+
     _logger.info(
         "\n\n----------------------------------------\n"
         "          Starting test on selection..."
         "\n----------------------------------------"
     )
+    full_data_length = node_manager.num_total_records
     selected_idx = select_rows(full_data_length)
     mask = np.zeros(full_data_length, dtype=bool)
     mask[selected_idx] = True
@@ -149,7 +175,22 @@ def outcome_lower_equal_than_x(outcome, x):
     return outcome[1] <= x
 
 
-def run_test_cross_validation(node_manager, all_data_features, all_data_outcome):
+def run_test_cross_validation(local_data, all_data, event_times_column, event_happened_column):
+    """
+    Perform the crossvalidation integration test.
+    Args:
+        local_data:
+        all_data:
+        event_times_column:
+        event_happened_column:
+
+    Returns:
+
+    """
+    all_data_features, all_data_outcome, node_manager = prepare_test(all_data,
+                                                                     event_happened_column,
+                                                                     event_times_column, local_data)
+
     n_splits = 5
     random_state = 0
     # In the dataset we are using the uncensored data is at the beginning and the censored data
@@ -199,28 +240,44 @@ def cross_validate_central(all_data_features, all_data_outcome, n_splits, random
     return central_c_indices
 
 
-def run_locally(local_data, all_data, event_times_column, event_happened_column):
+def run_all(local_data, all_data, event_times_column, event_happened_column):
+    """
+    Run all integration tests:
+        - Training on the full dataset
+        - Training on one split, testing on the other
+        - Performing crossvalidation
+    Args:
+        local_data:
+        all_data:
+        event_times_column:
+        event_happened_column:
+
+    Returns:
+
+    """
+    run_test_full_dataset(local_data, all_data, event_times_column, event_happened_column)
+    run_test_selection(local_data, all_data, event_times_column, event_happened_column)
+    run_test_cross_validation(local_data, all_data, event_times_column, event_happened_column)
+    print("Test has passed.")
+
+
+def prepare_test(all_data, event_happened_column, event_times_column, local_data):
     df = pd.read_parquet(local_data)
     all_data_df = collect_all_test_data(all_data)
-
     all_data_features, all_data_outcome = get_x_y(
         all_data_df, (event_happened_column, event_times_column), pos_label=True
     )
-
     node_manager = LocalNodeManager(
         df,
         event_times_column,
         event_happened_column,
         {"convergence_precision": CONVERGENCE_PRECISION},
     )
-
     node_manager.start_nodes()
-
-    run_test_full_dataset(node_manager, all_data_features, all_data_outcome)
-    run_test_selection(node_manager, df.shape[0], all_data_features, all_data_outcome)
-    run_test_cross_validation(node_manager, all_data_features, all_data_outcome)
-    print("Test has passed.")
+    return all_data_features, all_data_outcome, node_manager
 
 
 if __name__ == "__main__":
-    clize.run(run_locally)
+    subcommands = {"all": run_all, "train": run_test_full_dataset, "split": run_test_selection,
+                   "crossval": run_test_cross_validation}
+    clize.run(subcommands)
