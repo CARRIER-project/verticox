@@ -2,6 +2,7 @@ import logging
 from abc import ABC
 from datetime import datetime
 from pathlib import Path
+from typing import Tuple
 
 import clize
 import numpy as np
@@ -25,10 +26,17 @@ TEST_DATA_PATH = "mock/data"
 COVARIATE_FILES = ["data_1.parquet", "data_2.parquet"]
 OUTCOME_FILE = "outcome.parquet"
 DECIMAL_PRECISION = 4
-TARGET_COEFS = {"age": 0.05566997593047372, "bmi": -0.0908968266847538}
 SELECTED_TARGET_COEFS = {"bmi": -0.15316136, "age": 0.05067197}
 
 NUM_SELECTED_ROWS = 20
+
+
+def compute_central_coefs(all_data_features, all_data_outcome):
+    central_model = CoxPHSurvivalAnalysis()
+    central_model.fit(all_data_features, all_data_outcome)
+
+    coef_dict = dict(zip(all_data_features.columns, central_model.coef_))
+    return coef_dict
 
 
 class IntegrationTest(ABC):
@@ -83,7 +91,9 @@ class OnlyTrain(IntegrationTest):
         print(f"Betas: {coefs}")
         print(f"Baseline hazard ratio {node_manager.baseline_hazard}")
 
-        for key, value in TARGET_COEFS.items():
+        target_coefs = compute_central_coefs(all_data_features, all_data_outcome)
+
+        for key, value in target_coefs.items():
             np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
 
 
@@ -94,10 +104,9 @@ class TrainTest(IntegrationTest):
         Split the data in a training and test set. Train on the training set, test performance on the
         test set.
         Args:
-            local_data:
-            all_data:
-            event_times_column:
-            event_happened_column:
+            all_data_features:
+            all_data_outcome:
+            node_manager:
 
         Returns:
 
@@ -278,7 +287,8 @@ def run_all(local_data, all_data, event_times_column, event_happened_column):
     print("Test has passed.")
 
 
-def prepare_test(all_data, event_happened_column, event_times_column, local_data):
+def prepare_test(all_data, event_happened_column, event_times_column, local_data) \
+        -> Tuple[pd.DataFrame, np.array, LocalNodeManager]:
     df = pd.read_parquet(local_data)
     all_data_df = collect_all_test_data(all_data)
     all_data_features, all_data_outcome = get_x_y(

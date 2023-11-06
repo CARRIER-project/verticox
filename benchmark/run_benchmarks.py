@@ -13,6 +13,7 @@ _DATA_DIR = _BENCHMARK_DIR / "data"
 
 _RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]*)\n")
 
+
 def main():
     # Prepare dataset
     features, outcome, column_names = get_test_dataset(20, feature_limit=2)
@@ -29,6 +30,7 @@ def main():
     docker.compose.up(force_recreate=True, abort_on_container_exit=True)
 
     log = docker.compose.logs(services=["aggregator"], tail=10)
+    print(f"Tail of aggregator log: \n{log}")
     runtime = re.match(_RUNTIME_PATTERN, log)
     seconds = runtime.groups()[0]
     seconds = float(seconds)
