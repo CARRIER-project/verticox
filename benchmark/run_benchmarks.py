@@ -10,13 +10,26 @@ from verticox.common import get_test_dataset, unpack_events
 
 _BENCHMARK_DIR = Path(__file__).parent
 _DATA_DIR = _BENCHMARK_DIR / "data"
+_RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]+)")
+_REPORT_FILE = _BENCHMARK_DIR / "report.csv"
+NUM_RECORDS = [20, 40, 60, 100, 200, 500]
+NUM_FEATURES = [2, 3, 4, 5, 6]
 
-_RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]*)\n")
 
+def benchmark(num_records, num_features):
+    """
+    TODO: Make it possible to specify number of nodes.
+    Benchmark verticox+ with specific parameters.
+    Args:
+        num_records: Total number of records in dataset
+        num_features: Total number of features
 
-def main():
+    Returns:
+
+    """
+    print(f'Benchmarking with {num_records} records and {num_features} features')
     # Prepare dataset
-    features, outcome, column_names = get_test_dataset(20, feature_limit=2)
+    features, outcome, column_names = get_test_dataset(num_records, feature_limit=num_features)
     features = pd.DataFrame(features, columns=column_names)
 
     feature_sets = [features[[c]] for c in column_names]
@@ -31,11 +44,12 @@ def main():
 
     log = docker.compose.logs(services=["aggregator"], tail=10)
     print(f"Tail of aggregator log: \n{log}")
-    runtime = re.match(_RUNTIME_PATTERN, log)
+    runtime = re.search(_RUNTIME_PATTERN, log)
     seconds = runtime.groups()[0]
     seconds = float(seconds)
 
     print(f"Run took {seconds} seconds")
+    return seconds
 
 
 def prepare_dataset(feature_sets: List[pd.DataFrame], outcome: np.array):
@@ -49,6 +63,19 @@ def prepare_dataset(feature_sets: List[pd.DataFrame], outcome: np.array):
 
     outcome_df = pd.DataFrame({"event_happened": event_happened, "event_time": event_time})
     outcome_df.to_parquet(_DATA_DIR / "outcome.parquet")
+
+
+def main():
+    results = []
+    for records in NUM_RECORDS:
+        for features in NUM_FEATURES:
+            runtime = benchmark(records, features)
+            results.append((records, features, runtime))
+
+    columns = ["num_records", "num_features", "runtime"]
+
+    df = pd.DataFrame(results, columns=columns)
+    df.reset_index().to_csv(_REPORT_FILE, index=False)
 
 
 if __name__ == "__main__":
