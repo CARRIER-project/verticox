@@ -14,6 +14,7 @@ _RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]+)")
 _REPORT_FILE = _BENCHMARK_DIR / "report.csv"
 NUM_RECORDS = [20, 40, 60, 100, 200, 500]
 NUM_FEATURES = [2, 3, 4, 5, 6]
+NUM_PARTIES = 2
 
 
 def benchmark(num_records, num_features):
@@ -30,9 +31,15 @@ def benchmark(num_records, num_features):
     print(f'Benchmarking with {num_records} records and {num_features} features')
     # Prepare dataset
     features, outcome, column_names = get_test_dataset(num_records, feature_limit=num_features)
+
+    print(f"Column names: {column_names}")
+
+    split = len(column_names) // NUM_PARTIES
+
     features = pd.DataFrame(features, columns=column_names)
 
-    feature_sets = [features[[c]] for c in column_names]
+    feature_sets = [features[column_names[:split]],
+                    features[column_names[split:]]]
 
     prepare_dataset(feature_sets, outcome)
 
