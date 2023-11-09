@@ -1,4 +1,5 @@
 import csv
+import re
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -7,11 +8,12 @@ from typing import List
 import numpy as np
 import pandas as pd
 from python_on_whales import docker
-import re
+
 from verticox.common import get_test_dataset, unpack_events
 
-_BENCHMARK_DIR = Path(__file__).parent
+_BENCHMARK_DIR = Path(__file__).absolute().parent
 _DATA_DIR = _BENCHMARK_DIR / "data"
+
 _RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]+)")
 NUM_RECORDS = [20, 40, 60, 100, 200, 500]
 NUM_FEATURES = [2, 3, 4, 5, 6]
@@ -48,9 +50,10 @@ def benchmark(num_records, num_features):
     print(f"Data dir content: {list(_DATA_DIR.iterdir())}")
 
     # Run test
-    docker.compose.up(force_recreate=True, abort_on_container_exit=True)
 
+    docker.compose.up(force_recreate=True, abort_on_container_exit=True)
     log = docker.compose.logs(services=["aggregator"], tail=10)
+
     print(f"Tail of aggregator log: \n{log}")
     runtime = re.search(_RUNTIME_PATTERN, log)
     seconds = runtime.groups()[0]
@@ -62,8 +65,9 @@ def benchmark(num_records, num_features):
 
 def prepare_dataset(feature_sets: List[pd.DataFrame], outcome: np.array):
     # Make sure to clear old data
-    shutil.rmtree(_DATA_DIR)
-    _DATA_DIR.mkdir()
+    if _DATA_DIR.exists():
+        shutil.rmtree(_DATA_DIR.absolute())
+    _DATA_DIR.absolute().mkdir()
 
     for idx, feature_set in enumerate(feature_sets):
         filename = f"features_{idx}.parquet"

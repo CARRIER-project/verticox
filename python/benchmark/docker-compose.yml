@@ -47,7 +47,7 @@ services:
   pythonnode1:
     build: ../
     volumes:
-      - ../python:/app
+      - ..:/app
       - ./data:/data
     command: >
       poetry run python -m verticox.datanode --data-path /data/features_0.parquet 
@@ -58,7 +58,7 @@ services:
   pythonnode2:
     build: ../
     volumes:
-      - ../python:/app
+      - ..:/app
       - ./data:/data
     command: >
       poetry run python -m verticox.datanode --data-path /data/features_1.parquet 
@@ -68,7 +68,7 @@ services:
   aggregator:
     build: ../
     volumes:
-      - ../python:/app
+      - ..:/app
       - ./data:/data
     command: >
       poetry run python tests/test_mock.py train /data/outcome.parquet /data event_time 
