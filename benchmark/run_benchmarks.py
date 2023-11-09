@@ -1,4 +1,6 @@
-import os
+import csv
+import shutil
+from datetime import datetime
 from pathlib import Path
 from typing import List
 
@@ -11,7 +13,6 @@ from verticox.common import get_test_dataset, unpack_events
 _BENCHMARK_DIR = Path(__file__).parent
 _DATA_DIR = _BENCHMARK_DIR / "data"
 _RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]+)")
-_REPORT_FILE = _BENCHMARK_DIR / "report.csv"
 NUM_RECORDS = [20, 40, 60, 100, 200, 500]
 NUM_FEATURES = [2, 3, 4, 5, 6]
 NUM_PARTIES = 2
@@ -60,7 +61,9 @@ def benchmark(num_records, num_features):
 
 
 def prepare_dataset(feature_sets: List[pd.DataFrame], outcome: np.array):
-    _DATA_DIR.mkdir(exist_ok=True)
+    # Make sure to clear old data
+    shutil.rmtree(_DATA_DIR)
+    _DATA_DIR.mkdir()
 
     for idx, feature_set in enumerate(feature_sets):
         filename = f"features_{idx}.parquet"
@@ -73,16 +76,21 @@ def prepare_dataset(feature_sets: List[pd.DataFrame], outcome: np.array):
 
 
 def main():
-    results = []
-    for records in NUM_RECORDS:
-        for features in NUM_FEATURES:
-            runtime = benchmark(records, features)
-            results.append((records, features, runtime))
-
     columns = ["num_records", "num_features", "runtime"]
+    report_filename = f"report-{datetime.now().isoformat()}.csv"
 
-    df = pd.DataFrame(results, columns=columns)
-    df.reset_index().to_csv(_REPORT_FILE, index=False)
+    report_path = _BENCHMARK_DIR / report_filename
+
+    with report_path.open('w', buffering=1) as f:
+        writer = csv.writer(f)
+
+        # Write header first
+        writer.writerow(columns)
+
+        for records in NUM_RECORDS:
+            for features in NUM_FEATURES:
+                runtime = benchmark(records, features)
+                writer.writerow((records, features, runtime))
 
 
 if __name__ == "__main__":
