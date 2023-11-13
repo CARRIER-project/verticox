@@ -162,17 +162,6 @@ def stepfunction_to_tuple(f: StepFunction) -> Tuple[
     return x, y
 
 
-# TODO: Remove this ugly workaround!
-def _move_parquet_file():
-    current_location = os.environ[DATABASE_URI]
-    current_location = Path(current_location)
-
-    target = current_location.parent / _WORKAROUND_DATABASE_URI
-    shutil.copy(current_location, target)
-
-    return str(target.absolute())
-
-
 def _get_current_java_address(client: ContainerClient, some_id):
     """
 
@@ -284,8 +273,7 @@ def RPC_run_java_server(_data, *_args, **_kwargs):
 
     command = _get_java_command()
     info(f"Running command: {command}")
-    target_uri = _move_parquet_file()
-    subprocess.run(command, env=_get_workaround_sysenv(target_uri))
+    subprocess.run(command, env=_get_workaround_sysenv(DATABASE_URI))
 
 
 def RPC_test_sum_local_features(
