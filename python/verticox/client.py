@@ -54,8 +54,8 @@ class VerticoxClient:
             feature_columns,
             outcome_time_column,
             right_censor_column,
-            datanodes,
-            central_node,
+            feature_nodes,
+            outcome_node,
             precision=_DEFAULT_PRECISION,
             database="default",
     ):
@@ -63,34 +63,34 @@ class VerticoxClient:
             "feature_columns": feature_columns,
             "event_times_column": outcome_time_column,
             "event_happened_column": right_censor_column,
-            "datanode_ids": datanodes,
-            "central_node_id": central_node,
+            "datanode_ids": feature_nodes,
+            "central_node_id": outcome_node,
             "precision": precision,
         }
 
         return self._run_task(
-            "fit", True, [central_node], kwargs=input_params, database=database
+            "fit", True, [outcome_node], kwargs=input_params, database=database
         )
 
     def cross_validate(self,
                        feature_columns,
                        outcome_time_column,
                        right_censor_column,
-                       datanodes,
-                       central_node,
+                       feature_nodes,
+                       outcome_node,
                        precision=_DEFAULT_PRECISION,
                        database="default"):
         input_params = {
             "feature_columns": feature_columns,
             "event_times_column": outcome_time_column,
             "event_happened_column": right_censor_column,
-            "datanode_ids": datanodes,
-            "central_node_id": central_node,
+            "datanode_ids": feature_nodes,
+            "central_node_id": outcome_node,
             "precision": precision,
         }
 
         return self._run_task(
-            "cross_validate", True, [central_node], kwargs=input_params, database=database
+            "cross_validate", True, [outcome_node], kwargs=input_params, database=database
         )
 
     def _run_task(

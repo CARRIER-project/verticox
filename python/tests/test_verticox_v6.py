@@ -45,8 +45,8 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag="latest
                 feature_columns,
                 OUTCOME_TIME_COLUMN,
                 OUTCOME,
-                datanodes=datanodes,
-                central_node=central_node,
+                feature_nodes=datanodes,
+                outcome_node=central_node,
                 precision=PRECISION,
                 database=DATABASE,
             )
@@ -55,8 +55,8 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag="latest
                 feature_columns,
                 OUTCOME_TIME_COLUMN,
                 OUTCOME,
-                datanodes=datanodes,
-                central_node=central_node,
+                feature_nodes=datanodes,
+                outcome_node=central_node,
                 precision=PRECISION,
                 database=DATABASE,
             )
