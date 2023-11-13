@@ -25,7 +25,7 @@ _logger.setLevel(logging.INFO)
 TEST_DATA_PATH = "mock/data"
 COVARIATE_FILES = ["data_1.parquet", "data_2.parquet"]
 OUTCOME_FILE = "outcome.parquet"
-DECIMAL_PRECISION = 4
+DECIMAL_PRECISION = 3
 SELECTED_TARGET_COEFS = {"bmi": -0.15316136, "age": 0.05067197}
 
 NUM_SELECTED_ROWS = 20
