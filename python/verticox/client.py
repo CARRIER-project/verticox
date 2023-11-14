@@ -59,6 +59,25 @@ class VerticoxClient:
             precision=_DEFAULT_PRECISION,
             database="default",
     ):
+        """
+        Run cox proportional hazard analysis on the entire dataset.
+
+        Args:
+            feature_columns: a list of column names that you want to use as features
+            outcome_time_column: the column name of the outcome time
+            right_censor_column: the column name of the binary value that indicates if an event
+            happened.
+            feature_nodes: A list of node ids from the datasources that contain the feature columns
+            outcome_node: The node id of the datasource that contains the outcome
+            precision: precision of the verticox algorithm. The smaller the number, the more
+            precise the result. Smaller precision will take longer to compute though. The default is
+            1e-5
+            database: If the nodes have multiple datasources, indicate the label of the datasource
+            you would like to use. Otherwise the default will be used.
+
+        Returns:
+
+        """
         input_params = {
             "feature_columns": feature_columns,
             "event_times_column": outcome_time_column,
@@ -140,7 +159,7 @@ class Task:
 
         self.result_ids = [r["id"] for r in task_data["results"]]
 
-    def get_result(self, timeout=_TIMEOUT):
+    def get_results(self, timeout=_TIMEOUT):
         results = []
         max_retries = timeout // _SLEEP
         retries = 0
