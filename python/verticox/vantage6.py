@@ -168,7 +168,9 @@ def _move_parquet_file():
     current_location = Path(current_location)
 
     target = current_location.parent / _WORKAROUND_DATABASE_URI
-    shutil.copy(current_location, target)
+
+    if target != current_location:
+        shutil.copy(current_location, target)
 
     return str(target.absolute())
 
