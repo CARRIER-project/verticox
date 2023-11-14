@@ -30,7 +30,7 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag="latest
 
     task = verticox_client.get_column_names(database=DATABASE)
 
-    column_name_results = task.get_result()
+    column_name_results = task.get_results()
 
     for r in column_name_results:
         print(f"organization: {r.organization}, columns: {r.content}")
@@ -61,7 +61,7 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag="latest
                 database=DATABASE,
             )
 
-    results = task.get_result(timeout=TIMEOUT)
+    results = task.get_results(timeout=TIMEOUT)
     for result in results:
         print(f"Organization: {result.organization}")
         print(f"Log: {result.log}")

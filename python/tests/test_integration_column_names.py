@@ -23,7 +23,7 @@ def run_column_names_v6(host, port, user, password, private_key, tag="latest"):
 
     task = verticox_client.get_column_names()
 
-    print(task.get_result())
+    print(task.get_results())
 
 
 if __name__ == "__main__":

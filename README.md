@@ -55,6 +55,7 @@ You can install the dependencies with pip:
 
 ### Running the algorithm
 You will probably want to check which nodes contain which features before you run the algorithm.
+
 ```python
 from verticox.client import VerticoxClient
 from vantage6.client import Client
@@ -69,10 +70,13 @@ verticox_client = VerticoxClient(client)
 
 # Get insight into the columns at the datanodes
 result = verticox_client.get_column_names()
-print(result.get_result())
->> [Result(organization_id=1, content=['gender', 'hr', 'los', 'miord', 'mitype', 'sho', 'sysbp', 'outcome_time', 'outcome']),
->> Result(organization_id=2, content=['outcome_time', 'outcome']),
->> Result(organization_id=3, content=['afb', 'age', 'av3', 'bmi', 'chf', 'cvd', 'diasbp', 'outcome_time', 'outcome'])]
+print(result.get_results())
+>> [Result(organization_id=1,
+           content=['gender', 'hr', 'los', 'miord', 'mitype', 'sho', 'sysbp', 'outcome_time',
+                    'outcome']),
+   >> Result(organization_id=2, content=['outcome_time', 'outcome']),
+>> Result(organization_id=3,
+          content=['afb', 'age', 'av3', 'bmi', 'chf', 'cvd', 'diasbp', 'outcome_time', 'outcome'])]
 ``` 
 Now you know which data resides at what node you can run the verticox algorithm:
 
@@ -82,7 +86,7 @@ feature_columns = ['afb', 'age', 'gender']
 task = verticox_client.fit(feature_columns, 'outcome_time', 'outcome', [3, 5], 2)
 
 # This will take a while
-task.get_result()
+task.get_results()
 ```
 
 ## Python components
