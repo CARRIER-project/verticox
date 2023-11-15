@@ -1,8 +1,10 @@
 import logging
 import time
 from collections import namedtuple
-from typing import List
+from dataclasses import dataclass
+from typing import List, Dict
 
+from matplotlib import pyplot as plt
 from vantage6.client import Client
 
 _VERTICOX_IMAGE = "harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox"
@@ -146,13 +148,44 @@ class VerticoxClient:
             database=database,
         )
 
-        return Task(self._v6client, task)
+        match method:
+            case "fit":
+                return FitTask(self._v6client, task)
+            case _:
+                return Task(self._v6client, task)
 
 
-Result = namedtuple("Result", ["organization", "content", "log"])
+PartialResult = namedtuple("Result", ["organization", "content", "log"])
+
+
+@dataclass
+class FitResult:
+    coefs: Dict[str, float]
+    baseline_hazard_x: List[float]
+    baseline_hazard_y: List[float]
+
+    @staticmethod
+    def parse(partialResults: List[PartialResult]):
+        # Assume that there is only one "partial" result
+        content = partialResults[0].content
+        coefs = content["coefs"]
+        baseline_hazard_x = content["baseline_hazard_x"]
+        baseline_hazard_y = content["baseline_hazard_y"]
+
+        return FitResult(coefs, baseline_hazard_x, baseline_hazard_y)
+
+    def plot(self):
+        fig, ax = plt.subplots(2, 1, constrained_layout=True)
+        ax[0].plot(self.baseline_hazard_x, self.baseline_hazard_y)
+        ax[0].set_title("Baseline hazard")
+        ax[0].set_xlabel("time")
+        ax[0].set_ylabel("hazard score")
+        ax[1].bar(self.coefs.keys(), self.coefs.values(), label="coefficients")
+        ax[1].set_title("Coefficients")
 
 
 class Task:
+
     def __init__(self, client: Client, task_data):
         self._raw_data = task_data
         self.client = client
@@ -175,15 +208,25 @@ class Task:
                     organization_id = result["organization"]["id"]
                     result_content = result["result"]
                     result_log = result["log"]
-                    results.append(Result(organization_id, result_content, result_log))
+                    results.append(PartialResult(organization_id, result_content, result_log))
                     results_complete.add(missing)
 
             if len(results) >= len(self.result_ids):
-                return results
+                return self._parse_results(results)
             retries += 1
             time.sleep(_SLEEP)
 
         raise VerticoxClientException(f"Timeout after {timeout} seconds")
+
+    @staticmethod
+    def _parse_results(results):
+        return results
+
+
+class FitTask(Task):
+    @staticmethod
+    def _parse_results(results):
+        return FitResult.parse(results)
 
 
 class VerticoxClientException(Exception):
