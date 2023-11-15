@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 def kfold_cross_validate(node_manager: BaseNodeManager,
                          n_splits=DEFAULT_KFOLD_SPLITS,
                          random_state=DEFAULT_KFOLD_SEED,
-                         shuffle=True) -> Tuple[List[float], Dict[str, float], StepFunction]:
+                         shuffle=True) -> \
+        Tuple[List[float], List[Dict[str, float]], List[StepFunction]]:
     num_records = node_manager.num_total_records
     indices = np.arange(num_records)
 

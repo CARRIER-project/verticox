@@ -88,7 +88,10 @@ def fit(
         info(f"Verticox algorithm complete after {duration} seconds")
 
         info("Killing datanodes")
-        return manager.coefs, (list(manager.baseline_hazard.x), list(manager.baseline_hazard.y))
+        return {"coefs": manager.coefs,
+                "baseline_hazard_x": list(manager.baseline_hazard.x),
+                "baseline_hazard_y": list(manager.baseline_hazard.y)
+                }
     except Exception as e:
         info(f"Algorithm ended with exception {e}")
         info(traceback.format_exc())
