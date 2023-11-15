@@ -13,6 +13,9 @@ _SLEEP = 5
 _TIMEOUT = 5 * 60  # 5 minutes
 _DEFAULT_PRECISION = 1e-5
 
+PartialResult = namedtuple("Result", ["organization", "content", "log"])
+HazardFunction = namedtuple("HazardFunction", ["x", "y"])
+
 
 class VerticoxClient:
     def __init__(
@@ -151,37 +154,59 @@ class VerticoxClient:
         match method:
             case "fit":
                 return FitTask(self._v6client, task)
+            case "cross_validate":
+                return CrossValTask(self._v6client, task)
             case _:
                 return Task(self._v6client, task)
-
-
-PartialResult = namedtuple("Result", ["organization", "content", "log"])
 
 
 @dataclass
 class FitResult:
     coefs: Dict[str, float]
-    baseline_hazard_x: List[float]
-    baseline_hazard_y: List[float]
+    baseline_hazard: HazardFunction
 
     @staticmethod
     def parse(partialResults: List[PartialResult]):
         # Assume that there is only one "partial" result
         content = partialResults[0].content
         coefs = content["coefs"]
-        baseline_hazard_x = content["baseline_hazard_x"]
-        baseline_hazard_y = content["baseline_hazard_y"]
+        baseline_hazard = HazardFunction(content["baseline_hazard_x"], content["baseline_hazard_y"])
 
-        return FitResult(coefs, baseline_hazard_x, baseline_hazard_y)
+        return FitResult(coefs, baseline_hazard)
 
     def plot(self):
         fig, ax = plt.subplots(2, 1, constrained_layout=True)
-        ax[0].plot(self.baseline_hazard_x, self.baseline_hazard_y)
+        ax[0].plot(self.baseline_hazard.x, self.baseline_hazard.y)
         ax[0].set_title("Baseline hazard")
         ax[0].set_xlabel("time")
         ax[0].set_ylabel("hazard score")
         ax[1].bar(self.coefs.keys(), self.coefs.values(), label="coefficients")
         ax[1].set_title("Coefficients")
+
+
+@dataclass
+class CrossValResult:
+    c_indices: List[float]
+    coefs: List[Dict[str, float]]
+    baseline_hazards: List[HazardFunction]
+
+    @staticmethod
+    def parse(partialResults: List[PartialResult]):
+        # Cross validation should only have one partial result
+        c_indices, coefs, baseline_hazards = partialResults[0].content
+        baseline_hazards = [HazardFunction(*h) for h in baseline_hazards]
+
+        return CrossValResult(c_indices, coefs, baseline_hazards)
+
+    def plot(self):
+        num_folds = len(self.c_indices)
+        fig, ax = plt.subplots(num_folds, 2, constrained_layout=True)
+
+        for fold in range(num_folds):
+            ax[fold][0].plot(self.baseline_hazards[fold].x, self.baseline_hazards[fold].y)
+            ax[fold][0].set_title(f"Baseline hazard fold {fold}")
+            ax[fold][1].bar(self.coefs[fold].keys(), self.coefs[fold].values())
+            ax[fold][1].set_title(f"Coefficients fold {fold}")
 
 
 class Task:
@@ -227,6 +252,12 @@ class FitTask(Task):
     @staticmethod
     def _parse_results(results):
         return FitResult.parse(results)
+
+
+class CrossValTask(Task):
+    @staticmethod
+    def _parse_results(results):
+        return CrossValResult.parse(results)
 
 
 class VerticoxClientException(Exception):
