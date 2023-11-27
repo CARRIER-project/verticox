@@ -26,52 +26,37 @@ services:
     working_dir: /app
     command: java -jar ./application.jar -DPROP_FILE=application.properties
 
-  javanode1:
+{% for n in range(num_datanodes) %}
+  javanode{{n}}:
     image: openjdk
     volumes:
       - $JARFILE:/app/application.jar
-      - ${PWD}/application-datanode1.properties:/app/application.properties
+      - ${PWD}/application-datanode{{n}}.properties:/app/application.properties
       - ./data:/data
     working_dir: /app
     command: java -jar ./application.jar -DPROP_FILE=application.properties
 
-  javanode2:
-    image: openjdk
-    volumes:
-      - $JARFILE:/app/application.jar
-      - ${PWD}/application-datanode2.properties:/app/application.properties
-      - ./data:/data
-    working_dir: /app
-    command: java -jar ./application.jar -DPROP_FILE=application.properties
-
-  pythonnode1:
-    build: ../../
+  pythonnode{{n}}:
+    build: ../..
     volumes:
       - ..:/app
       - ./data:/data
     command: >
-      poetry run python -m verticox.datanode --data-path /data/features_0.parquet 
-      --commodity-address 
-      commodity --address pythonnode1 --include-column event_happened
+      poetry run python -m verticox.datanode --data-path /data/features_{{n}}.parquet
+      --commodity-address
+      commodity --address pythonnode{{n}} --include-column event_happened
 
-
-  pythonnode2:
-    build: ../../
-    volumes:
-      - ..:/app
-      - ./data:/data
-    command: >
-      poetry run python -m verticox.datanode --data-path /data/features_1.parquet 
-      --commodity-address 
-      commodity --address pythonnode2 --include-column event_happened
-
+{% endfor %}
   aggregator:
-    build: ../../
+    build: ../..
     volumes:
       - ..:/app
       - ./data:/data
     command: >
-      poetry run python tests/test_mock.py train /data/outcome.parquet /data event_time 
+      poetry run python tests/test_mock.py train
+      --pythonnodes {% for n in range(num_datanodes) %}pythonnode{{n}}:7777{% endfor %}
+      --javanodes {% for n in range(num_datanodes) %}javanode{{n}}{% endfor %}
+      /data/outcome.parquet /data event_time
       event_happened
     depends_on:
       commodity:
