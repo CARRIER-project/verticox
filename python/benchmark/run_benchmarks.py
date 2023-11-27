@@ -109,11 +109,35 @@ def get_compose_template():
 
 
 def prepare_java_properties(num_datanodes: int):
+    all_java_servers = {"http://commodity", "http://javanode-outcome"}
+    all_java_servers = all_java_servers | {f"http://javanode{n}" for n in range(num_datanodes)}
+    # Regular datanodes
     for i in range(num_datanodes):
-        properties = get_properties_template().render(num_datanodes=num_datanodes, current_num=i)
-        properties_file = _BENCHMARK_DIR / f"application-datanode{i}.properties"
-        with open(properties_file, "w") as f:
-            f.write(properties)
+        server_name = f"http://javanode{i}"
+        other_servers = all_java_servers - {server_name}
+
+        create_properties_file(f"application-datanode{i}.properties",
+                               server_name,
+                               f"features_{i}.parquet",
+                               other_servers)
+
+    # Outcome node
+    server_name = "http://javanode-outcome"
+    create_properties_file("application-outcomenode.properties", server_name, "outcome.parquet",
+                           all_java_servers - {server_name})
+
+    # Commodity node
+    server_name = "http://commodity"
+    create_properties_file("application-commodity.properties", server_name, None,
+                           all_java_servers - {server_name})
+
+
+def create_properties_file(filename, server_name, data_filename, other_servers):
+    properties = get_properties_template().render(servers=other_servers,
+                                                  datafile=data_filename,
+                                                  name=server_name)
+    with open(_BENCHMARK_DIR / filename, "w") as f:
+        f.write(properties)
 
 
 def prepare_compose_file(num_datanodes: int):
