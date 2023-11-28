@@ -49,7 +49,7 @@ class IntegrationTest(ABC):
 
     def run(self, local_data, all_data, event_times_column, event_happened_column, *,
             pythonnodes: strlist = ("pythonnode1:7777", "pythonnode2:7777"),
-            javanodes: strlist = ("javanode1:80", "javanode2:80")):
+            javanodes: strlist = ("javanode1:80", "javanode2:80", "javanode-outcome:80")):
         """
         Run an integration test
         Args:
