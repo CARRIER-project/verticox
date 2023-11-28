@@ -148,7 +148,7 @@ def prepare_compose_file(num_datanodes: int):
 
 
 def main():
-    columns = ["num_records", "num_features", "runtime"]
+    columns = ["num_records", "num_features", "runtime", "datanodes"]
     report_filename = f"report-{datetime.now().isoformat()}.csv"
 
     report_path = _BENCHMARK_DIR / report_filename
@@ -164,7 +164,7 @@ def main():
                 for datanodes in NUM_DATANODES:
                     try:
                         runtime = benchmark(records, features, datanodes)
-                        writer.writerow((records, features, runtime))
+                        writer.writerow((records, features, runtime, datanodes))
                     except NotEnoughFeaturesException:
                         print("Skipping")
 
