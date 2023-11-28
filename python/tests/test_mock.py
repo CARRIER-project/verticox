@@ -18,6 +18,7 @@ from test_constants import CONVERGENCE_PRECISION
 from verticox.common import unpack_events
 from verticox.cross_validation import kfold_cross_validate
 from verticox.node_manager import LocalNodeManager
+from clize import parser
 
 _logger = logging.getLogger()
 _logger.setLevel(logging.INFO)
@@ -31,6 +32,11 @@ SELECTED_TARGET_COEFS = {"bmi": -0.15316136, "age": 0.05067197}
 NUM_SELECTED_ROWS = 20
 
 
+@parser.value_converter
+def strlist(l: str):
+    return l.split(",")
+
+
 def compute_central_coefs(all_data_features, all_data_outcome):
     central_model = CoxPHSurvivalAnalysis()
     central_model.fit(all_data_features, all_data_outcome)
@@ -41,10 +47,13 @@ def compute_central_coefs(all_data_features, all_data_outcome):
 
 class IntegrationTest(ABC):
 
-    def run(self, local_data, all_data, event_times_column, event_happened_column):
+    def run(self, local_data, all_data, event_times_column, event_happened_column, *,
+            pythonnodes: strlist = ("pythonnode1:7777", "pythonnode2:7777"),
+            javanodes: strlist = ("javanode1:80", "javanode2:80", "javanode-outcome:80")):
         """
         Run an integration test
         Args:
+            javanodes:
             local_data: the outcome data file to pass to the aggregator
             all_data: the directory that contains all the data, for validation
             event_times_column: the column name of outcome event times
@@ -54,10 +63,13 @@ class IntegrationTest(ABC):
         Returns:
 
         """
+        print(f"Javanodes {javanodes}")
         all_data_features, all_data_outcome, node_manager = prepare_test(all_data,
                                                                          event_happened_column,
                                                                          event_times_column,
-                                                                         local_data)
+                                                                         local_data,
+                                                                         python_datanodes=pythonnodes,
+                                                                         java_datanodes=javanodes)
 
         start_time = datetime.now()
         results = self.run_integration_test(all_data_features, all_data_outcome, node_manager)
@@ -287,7 +299,8 @@ def run_all(local_data, all_data, event_times_column, event_happened_column):
     print("Test has passed.")
 
 
-def prepare_test(all_data, event_happened_column, event_times_column, local_data) \
+def prepare_test(all_data, event_happened_column, event_times_column, local_data,
+                 python_datanodes, java_datanodes) \
         -> Tuple[pd.DataFrame, np.array, LocalNodeManager]:
     df = pd.read_parquet(local_data)
     all_data_df = collect_all_test_data(all_data)
@@ -299,6 +312,8 @@ def prepare_test(all_data, event_happened_column, event_times_column, local_data
         event_times_column,
         event_happened_column,
         {"convergence_precision": CONVERGENCE_PRECISION},
+        python_datanode_addresses=python_datanodes,
+        other_java_addresses=java_datanodes
     )
     node_manager.start_nodes()
     return all_data_features, all_data_outcome, node_manager
