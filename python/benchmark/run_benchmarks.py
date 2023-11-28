@@ -50,13 +50,9 @@ def benchmark(num_records, num_features, num_datanodes):
     features, outcome, column_names = get_test_dataset(num_records, feature_limit=num_features)
 
     print(f"Column names: {column_names}")
-
-    split = len(column_names) // num_datanodes
-
     features = pd.DataFrame(features, columns=column_names)
 
-    feature_sets = [features[column_names[:split]],
-                    features[column_names[split:]]]
+    feature_sets = split_features(features, num_datanodes)
 
     prepare_dataset(feature_sets, outcome)
 
@@ -78,6 +74,22 @@ def benchmark(num_records, num_features, num_datanodes):
 
     print(f"Run took {seconds} seconds")
     return seconds
+
+
+def split_features(features: pd.DataFrame, num_datanodes: int) -> list[pd.DataFrame]:
+    column_names = features.columns
+    split = len(column_names) // num_datanodes
+    feature_sets = []
+    last_index = num_datanodes - 1
+    for i in range(num_datanodes):
+        # If we are at the last feature set we have to make sure to get all the rest
+        if i == last_index:
+            columns = column_names[i:]
+        else:
+            columns = column_names[i:i + split]
+
+        feature_sets.append(features[columns])
+    return feature_sets
 
 
 def prepare_dataset(feature_sets: List[pd.DataFrame], outcome: np.array):
