@@ -55,7 +55,7 @@ services:
     command: >
       poetry run python tests/test_mock.py train
       --pythonnodes {% for n in range(num_datanodes) %}pythonnode{{n}}:7777{% if n < num_datanodes - 1 %},{% endif %}{% endfor %}
-      --javanodes javanode-outcome,{% for n in range(num_datanodes) %}javanode{{n}}{% if n < num_datanodes - 1 %},{% endif %}{% endfor %}
+      --javanodes javanode-outcome:80,{% for n in range(num_datanodes) %}javanode{{n}}:80{% if n < num_datanodes - 1 %},{% endif %}{% endfor %}
       /data/outcome.parquet /data event_time event_happened
     depends_on:
       commodity:
