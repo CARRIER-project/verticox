@@ -1,12 +1,15 @@
+#!/usr/bin/env python3
+
 import csv
 import re
 import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import List
-from jinja2 import Environment, FileSystemLoader
+
 import numpy as np
 import pandas as pd
+from jinja2 import Environment, FileSystemLoader
 from python_on_whales import docker
 
 from verticox.common import get_test_dataset, unpack_events
@@ -121,6 +124,10 @@ def get_compose_template():
 
 
 def prepare_java_properties(num_datanodes: int):
+    # Remove old properties:
+    for properties_file in _BENCHMARK_DIR.glob("*.properties"):
+        properties_file.unlink()
+
     all_java_servers = {"http://commodity", "http://javanode-outcome"}
     all_java_servers = all_java_servers | {f"http://javanode{n}" for n in range(num_datanodes)}
     # Regular datanodes
