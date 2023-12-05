@@ -20,8 +20,8 @@ _DATA_DIR = _BENCHMARK_DIR / "data"
 
 _RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]+)")
 NUM_RECORDS = [20, 40, 60, 100, 200, 500]
-NUM_FEATURES = [2, 3, 4, 5, 6]
-NUM_DATANODES = [1, 2, 3, 4, 5]
+NUM_FEATURES = [4]#[2, 3, 4, 5, 6]
+NUM_DATANODES = [2] #[1, 2, 3, 4, 5]
 
 
 class NotEnoughFeaturesException(Exception):
@@ -128,8 +128,8 @@ def prepare_java_properties(num_datanodes: int):
     for properties_file in _BENCHMARK_DIR.glob("*.properties"):
         properties_file.unlink()
 
-    all_java_servers = {"http://commodity", "http://javanode-outcome"}
-    all_java_servers = all_java_servers | {f"http://javanode{n}" for n in range(num_datanodes)}
+    all_java_servers = {"http://commodity:80", "http://javanode-outcome:80"}
+    all_java_servers = all_java_servers | {f"http://javanode{n}:80" for n in range(num_datanodes)}
     # Regular datanodes
     for i in range(num_datanodes):
         server_name = f"http://javanode{i}"
@@ -141,12 +141,12 @@ def prepare_java_properties(num_datanodes: int):
                                other_servers)
 
     # Outcome node
-    server_name = "http://javanode-outcome"
+    server_name = "http://javanode-outcome:80"
     create_properties_file("application-outcomenode.properties", server_name, "outcome.parquet",
                            all_java_servers - {server_name})
 
     # Commodity node
-    server_name = "http://commodity"
+    server_name = "http://commodity:80"
     create_properties_file("application-commodity.properties", server_name, None,
                            all_java_servers - {server_name})
 
