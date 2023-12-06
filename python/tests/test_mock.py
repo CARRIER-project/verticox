@@ -22,7 +22,7 @@ from verticox.node_manager import LocalNodeManager
 from clize import parser
 
 _logger = logging.getLogger()
-_logger.setLevel(os.environ["LOGLEVEL"])
+_logger.setLevel(os.environ.get("LOGLEVEL", "INFO"))
 
 TEST_DATA_PATH = "mock/data"
 COVARIATE_FILES = ["data_1.parquet", "data_2.parquet"]
