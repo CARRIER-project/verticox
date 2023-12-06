@@ -60,7 +60,7 @@ class NPartyScalarProductClient:
     # TODO: Make sure terminology is consistent over all code
     def sum_relevant_values(
         self, numeric_features: List[str], boolean_feature: str, boolean_value: bool
-    ) -> List[int]:
+    ) -> List[float]:
         all_sums = []
         for feature in numeric_features:
             parameters = {

@@ -20,8 +20,8 @@ _DATA_DIR = _BENCHMARK_DIR / "data"
 
 _RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]+)")
 NUM_RECORDS = [20, 40, 60, 100, 200, 500]
-NUM_FEATURES = [4]#[2, 3, 4, 5, 6]
-NUM_DATANODES = [2] #[1, 2, 3, 4, 5]
+NUM_FEATURES = [2, 3, 4, 5, 6]
+NUM_DATANODES = [1, 2, 3, 4, 5]
 
 
 class NotEnoughFeaturesException(Exception):
@@ -49,22 +49,7 @@ def benchmark(num_records, num_features, num_datanodes):
                                          f"\nNumber of features: {num_features}, "
                                          f"number of datanodes: {num_datanodes}")
 
-    # Prepare dataset
-    features, outcome, column_names = get_test_dataset(num_records, feature_limit=num_features)
-
-    print(f"Column names: {column_names}")
-    features = pd.DataFrame(features, columns=column_names)
-
-    feature_sets = split_features(features, num_datanodes)
-
-    prepare_dataset(feature_sets, outcome)
-
-    # Check data dir
-    print(f"Data dir content: {list(_DATA_DIR.iterdir())}")
-
-    prepare_java_properties(num_datanodes)
-
-    prepare_compose_file(num_datanodes)
+    orchestrate_nodes(num_datanodes, num_features, num_records)
 
     # Run test
     docker.compose.up(force_recreate=True, abort_on_container_exit=True)
@@ -79,23 +64,40 @@ def benchmark(num_records, num_features, num_datanodes):
     return seconds
 
 
+def orchestrate_nodes(num_datanodes, num_features, num_records):
+    # Prepare dataset
+    features, outcome, column_names = get_test_dataset(num_records, feature_limit=num_features)
+    print(f"Column names: {column_names}")
+    features = pd.DataFrame(features, columns=column_names)
+    feature_sets = split_features(features, num_datanodes)
+    write_datasets(feature_sets, outcome)
+    # Check data dir
+    print(f"Data dir content: {list(_DATA_DIR.iterdir())}")
+    prepare_java_properties(num_datanodes)
+    prepare_compose_file(num_datanodes)
+
+
 def split_features(features: pd.DataFrame, num_datanodes: int) -> list[pd.DataFrame]:
     column_names = features.columns
     split = len(column_names) // num_datanodes
     feature_sets = []
-    last_index = num_datanodes - 1
-    for i in range(num_datanodes):
-        # If we are at the last feature set we have to make sure to get all the rest
-        if i == last_index:
-            columns = column_names[i:]
-        else:
-            columns = column_names[i:i + split]
 
-        feature_sets.append(features[columns])
+    idx = 0
+    while True:
+        # If we are at the last feature set we have to make sure to get all the rest
+        if idx + split > len(column_names):
+            columns = column_names[idx:]
+            feature_sets.append(features[columns])
+            break
+        else:
+            columns = column_names[idx:idx + split]
+            feature_sets.append(features[columns])
+
+        idx += split
     return feature_sets
 
 
-def prepare_dataset(feature_sets: List[pd.DataFrame], outcome: np.array):
+def write_datasets(feature_sets: List[pd.DataFrame], outcome: np.array):
     # Make sure to clear old data
     if _DATA_DIR.exists():
         shutil.rmtree(_DATA_DIR.absolute())

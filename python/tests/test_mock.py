@@ -1,4 +1,5 @@
 import logging
+import os
 from abc import ABC
 from datetime import datetime
 from pathlib import Path
@@ -21,7 +22,7 @@ from verticox.node_manager import LocalNodeManager
 from clize import parser
 
 _logger = logging.getLogger()
-_logger.setLevel(logging.INFO)
+_logger.setLevel(os.environ["LOGLEVEL"])
 
 TEST_DATA_PATH = "mock/data"
 COVARIATE_FILES = ["data_1.parquet", "data_2.parquet"]
