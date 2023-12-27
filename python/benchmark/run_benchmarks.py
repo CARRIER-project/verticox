@@ -1,13 +1,16 @@
+#!/usr/bin/env python3
+
 import csv
 import re
 import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import List
-from jinja2 import Environment, FileSystemLoader
+
 import numpy as np
 import pandas as pd
-from python_on_whales import docker
+from jinja2 import Environment, FileSystemLoader
+from python_on_whales import docker, DockerException
 
 from verticox.common import get_test_dataset, unpack_events
 
@@ -46,25 +49,10 @@ def benchmark(num_records, num_features, num_datanodes):
                                          f"\nNumber of features: {num_features}, "
                                          f"number of datanodes: {num_datanodes}")
 
-    # Prepare dataset
-    features, outcome, column_names = get_test_dataset(num_records, feature_limit=num_features)
-
-    print(f"Column names: {column_names}")
-    features = pd.DataFrame(features, columns=column_names)
-
-    feature_sets = split_features(features, num_datanodes)
-
-    prepare_dataset(feature_sets, outcome)
-
-    # Check data dir
-    print(f"Data dir content: {list(_DATA_DIR.iterdir())}")
-
-    prepare_java_properties(num_datanodes)
-
-    prepare_compose_file(num_datanodes)
+    orchestrate_nodes(num_datanodes, num_features, num_records)
 
     # Run test
-    docker.compose.up(force_recreate=True, abort_on_container_exit=True)
+    docker.compose.up(force_recreate=True, abort_on_container_exit=True, remove_orphans=True)
     log = docker.compose.logs(services=["aggregator"], tail=10)
 
     print(f"Tail of aggregator log: \n{log}")
@@ -76,23 +64,40 @@ def benchmark(num_records, num_features, num_datanodes):
     return seconds
 
 
+def orchestrate_nodes(num_datanodes, num_features, num_records):
+    # Prepare dataset
+    features, outcome, column_names = get_test_dataset(num_records, feature_limit=num_features)
+    print(f"Column names: {column_names}")
+    features = pd.DataFrame(features, columns=column_names)
+    feature_sets = split_features(features, num_datanodes)
+    write_datasets(feature_sets, outcome)
+    # Check data dir
+    print(f"Data dir content: {list(_DATA_DIR.iterdir())}")
+    prepare_java_properties(num_datanodes)
+    prepare_compose_file(num_datanodes)
+
+
 def split_features(features: pd.DataFrame, num_datanodes: int) -> list[pd.DataFrame]:
     column_names = features.columns
-    split = len(column_names) // num_datanodes
+    split = len(column_names) / num_datanodes
     feature_sets = []
-    last_index = num_datanodes - 1
-    for i in range(num_datanodes):
-        # If we are at the last feature set we have to make sure to get all the rest
-        if i == last_index:
-            columns = column_names[i:]
-        else:
-            columns = column_names[i:i + split]
 
+    split_indices = np.arange(num_datanodes)
+    split_indices = split_indices * split
+    split_indices = np.floor(split_indices).astype(int)
+
+    for i in range(len(split_indices) - 1):
+        columns = column_names[split_indices[i]:split_indices[i + 1]]
         feature_sets.append(features[columns])
+
+    # Add the last split as well
+    columns = column_names[split_indices[-1]:]
+    feature_sets.append(features[columns])
+
     return feature_sets
 
 
-def prepare_dataset(feature_sets: List[pd.DataFrame], outcome: np.array):
+def write_datasets(feature_sets: List[pd.DataFrame], outcome: np.array):
     # Make sure to clear old data
     if _DATA_DIR.exists():
         shutil.rmtree(_DATA_DIR.absolute())
@@ -121,8 +126,12 @@ def get_compose_template():
 
 
 def prepare_java_properties(num_datanodes: int):
-    all_java_servers = {"http://commodity", "http://javanode-outcome"}
-    all_java_servers = all_java_servers | {f"http://javanode{n}" for n in range(num_datanodes)}
+    # Remove old properties:
+    for properties_file in _BENCHMARK_DIR.glob("*.properties"):
+        properties_file.unlink()
+
+    all_java_servers = {"http://commodity:80", "http://javanode-outcome:80"}
+    all_java_servers = all_java_servers | {f"http://javanode{n}:80" for n in range(num_datanodes)}
     # Regular datanodes
     for i in range(num_datanodes):
         server_name = f"http://javanode{i}"
@@ -134,12 +143,12 @@ def prepare_java_properties(num_datanodes: int):
                                other_servers)
 
     # Outcome node
-    server_name = "http://javanode-outcome"
+    server_name = "http://javanode-outcome:80"
     create_properties_file("application-outcomenode.properties", server_name, "outcome.parquet",
                            all_java_servers - {server_name})
 
     # Commodity node
-    server_name = "http://commodity"
+    server_name = "http://commodity:80"
     create_properties_file("application-commodity.properties", server_name, None,
                            all_java_servers - {server_name})
 
@@ -160,7 +169,7 @@ def prepare_compose_file(num_datanodes: int):
 
 
 def main():
-    columns = ["num_records", "num_features", "runtime", "datanodes"]
+    columns = ["num_records", "num_features", "datanodes", "runtime"]
     report_filename = f"report-{datetime.now().isoformat()}.csv"
 
     report_path = _BENCHMARK_DIR / report_filename
@@ -176,9 +185,12 @@ def main():
                 for datanodes in NUM_DATANODES:
                     try:
                         runtime = benchmark(records, features, datanodes)
-                        writer.writerow((records, features, runtime, datanodes))
+                        writer.writerow((records, features, datanodes, runtime))
                     except NotEnoughFeaturesException:
                         print("Skipping")
+                    except DockerException:
+                        print(f"Current run threw error, skipping")
+                        writer.writerow((records, features, datanodes, "error"))
 
 
 if __name__ == "__main__":

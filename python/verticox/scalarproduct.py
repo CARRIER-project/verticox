@@ -53,10 +53,6 @@ class NPartyScalarProductClient:
         self._init_datanodes(self.commodity_address, self.other_addresses)
         info("Initialized datanodes")
 
-        # # Setting endpoints for central server
-        # self._put_endpoints(self._internal_address, self.other_addresses)
-        # info('Specified endpoints for central server')
-
         debug("Setting precision")
         self._set_precision(self.precision)
         debug("Done setting precision")
@@ -64,7 +60,7 @@ class NPartyScalarProductClient:
     # TODO: Make sure terminology is consistent over all code
     def sum_relevant_values(
         self, numeric_features: List[str], boolean_feature: str, boolean_value: bool
-    ) -> List[int]:
+    ) -> List[float]:
         all_sums = []
         for feature in numeric_features:
             parameters = {
@@ -135,6 +131,9 @@ class NPartyScalarProductClient:
         if address is None:
             address = self.commodity_address
         url = self._get_url(address, endpoint)
+
+        debug(f"Request {method}: {url} kwargs: {kwargs}")
+
         result = requests.request(method, url, **kwargs)
 
         self.check_response_code(result)
@@ -162,8 +161,9 @@ class NPartyScalarProductClient:
     def _put_endpoints(self, targetUrl, others):
         others = [f"{_PROTOCOL}{o}" for o in others]
         payload = {"servers": others}
-        debug(f"Setting endpoints for {targetUrl} with: {payload}")
         url = f"{_PROTOCOL}{targetUrl}/{_SET_ENDPOINTS}"
+
+        debug(f"Request post: {url}, payload: {payload}")
         requests.post(url, json=payload, timeout=10)
 
     def _kill_node(self, target):
