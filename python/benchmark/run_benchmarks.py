@@ -52,7 +52,7 @@ def benchmark(num_records, num_features, num_datanodes):
     orchestrate_nodes(num_datanodes, num_features, num_records)
 
     # Run test
-    docker.compose.up(force_recreate=True, abort_on_container_exit=True)
+    docker.compose.up(force_recreate=True, abort_on_container_exit=True, remove_orphans=True)
     log = docker.compose.logs(services=["aggregator"], tail=10)
 
     print(f"Tail of aggregator log: \n{log}")
@@ -79,21 +79,21 @@ def orchestrate_nodes(num_datanodes, num_features, num_records):
 
 def split_features(features: pd.DataFrame, num_datanodes: int) -> list[pd.DataFrame]:
     column_names = features.columns
-    split = len(column_names) // num_datanodes
+    split = len(column_names) / num_datanodes
     feature_sets = []
 
-    idx = 0
-    while True:
-        # If we are at the last feature set we have to make sure to get all the rest
-        if idx + split > len(column_names):
-            columns = column_names[idx:]
-            feature_sets.append(features[columns])
-            break
-        else:
-            columns = column_names[idx:idx + split]
-            feature_sets.append(features[columns])
+    split_indices = np.arange(num_datanodes)
+    split_indices = split_indices * split
+    split_indices = np.floor(split_indices).astype(int)
 
-        idx += split
+    for i in range(len(split_indices) - 1):
+        columns = column_names[split_indices[i]:split_indices[i + 1]]
+        feature_sets.append(features[columns])
+
+    # Add the last split as well
+    columns = column_names[split_indices[-1]:]
+    feature_sets.append(features[columns])
+
     return feature_sets
 
 
