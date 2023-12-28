@@ -1,4 +1,4 @@
-verticox.vantage6
+﻿verticox.vantage6
 =================
 
 .. automodule:: verticox.vantage6
@@ -20,6 +20,7 @@ verticox.vantage6
       RPC_test_sum_local_features
       cross_validate
       fit
+      stepfunction_to_tuple
    
    
 
