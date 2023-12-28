@@ -1,4 +1,4 @@
-verticox.client
+﻿verticox.client
 ===============
 
 .. automodule:: verticox.client
@@ -17,7 +17,12 @@ verticox.client
 
    .. autosummary::
    
-      Result
+      CrossValResult
+      CrossValTask
+      FitResult
+      FitTask
+      HazardFunction
+      PartialResult
       Task
       VerticoxClient
    
