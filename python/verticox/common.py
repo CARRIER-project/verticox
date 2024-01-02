@@ -6,9 +6,11 @@ import numpy as np
 import pandas as pd
 from numba import typed, types
 from numpy.typing import ArrayLike
-from sksurv.datasets import load_whas500
+from sksurv.datasets import load_whas500, load_aids
 
 Split = namedtuple("Split", ("train", "test", "all"))
+WHAS500 = "whas500"
+AIDS = "aids"
 
 
 @np.vectorize
@@ -70,13 +72,35 @@ def group_samples_on_event_time(
     return typed_Dt
 
 
+def load_aids_data_with_dummies(endpoint: str = "aids") -> pd.DataFrame:
+    """
+    Load the aids dataset from sksurv. Categorical features will be converted to one-hot encoded
+    columns.
+
+    Args:
+        endpoint: either "aids" or "death". Default is "aids".
+
+    Returns:
+
+    """
+    covariates, outcome = load_aids(endpoint)
+
+    categorical_columns = [name for name, dtype in covariates.dtypes.items() if dtype == "category"]
+    dummies = pd.get_dummies(covariates[categorical_columns])
+    numerical_df = covariates.drop(categorical_columns, axis=1)
+
+    combined = pd.concat([numerical_df, dummies], axis=1)
+    return combined, outcome
+
+
 def get_test_dataset(
-        limit=None, feature_limit=None, include_right_censored=True
+        limit=None, feature_limit=None, include_right_censored=True, dataset: str = WHAS500
 ) -> Tuple[ArrayLike, ArrayLike, List]:
     """
     Prepare and provide the whas500 dataset for testing purposes.
 
     Args:
+        dataset: there are two datasets available: "whas500" and "aids". Whas500 is the default.
         limit: Limit on the number of samples, by default all 500 samples will be used
         feature_limit:  Limit on the features that should be included
         include_right_censored: Whether to include right censored data. By default it is True
@@ -85,7 +109,13 @@ def get_test_dataset(
      (FEATURES, OUTCOME, COLUMN_NAMES)
 
     """
-    features, events = load_whas500()
+    match dataset:
+        case "whas500":
+            features, events = load_whas500()
+        case "aids":
+            features, events = load_aids_data_with_dummies()
+        case other:
+            raise Exception(f"Dataset \"{other}\" is not available.")
 
     if not include_right_censored:
         features = features[_uncensored(events)]
