@@ -20,7 +20,7 @@ _DATA_DIR = _BENCHMARK_DIR / "data"
 
 _RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]+)")
 NUM_RECORDS = [20, 40, 60, 100, 200, 500]
-NUM_FEATURES = [2, 3, 4, 5, 6]
+NUM_FEATURES = [3, 4, 5, 6]
 NUM_DATANODES = [1, 2, 3, 4, 5]
 
 
@@ -28,7 +28,7 @@ class NotEnoughFeaturesException(Exception):
     pass
 
 
-def benchmark(num_records, num_features, num_datanodes):
+def benchmark(num_records, num_features, num_datanodes, dataset):
     """
     TODO: Make it possible to specify number of nodes.
     Benchmark verticox+ with specific parameters.
@@ -49,7 +49,7 @@ def benchmark(num_records, num_features, num_datanodes):
                                          f"\nNumber of features: {num_features}, "
                                          f"number of datanodes: {num_datanodes}")
 
-    orchestrate_nodes(num_datanodes, num_features, num_records)
+    orchestrate_nodes(num_datanodes, num_features, num_records, dataset)
 
     # Run test
     docker.compose.up(force_recreate=True, abort_on_container_exit=True, remove_orphans=True)
@@ -64,9 +64,10 @@ def benchmark(num_records, num_features, num_datanodes):
     return seconds
 
 
-def orchestrate_nodes(num_datanodes, num_features, num_records):
+def orchestrate_nodes(num_datanodes, num_features, num_records, dataset):
     # Prepare dataset
-    features, outcome, column_names = get_test_dataset(num_records, feature_limit=num_features)
+    features, outcome, column_names = get_test_dataset(num_records, feature_limit=num_features,
+                                                       dataset=dataset)
     print(f"Column names: {column_names}")
     features = pd.DataFrame(features, columns=column_names)
     feature_sets = split_features(features, num_datanodes)
@@ -169,8 +170,9 @@ def prepare_compose_file(num_datanodes: int):
 
 
 def main():
+    dataset = "aids"
     columns = ["num_records", "num_features", "datanodes", "runtime"]
-    report_filename = f"report-{datetime.now().isoformat()}.csv"
+    report_filename = f"report-{dataset}_{datetime.now().isoformat()}.csv"
 
     report_path = _BENCHMARK_DIR / report_filename
 
@@ -184,7 +186,7 @@ def main():
             for features in NUM_FEATURES:
                 for datanodes in NUM_DATANODES:
                     try:
-                        runtime = benchmark(records, features, datanodes)
+                        runtime = benchmark(records, features, datanodes, dataset)
                         writer.writerow((records, features, datanodes, runtime))
                     except NotEnoughFeaturesException:
                         print("Skipping")
