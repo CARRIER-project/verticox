@@ -64,7 +64,7 @@ event. This requires the availability of outcome data at every institution. In r
 this is not always possible.
 
 Verticox+ solves this problem by making use of the n-party-scalar-product-protocol.
-In order to do that, we translate the inner sum :math:`\sum_{n \in D-t} x_nk` to a scalar product:
+In order to do that, we translate the inner sum :math:`\sum_{n \in D_t} x_nk` to a scalar product:
 
 
 .. math::
