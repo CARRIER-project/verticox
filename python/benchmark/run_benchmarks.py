@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List
 
+import clize
 import numpy as np
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader
@@ -36,6 +37,7 @@ def benchmark(num_records, num_features, num_datanodes, dataset):
         num_datanodes:
         num_records: Total number of records in dataset
         num_features: Total number of features
+        dataset: Which dataset to use, options are "whas500" and "aids".
 
     Returns:
 
@@ -169,8 +171,15 @@ def prepare_compose_file(num_datanodes: int):
         f.write(compose)
 
 
-def main():
-    dataset = "aids"
+def main(dataset="aids"):
+    """
+    Benchmark verticox+ while varying number of datanodes, number of records and number of features.
+    Args:
+        dataset:
+
+    Returns:
+
+    """
     columns = ["num_records", "num_features", "datanodes", "runtime"]
     report_filename = f"report-{dataset}_{datetime.now().isoformat()}.csv"
 
@@ -196,4 +205,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    clize.run(main)
