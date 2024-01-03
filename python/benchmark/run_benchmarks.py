@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import csv
+import json
 import re
 import shutil
 from datetime import datetime
@@ -20,6 +21,7 @@ _TEMPLATES_DIR = _BENCHMARK_DIR / "templates"
 _DATA_DIR = _BENCHMARK_DIR / "data"
 
 _RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]+)")
+_COMPARISON_PATTERN = re.compile(r"Comparison metrics: (.+)")
 NUM_RECORDS = [20, 40, 60, 100, 200, 500]
 NUM_FEATURES = [3, 4, 5, 6]
 NUM_DATANODES = [1, 2, 3, 4, 5]
@@ -62,8 +64,12 @@ def benchmark(num_records, num_features, num_datanodes, dataset):
     seconds = runtime.groups()[0]
     seconds = float(seconds)
 
+    comparison = re.search(_COMPARISON_PATTERN, log)
+    comparison = comparison.groups()[0]
+    metrics = json.loads(comparison)
+
     print(f"Run took {seconds} seconds")
-    return seconds
+    return seconds, metrics
 
 
 def orchestrate_nodes(num_datanodes, num_features, num_records, dataset):
@@ -180,7 +186,7 @@ def main(dataset="whas500"):
     Returns:
 
     """
-    columns = ["num_records", "num_features", "datanodes", "runtime"]
+    columns = ["num_records", "num_features", "datanodes", "runtime", "mse", "sad", "mad"]
     report_filename = f"report-{dataset}_{datetime.now().isoformat()}.csv"
 
     report_path = _BENCHMARK_DIR / report_filename
@@ -195,8 +201,9 @@ def main(dataset="whas500"):
             for features in NUM_FEATURES:
                 for datanodes in NUM_DATANODES:
                     try:
-                        runtime = benchmark(records, features, datanodes, dataset)
-                        writer.writerow((records, features, datanodes, runtime))
+                        runtime, metrics = benchmark(records, features, datanodes, dataset)
+                        writer.writerow((records, features, datanodes, runtime, metrics["mse"],
+                                         metrics["sad"], metrics["mad"]))
                     except NotEnoughFeaturesException:
                         print("Skipping")
                     except DockerException:
