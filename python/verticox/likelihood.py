@@ -1,5 +1,7 @@
 import logging
+import pickle
 from typing import Dict
+from scipy.optimize import minimize
 
 import numba
 import numpy as np
@@ -34,16 +36,16 @@ class Parameters:
     relevant_event_times: Dict[float, np.ndarray]
 
     def __init__(
-        self,
-        gamma,
-        sigma,
-        rho,
-        Rt,
-        K,
-        event_times,
-        Dt,
-        deaths_per_t,
-        relevant_event_times,
+            self,
+            gamma,
+            sigma,
+            rho,
+            Rt,
+            K,
+            event_times,
+            Dt,
+            deaths_per_t,
+            relevant_event_times,
     ):
         self.gamma = gamma
         self.sigma = sigma
@@ -93,23 +95,23 @@ def auxiliary_variables_component(z, K, sigma, gamma, rho):
 
 
 def find_z(
-    gamma: ArrayLike,
-    sigma: ArrayLike,
-    rho: float,
-    Rt: types.DictType(types.float64, types.int64[:]),
-    z_start: types.float64[:],
-    K: int,
-    event_times: types.float64[:],
-    Dt: types.DictType(types.float64, types.int64[:]),
-    deaths_per_t: types.DictType(types.float64, types.int64),
-    relevant_event_times: types.DictType(types.float64, types.float64[:]),
-    eps: float = EPSILON,
+        gamma: ArrayLike,
+        sigma: ArrayLike,
+        rho: float,
+        Rt: types.DictType(types.float64, types.int64[:]),
+        z_start: types.float64[:],
+        K: int,
+        event_times: types.float64[:],
+        Dt: types.DictType(types.float64, types.int64[:]),
+        deaths_per_t: types.DictType(types.float64, types.int64),
+        relevant_event_times: types.DictType(types.float64, types.float64[:]),
+        eps: float = EPSILON,
 ):
     params = Parameters(
         gamma, sigma, rho, Rt, K, event_times, Dt, deaths_per_t, relevant_event_times
     )
 
-    minimum = minimize_newton_raphson(
+    minimum = minimize_scipy(
         z_start, jacobian_parametrized, hessian_parametrized, params=params, eps=eps
     )
 
@@ -144,13 +146,13 @@ def derivative_1(z, params: Parameters, sample_idx: int):
 
     # Second part
     second_part = (
-        params.K
-        * params.rho
-        * (
-            z[sample_idx]
-            - params.sigma[sample_idx]
-            - (params.gamma[sample_idx] / params.rho)
-        )
+            params.K
+            * params.rho
+            * (
+                    z[sample_idx]
+                    - params.sigma[sample_idx]
+                    - (params.gamma[sample_idx] / params.rho)
+            )
     )
 
     return first_part + second_part
@@ -176,7 +178,7 @@ def jacobian_parametrized(z: types.float64[:], params: Parameters) -> types.floa
 
 @numba.njit()
 def derivative_2_diagonal(
-    z: types.float64, params: Parameters, u: int
+        z: types.float64, params: Parameters, u: int
 ) -> types.float64[:, :]:
     u_event_time = params.event_times[u]
 
@@ -190,9 +192,9 @@ def derivative_2_diagonal(
         first_part = np.square(params.K) * np.exp(params.K * z[u]) / denominator
 
         second_part = (
-            np.square(params.K)
-            * np.square(np.exp(params.K * z[u]))
-            / np.square(denominator)
+                np.square(params.K)
+                * np.square(np.exp(params.K * z[u]))
+                / np.square(denominator)
         )
 
         summed += params.deaths_per_t[t] * (first_part - second_part)
@@ -211,11 +213,11 @@ def derivative_2_off_diagonal(z: ArrayLike, params, u, v):
     for i in range(relevant_event_times.shape[0]):
         t = relevant_event_times[i]
         elements[i] = (
-            params.deaths_per_t[t]
-            * K_squared
-            * np.exp(params.K * z[u])
-            * np.exp(params.K * z[v])
-            / np.square(np.exp(params.K * z[params.Rt[t]]).sum())
+                params.deaths_per_t[t]
+                * K_squared
+                * np.exp(params.K * z[u])
+                * np.exp(params.K * z[v])
+                / np.square(np.exp(params.K * z[params.Rt[t]]).sum())
         )
 
     return -1 * elements.sum()
@@ -239,9 +241,23 @@ def hessian_parametrized(z: types.float64[:], params: Parameters):
     return mat
 
 
+def minimize_scipy(x_0, jacobian_parametrized, hessian_parametrized, params, eps):
+    # Scaling the functions to make the minimizer tolerate the output
+    scale = 1e2
+
+    func = lambda x: parametrized(x, params) * scale
+    jacobian = lambda x: jacobian_parametrized(x, params) * scale
+    hessian = lambda x: hessian_parametrized(x, params) * scale
+
+    result = minimize(func, x_0, jac=jacobian, hess=hessian,
+                      options={"disp": True})
+    print(f"Minimize result: {result}")
+    return result.x / scale
+
+
 @numba.njit()
 def minimize_newton_raphson(
-    x_0: types.float64[:], jacobian, hessian, params: Parameters, eps: float
+        x_0: types.float64[:], jacobian, hessian, params: Parameters, eps: float
 ) -> types.float64[:]:
     """
     The terminology is a little confusing here. We are trying to find the minimum,
