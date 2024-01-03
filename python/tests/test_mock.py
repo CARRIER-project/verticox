@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from abc import ABC
@@ -44,6 +45,45 @@ def compute_central_coefs(all_data_features, all_data_outcome):
 
     coef_dict = dict(zip(all_data_features.columns, central_model.coef_))
     return coef_dict
+
+
+def compare_central_coefs(decentralized: dict[str, float], centralized: dict[str, float]) -> \
+        dict[str, float]:
+    """
+    Compares coefficients to results from centralized computation.
+    Will output 3 performance metrics:
+    - mean squared error
+    - summation of absolute difference
+    - maximum absolute difference
+
+    Args:
+        decentralized:
+        centralized:
+
+    Returns:
+
+    """
+    # Convert to arrays
+    decentralized_array = []
+    centralized_array = []
+
+    for k in decentralized.keys():
+        decentralized_array.append(decentralized[k])
+        centralized_array.append(centralized[k])
+
+    decentralized_array = np.array(decentralized_array)
+    centralized_array = np.array(centralized_array)
+
+    # Mean squared error
+    mse = np.square(decentralized_array - centralized_array).sum() / decentralized_array.shape[0]
+
+    # Summation of absolute difference
+    sad = np.abs(decentralized_array - centralized_array).sum()
+
+    # Maximum absolute difference
+    mad = np.max(np.abs(decentralized_array - centralized_array))
+
+    return {"mse": mse, "sad": sad, "mad": mad}
 
 
 class IntegrationTest(ABC):
@@ -105,6 +145,9 @@ class OnlyTrain(IntegrationTest):
         print(f"Baseline hazard ratio {node_manager.baseline_hazard}")
 
         target_coefs = compute_central_coefs(all_data_features, all_data_outcome)
+        comparison_metrics = compare_central_coefs(coefs, target_coefs)
+
+        print(f"Comparison metrics: {json.dumps(comparison_metrics)}")
 
         for key, value in target_coefs.items():
             np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
