@@ -171,7 +171,7 @@ def prepare_compose_file(num_datanodes: int):
         f.write(compose)
 
 
-def main(dataset="aids"):
+def main(dataset="whas500"):
     """
     Benchmark verticox+ while varying number of datanodes, number of records and number of features.
     Args:
