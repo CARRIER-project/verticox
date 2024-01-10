@@ -227,7 +227,9 @@ public class VerticoxServer extends Server {
             return BigDecimal.ONE.multiply(multiplier).toBigIntegerExact();
         } else {
             //if locally known set the value to whatever the value is multiplied with the multiplier for precision
-            return new BigDecimal(attribute.getValue()).multiply(multiplier).toBigIntegerExact();
+            // Round manually because any trailing decimals will cause problems
+            return new BigDecimal(attribute.getValue()).multiply(multiplier).setScale(0, RoundingMode.HALF_UP)
+                    .toBigIntegerExact();
         }
     }
 
