@@ -1,0 +1,4 @@
+data/
+report*.csv
+*.properties
+docker-compose.yml

@@ -10,12 +10,33 @@ service DataNode{
   rpc prepare(InitialValues) returns (Empty){};
   rpc kill(Empty) returns (Empty){};
   rpc getFeatureNames(Empty) returns (FeatureNames){};
+  rpc getAverageSigma(AverageSigmaRequest) returns (AverageSigma){};
+  rpc getRecordLevelSigma(RecordLevelSigmaRequest) returns (RecordLevelSigma){};
+  rpc reset(Rows) returns (Empty) {};
+}
+
+enum Subset{
+  TRAIN = 0;
+  TEST = 1;
+  ALL = 3;
+}
+
+message RecordLevelSigmaRequest{
+  Subset subset = 1;
+}
+
+message AverageSigmaRequest{
+  Subset subset = 1;
+}
+
+message Rows{
+  repeated int32 rows = 1;
 }
 
 message InitialValues{
-  float gamma = 1;
-  float z = 2;
-  float beta = 3;
+  repeated float gamma = 1;
+  repeated float z = 2;
+  repeated float beta = 3;
   float rho = 4;
 }
 
@@ -45,6 +66,18 @@ message Beta{
 
 message FeatureNames{
   repeated string names = 1;
+}
+
+message AverageSigma{
+  float sigma = 1;
+}
+
+message RecordLevelSigma{
+  repeated float sigma = 1;
+}
+
+message PartialHazardRatio{
+  repeated float partialHazardRatios = 1;
 }
 
 message Empty{}

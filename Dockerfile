@@ -1,4 +1,4 @@
-FROM openjdk:17-slim as runner
+FROM eclipse-temurin:17.0.7_7-jdk as runner
 
 ARG PKG_NAME="verticox"
 ENV JAR_PATH="/app/verticox.jar"
@@ -23,12 +23,8 @@ RUN --mount=type=cache,target=/root/.cache/pypoetry/cache \
     --mount=type=cache,target=/root/.cache/pypoetry/artifacts \
     poetry install
 
-# TODO: When parquet support has been released, update the pyproject.toml with the proper
-# vantage6-client version and remove the following two lines:
-RUN poetry run pip install pip install git+https://github.com/vantage6/vantage6.git@dev3#subdirectory=vantage6-common
-RUN poetry run pip install pip install git+https://github.com/vantage6/vantage6.git@dev3#subdirectory=vantage6-client
 
 ENV PKG_NAME=${PKG_NAME}
 
 # Tell docker to execute `docker_wrapper()` when the image is run.
-CMD poetry run python -c "from vantage6.tools.docker_wrapper import parquet_wrapper; parquet_wrapper('${PKG_NAME}')"
+CMD poetry run python -c "from vantage6.tools.docker_wrapper import auto_wrapper; auto_wrapper('${PKG_NAME}')"

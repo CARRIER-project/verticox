@@ -11,13 +11,13 @@ EPSILON = 1e-4
 _logger = logging.getLogger(__name__)
 
 spec = [
-    ('gamma', types.float64[:]),
-    ('sigma', types.float64[:]),
-    ('Rt', types.DictType(types.float64, types.int64[:])),
-    ('event_times', types.float64[:]),
-    ('Dt', types.DictType(types.float64, types.int64[:])),
-    ('deaths_per_t', types.DictType(types.float64, types.int64)),
-    ('relevant_event_times', types.DictType(types.float64, types.float64[:]))
+    ("gamma", types.float64[:]),
+    ("sigma", types.float64[:]),
+    ("Rt", types.DictType(types.float64, types.int64[:])),
+    ("event_times", types.float64[:]),
+    ("Dt", types.DictType(types.float64, types.int64[:])),
+    ("deaths_per_t", types.DictType(types.float64, types.int64)),
+    ("relevant_event_times", types.DictType(types.float64, types.float64[:])),
 ]
 
 
@@ -33,8 +33,18 @@ class Parameters:
     deaths_per_t: Dict[float, int]
     relevant_event_times: Dict[float, np.ndarray]
 
-    def __init__(self, gamma, sigma, rho, Rt, K, event_times, Dt, deaths_per_t,
-                 relevant_event_times):
+    def __init__(
+        self,
+        gamma,
+        sigma,
+        rho,
+        Rt,
+        K,
+        event_times,
+        Dt,
+        deaths_per_t,
+        relevant_event_times,
+    ):
         self.gamma = gamma
         self.sigma = sigma
         self.rho = rho
@@ -58,7 +68,9 @@ def parametrized(z: types.float64[:], params: Parameters) -> types.float64:
 
     """
     c1 = aggregated_hazard(z, params)
-    c2 = auxiliary_variables_component(z, params.K, params.sigma, params.gamma, params.rho)
+    c2 = auxiliary_variables_component(
+        z, params.K, params.sigma, params.gamma, params.rho
+    )
 
     result = c1 + c2
     return result
@@ -80,18 +92,26 @@ def auxiliary_variables_component(z, K, sigma, gamma, rho):
     return K * rho * element_wise.sum()
 
 
-def find_z(gamma: ArrayLike, sigma: ArrayLike, rho: float,
-           Rt: types.DictType(types.float64, types.int64[:]), z_start: types.float64[:], K: int,
-           event_times: types.float64[:], Dt: types.DictType(types.float64, types.int64[:]),
-           deaths_per_t: types.DictType(types.float64, types.int64),
-           relevant_event_times: types.DictType(types.float64, types.float64[:]),
-           eps: float = EPSILON):
-    params = Parameters(gamma, sigma, rho, Rt, K, event_times, Dt, deaths_per_t,
-                        relevant_event_times)
+def find_z(
+    gamma: ArrayLike,
+    sigma: ArrayLike,
+    rho: float,
+    Rt: types.DictType(types.float64, types.int64[:]),
+    z_start: types.float64[:],
+    K: int,
+    event_times: types.float64[:],
+    Dt: types.DictType(types.float64, types.int64[:]),
+    deaths_per_t: types.DictType(types.float64, types.int64),
+    relevant_event_times: types.DictType(types.float64, types.float64[:]),
+    eps: float = EPSILON,
+):
+    params = Parameters(
+        gamma, sigma, rho, Rt, K, event_times, Dt, deaths_per_t, relevant_event_times
+    )
 
-    minimum = minimize_newton_raphson(z_start,
-                                      jacobian_parametrized, hessian_parametrized,
-                                      params=params, eps=eps)
+    minimum = minimize_newton_raphson(
+        z_start, jacobian_parametrized, hessian_parametrized, params=params, eps=eps
+    )
 
     return minimum
 
@@ -123,15 +143,22 @@ def derivative_1(z, params: Parameters, sample_idx: int):
         first_part += params.deaths_per_t[t] * (enumerator / denominator)
 
     # Second part
-    second_part = params.K * params.rho * (z[sample_idx] - params.sigma[sample_idx] - (
-            params.gamma[sample_idx] / params.rho))
+    second_part = (
+        params.K
+        * params.rho
+        * (
+            z[sample_idx]
+            - params.sigma[sample_idx]
+            - (params.gamma[sample_idx] / params.rho)
+        )
+    )
 
     return first_part + second_part
 
 
 @numba.njit()
 def aggregated_hazard_at_t(z, params, t):
-    denominator = 0.
+    denominator = 0.0
     for j in params.Rt[t]:
         denominator += np.exp(params.K * z[j])
     return denominator
@@ -148,7 +175,9 @@ def jacobian_parametrized(z: types.float64[:], params: Parameters) -> types.floa
 
 
 @numba.njit()
-def derivative_2_diagonal(z: types.float64, params: Parameters, u: int) -> types.float64[:, :]:
+def derivative_2_diagonal(
+    z: types.float64, params: Parameters, u: int
+) -> types.float64[:, :]:
     u_event_time = params.event_times[u]
 
     relevant_event_times = params.relevant_event_times[u_event_time]
@@ -160,8 +189,11 @@ def derivative_2_diagonal(z: types.float64, params: Parameters, u: int) -> types
 
         first_part = np.square(params.K) * np.exp(params.K * z[u]) / denominator
 
-        second_part = np.square(params.K) * np.square(np.exp(params.K * z[u])) / \
-                      np.square(denominator)
+        second_part = (
+            np.square(params.K)
+            * np.square(np.exp(params.K * z[u]))
+            / np.square(denominator)
+        )
 
         summed += params.deaths_per_t[t] * (first_part - second_part)
 
@@ -178,9 +210,13 @@ def derivative_2_off_diagonal(z: ArrayLike, params, u, v):
 
     for i in range(relevant_event_times.shape[0]):
         t = relevant_event_times[i]
-        elements[i] = params.deaths_per_t[t] * K_squared * np.exp(params.K * z[u]) * \
-                      np.exp(params.K * z[v]) / \
-                      np.square(np.exp(params.K * z[params.Rt[t]]).sum())
+        elements[i] = (
+            params.deaths_per_t[t]
+            * K_squared
+            * np.exp(params.K * z[u])
+            * np.exp(params.K * z[v])
+            / np.square(np.exp(params.K * z[params.Rt[t]]).sum())
+        )
 
     return -1 * elements.sum()
 
@@ -204,9 +240,9 @@ def hessian_parametrized(z: types.float64[:], params: Parameters):
 
 
 @numba.njit()
-def minimize_newton_raphson(x_0: types.float64[:], jacobian, hessian, params: Parameters,
-                            eps: float) -> \
-        types.float64[:]:
+def minimize_newton_raphson(
+    x_0: types.float64[:], jacobian, hessian, params: Parameters, eps: float
+) -> types.float64[:]:
     """
     The terminology is a little confusing here. We are trying to find the minimum,
     but newton-raphson is a root-finding algorithm. Therefore we are looking for the x where the

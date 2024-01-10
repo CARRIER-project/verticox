@@ -1,228 +1,168 @@
 import os
+import shutil
 import subprocess
 import time
-from dataclasses import dataclass
+import traceback
 from pathlib import Path
-from typing import List
-import traceback as tb
+from typing import List, Union, Tuple
+
 import pandas as pd
+from sksurv.functions import StepFunction
 from vantage6.client import ContainerClient
 from vantage6.tools.util import info
 
-from verticox import datanode
-from verticox.aggregator import Aggregator
-from verticox.ssl import get_secure_stub
-from verticox.scalarproduct import NPartyScalarProductClient
-import sys
-import shutil
-from numpy.testing import assert_array_almost_equal
+from verticox import datanode, node_manager
+from verticox.cross_validation import kfold_cross_validate
+from verticox.defaults import DEFAULT_KFOLD_SPLITS
 
-DATABASE_URI = 'DATABASE_URI'
-
-PYTHON_PORT = 8888
-JAVA_PORT = 9999
-PORTS_PER_CONTAINER = 2
-MAX_RETRIES = 20
-
-SLEEP = 5
+DATABASE_URI = "DATABASE_URI"
 DATANODE_TIMEOUT = None
 DATA_LIMIT = 10
-DEFAULT_PRECISION = 1e-3
+DEFAULT_PRECISION = 1e-6
 DEFAULT_RHO = 0.5
-COMMODITY_PROPERTIES = [f'--server.port={JAVA_PORT}']
-WAIT_CONTAINER_STARTUP = 10
-_PYTHON = 'python'
-_JAVA = 'java'
+COMMODITY_PROPERTIES = [f"--server.port={node_manager.JAVA_PORT}"]
+NO_OP_TIME = 360
 _SOME_ID = 1
-_WORKAROUND_DATABASE_URI = 'default.parquet'
+_WORKAROUND_DATABASE_URI = "default.parquet"
 
 # Methods
-NO_OP = 'no_op'
+NO_OP = "no_op"
 
-@dataclass
-class ContainerAddresses:
+
+def fit(
+        client: ContainerClient,
+        data: pd.DataFrame,
+        feature_columns: List[str],
+        event_times_column: str,
+        event_happened_column: str,
+        include_value=True,
+        datanode_ids: List[int] = None,
+        central_node_id: int = None,
+        precision: float = DEFAULT_PRECISION,
+        rho=DEFAULT_RHO,
+        *_args,
+        **_kwargs,
+):
     """
-    Class to keep track of the various types of algorithm addresses
-    """
-    # Maps organization ids to uris
-    python: List[str]
-    java: List[str]
 
-    @staticmethod
-    def parse_addresses(v6_container_addresses):
-        info(f'Parsing addresses: {v6_container_addresses}')
-        python_addresses = []
-        java_addresses = []
-
-        for addr in v6_container_addresses:
-            label = addr['label']
-            uri = f'{addr["ip"]}:{addr["port"]}'
-
-            if label == _PYTHON:
-                python_addresses.append(uri)
-            elif label == _JAVA:
-                java_addresses.append(uri)
-
-        return ContainerAddresses(python_addresses, java_addresses)
-
-def _get_node_ip(client: ContainerClient, organization_id: int):
-    params = {'method': 'no_op'}
-
-    task = client.create_new_task(params, [organization_id])
-    addresses = _get_algorithm_addresses(client, 1, task['id'])
-
-    address = addresses.python[0]
-    return address.split(':')[0]
-
-
-
-def _limit_data(data):
-    return data.iloc[:5]
-
-
-def verticox(client: ContainerClient, data: pd.DataFrame, feature_columns: List[str],
-             event_times_column: str, event_happened_column: str, include_value=True,
-             datanode_ids: List[int] = None,
-             precision: float = DEFAULT_PRECISION, rho=DEFAULT_RHO,
-             *_args, **_kwargs):
-    '''
-    TODO: Describe precision parameter
     Args:
-        include_value:
         client:
         data:
         feature_columns:
         event_times_column:
         event_happened_column:
+        include_value:
         datanode_ids:
-        precision: determines precision in multiple places in the optimization process
+        central_node_id:
+        precision:
         rho:
         *_args:
         **_kwargs:
 
     Returns:
 
-    '''
+    """
+    manager = node_manager.V6NodeManager(
+        client,
+        data,
+        datanode_ids,
+        central_node_id,
+        event_happened_column,
+        event_times_column,
+        feature_columns,
+        include_value,
+        convergence_precision=precision,
+        rho=rho,
+    )
+    try:
+        info(f"Start running verticox on features: {feature_columns}")
 
-    info(f'Start running verticox on features: {feature_columns}')
+        info(f"My database: {client.database}")
 
-    info(f'My database: {client.database}')
-    start_time = time.time()
-    external_commodity_address = _get_current_java_address(client, datanode_ids[0])
+        manager.start_nodes()
 
-    event_times = data[event_times_column].values
-    event_happened = data[event_happened_column]
+        start_time = time.time()
+        manager.fit()
+        end_time = time.time()
+        duration = end_time - start_time
+        info(f"Verticox algorithm complete after {duration} seconds")
 
-    info('Starting java containers')
-    _run_java_nodes(client, datanode_ids, external_commodity_address=external_commodity_address)
-
-    info('Starting python containers')
-    addresses = _start_python_containers(client, datanode_ids, event_happened_column,
-                                         event_times_column, external_commodity_address,
-                                         feature_columns, include_value)
-
-    info(f'Python datanode addresses: {addresses}')
-
-    stubs = []
-    # Create gRPC stubs
-    for a in addresses:
-        # TODO: This part is stupid, it should be separate host and port in the first place.
-        host, port = tuple(a.split(':'))
-        stubs.append(get_secure_stub(host, port))
-
-    info(f'Created {len(stubs)} RPC stubs')
-
-    aggregator = Aggregator(stubs, event_times, event_happened, convergence_precision=precision,
-                            rho=rho)
-    aggregator.fit()
-    end_time = time.time()
-    duration = end_time - start_time
-    info(f'Verticox algorithm complete after {duration} seconds')
-    info('Retrieving betas')
-    betas = aggregator.get_betas()
-
-    info('Killing datanodes')
-    aggregator.kill_all_datanodes()
-    return betas
+        info("Killing datanodes")
+        return {"coefs": manager.coefs,
+                "baseline_hazard_x": list(manager.baseline_hazard.x),
+                "baseline_hazard_y": list(manager.baseline_hazard.y)
+                }
+    except Exception as e:
+        info(f"Algorithm ended with exception {e}")
+        info(traceback.format_exc())
+    finally:
+        manager.kill_all_algorithms()
 
 
-def _start_python_containers(client, datanode_ids, event_happened_column, event_times_column,
-                             external_commodity_address, feature_columns, include_value):
+def cross_validate(client: ContainerClient,
+                   data: pd.DataFrame,
+                   feature_columns: List[str],
+                   event_times_column: str,
+                   event_happened_column: str,
+                   include_value=True,
+                   datanode_ids: List[int] = None,
+                   central_node_id: int = None,
+                   precision: float = DEFAULT_PRECISION,
+                   rho=DEFAULT_RHO,
+                   n_splits=DEFAULT_KFOLD_SPLITS,
+                   *_args,
+                   **_kwargs):
+    manager = node_manager.V6NodeManager(
+        client,
+        data,
+        datanode_ids,
+        central_node_id,
+        event_happened_column,
+        event_times_column,
+        feature_columns,
+        include_value,
+        convergence_precision=precision,
+        rho=rho,
+    )
+    try:
+        info(f"Start running verticox on features: {feature_columns}")
 
-    addresses = []
+        info(f"My database: {client.database}")
 
-    for id in datanode_ids:
-        # First run a no-op task to retrieve the address
-        ip = _get_node_ip(client, id)
+        manager.start_nodes()
 
-        info(f'Address: {ip}')
+        start_time = time.time()
+        c_indices, coefs, baseline_hazards = kfold_cross_validate(manager, n_splits=n_splits)
+        end_time = time.time()
+        duration = end_time - start_time
+        info(f"Verticox algorithm complete after {duration} seconds")
 
-        datanode_input = {
-            'method': 'run_datanode',
-            'kwargs': {
-                'feature_columns': feature_columns,
-                'event_time_column': event_times_column,
-                'include_column': event_happened_column,
-                'include_value': include_value,
-                'external_commodity_address': external_commodity_address,
-                'address': ip
-            }
-        }
-        # create a new task for all organizations in the collaboration.
-        info('Dispatching python datanode task')
-        task = client.create_new_task(datanode_input, organization_ids=[id])
-        address = _get_algorithm_addresses(client, 1, task['id'])
+        info("Killing datanodes")
+        # Make baseline hazard functions serializable
+        baseline_hazards = [stepfunction_to_tuple(f) for f in baseline_hazards]
 
-        addresses += address.python
-    return addresses
-
-
-def _run_java_nodes(client: ContainerClient, datanode_ids: List[int], external_commodity_address) -> \
-        str:
-    # Kick off java nodes
-    java_node_input = {'method': 'run_java_server'}
-
-    # TODO: Currently we cannot access algorithms that are running on the same node so we're
-    #  running the commodity node in the same container
-    info('Starting local java')
-    _start_local_java()
-    info('Local java is running')
-    commodity_uri = _get_internal_java_address()
-
-    info(f'Running java nodes on organizations {datanode_ids}')
-    datanode_addresses = _start_containers(client, java_node_input, datanode_ids)
-
-    info(f'Addresses: {datanode_addresses}')
-
-    # Wait for a bit for the containers to start up
-    time.sleep(WAIT_CONTAINER_STARTUP)
-
-    # Do initial setup for nodes
-    scalar_product_client = \
-        NPartyScalarProductClient(commodity_address=commodity_uri,
-                                  other_addresses=datanode_addresses.java,
-                                  external_commodity_address=external_commodity_address)
-
-    scalar_product_client.initialize_servers()
-
-    return commodity_uri
+        return c_indices, coefs, baseline_hazards
+    except Exception as e:
+        info(f"Algorithm ended with exception {e}")
+        info(traceback.format_exc())
+    finally:
+        manager.kill_all_algorithms()
 
 
-def _get_internal_java_address():
-    commodity_uri = f'localhost:{JAVA_PORT}'
-    return commodity_uri
+def stepfunction_to_tuple(f: StepFunction) -> Tuple[
+    List[Union[int, float]], List[Union[int, float]]]:
+    """
+    Converts stepfunction to a tuple of lists. This makes the object serializable.
+    Args:
+        f:
 
+    Returns:
 
-def _start_local_java():
-    target_uri = _move_parquet_file()
-    command = _get_java_command()
-    process = subprocess.Popen(command, env=_get_workaround_sysenv(target_uri))
+    """
+    x = f.x.tolist()
+    y = f.y.tolist()
 
-    return process
-
-
-def _get_java_command():
-    return ['java', '-jar', _get_jar_path()] + COMMODITY_PROPERTIES
+    return x, y
 
 
 # TODO: Remove this ugly workaround!
@@ -231,7 +171,9 @@ def _move_parquet_file():
     current_location = Path(current_location)
 
     target = current_location.parent / _WORKAROUND_DATABASE_URI
-    shutil.copy(current_location, target)
+
+    if target != current_location:
+        shutil.copy(current_location, target)
 
     return str(target.absolute())
 
@@ -246,80 +188,46 @@ def _get_current_java_address(client: ContainerClient, some_id):
     Returns:
 
     """
-    input_ = {'method': 'no_op'}
+    input_ = {"method": "no_op"}
     task = client.create_new_task(input_, organization_ids=[some_id])
 
-    info(f'No-op task {task}')
+    info(f"No-op task {task}")
 
-    my_task_id = task['id'] - 1
+    my_task_id = task["id"] - 1
 
-    info(f'Get task: {client.get_task(my_task_id)}')
-    info(f'Get previous task: {client.get_task(my_task_id - 1)}')
+    info(f"Get task: {client.get_task(my_task_id)}")
+    info(f"Get previous task: {client.get_task(my_task_id - 1)}")
 
     address = client.get_algorithm_addresses(task_id=my_task_id)
-    info(f' Current address {address}')
-    parsed = ContainerAddresses.parse_addresses(address)
+    info(f" Current address {address}")
+    parsed = node_manager.ContainerAddresses.parse_addresses(address)
 
     return parsed.java[0]
 
 
 def RPC_no_op(*args, **kwargs):
-    pass
-
-
-def _start_containers(client, input, org_ids) -> ContainerAddresses:
-    """
-    Trigger a task at the nodes at org_ids and retrieve the addresses for those algorithm containers
-    Args:
-        client:
-        input:
-        org_ids:
-
-    Returns:
-
-    """
-
-    # Every container will have two addresses because it has both a java and a python endpoint
-    expected_num_addresses = len(org_ids) * PORTS_PER_CONTAINER
-
-    task = client.create_new_task(input, organization_ids=org_ids)
-    addresses = _get_algorithm_addresses(client, expected_num_addresses, task['id'])
-    return addresses
-
-
-def _get_algorithm_addresses(client: ContainerClient,
-                             expected_amount: int, task_id) \
-        -> ContainerAddresses:
-    addresses = client.get_algorithm_addresses(task_id=task_id)
-
-    retries = 0
-    # Wait for nodes to get ready
-    while len(addresses) < expected_amount:
-        addresses = client.get_algorithm_addresses(task_id=task_id)
-
-        if retries >= MAX_RETRIES:
-            raise Exception(f'Could not connect to all {expected_amount} datanodes. There are '
-                            f'only {len(addresses)} nodes available')
-        time.sleep(SLEEP)
-        retries += 1
-
-    return ContainerAddresses.parse_addresses(addresses)
+    info(f"Sleeping for {NO_OP_TIME}")
+    time.sleep(NO_OP_TIME)
+    info("Shutting down.")
 
 
 def _filter_algorithm_addresses(addresses, label):
     for a in addresses:
-        if a['label'] == label:
+        if a["label"] == label:
             yield a
 
 
-def RPC_run_datanode(data: pd.DataFrame,
-                     feature_columns: List[str] = (),
-                     event_time_column: str = None,
-                     include_column: str = None, include_value: bool = None,
-                     external_commodity_address=None,
-                     address=None,
-                     *_args,
-                     **_kwargs):
+def RPC_run_datanode(
+        data: pd.DataFrame,
+        *args,
+        feature_columns: List[str] = (),
+        event_time_column: str = None,
+        include_column: str = None,
+        include_value: bool = None,
+        external_commodity_address=None,
+        address=None,
+        **kwargs,
+):
     """
     Starts the datanode as gRPC server
     Args:
@@ -332,40 +240,38 @@ def RPC_run_datanode(data: pd.DataFrame,
         include_column: the name of the column that indicates whether an event has taken
                                 place or whether the sample is right censored. If the value is
                                 False, the sample is right censored.
-        *args:
-        **kwargs:
+        address:
 
     Returns: None
 
+
     """
-    info(f'Feature columns: {feature_columns}')
-    info(f'All columns: {data.columns}')
-    info(f'Event time column: {event_time_column}')
-    info(f'Censor column: {include_column}')
-    try:
-        # The current datanode might not have all the features
-        feature_columns = [f for f in feature_columns if f in data.columns]
+    info(f"Feature columns: {feature_columns}")
+    info(f"All columns: {data.columns}")
+    info(f"Event time column: {event_time_column}")
+    info(f"Censor column: {include_column}")
+    # The current datanode might not have all the features
+    feature_columns = [f for f in feature_columns if f in data.columns]
 
-        info(f'Feature columns after filtering: {feature_columns}')
-        features = data[feature_columns].values
+    info(f"Feature columns after filtering: {feature_columns}")
+    features = data[feature_columns].values
 
-        datanode.serve(features=features, feature_names=feature_columns, port=PYTHON_PORT,
-                       include_column=include_column,
-                       include_value=include_value, timeout=DATANODE_TIMEOUT,
-                       commodity_address=external_commodity_address,
-                       address=address)
-    except Exception as e:
-        ex_type, ex_value, ex_tb = sys.exc_info()
-        info('Some exception happened')
-        info(str(tb.format_tb(ex_tb)))
-        raise e
-    return None
+    datanode.serve(
+        data=features,
+        feature_names=feature_columns,
+        port=node_manager.PYTHON_PORT,
+        include_column=include_column,
+        include_value=include_value,
+        timeout=DATANODE_TIMEOUT,
+        commodity_address=external_commodity_address,
+        address=address,
+    )
 
 
 # Note this function also exists in other algorithm packages but since it is so easy to implement I
 # decided to do that rather than rely on other algorithm packages.
 def RPC_column_names(data: pd.DataFrame, *args, **kwargs):
-    '''
+    """
 
 
     Args:
@@ -374,57 +280,22 @@ def RPC_column_names(data: pd.DataFrame, *args, **kwargs):
 
     Returns:
 
-    '''
+    """
     return data.columns.tolist()
 
 
 def RPC_run_java_server(_data, *_args, **_kwargs):
-    info('Starting java server')
+    info("Starting java server")
 
     command = _get_java_command()
-    info(f'Running command: {command}')
+    info(f"Running command: {command}")
     target_uri = _move_parquet_file()
     subprocess.run(command, env=_get_workaround_sysenv(target_uri))
 
 
-# TODO: Remove this function when done testing
-def test_sum_relevant_values(client: ContainerClient, data, features, mask_column, mask_value,
-                             datanode_ids, *args, **kwargs):
-    info('Starting java containers')
-    external_commodity_address = _get_current_java_address(client, datanode_ids[0])
-
-    _run_java_nodes(client, datanode_ids, external_commodity_address=external_commodity_address)
-
-    n_party_client = NPartyScalarProductClient(_get_internal_java_address())
-
-    n_party_result = n_party_client.sum_relevant_values(features, mask_column, mask_value)
-
-    mask = data.event_happened
-
-    input_ = {'method': 'test_sum_local_features', 'args': [features, mask]}
-
-    task = client.create_new_task(input_=input_, organization_ids=datanode_ids)
-
-    results = []
-    max_requests = 20
-    num_requests = 0
-
-    while True:
-        results = client.get_results(task_id=task['id'])
-        results_complete = [r.complete for r in results]
-
-        if all(results_complete):
-            break
-        # TODO: Something
-
-    num_requests += 1
-
-    result = results[0]
-    assert_array_almost_equal(n_party_result, result)
-    return 'success'
-
-
-def RPC_test_sum_local_features(data: pd.DataFrame, features: List[str], mask, *args, **kwargs):
+def RPC_test_sum_local_features(
+        data: pd.DataFrame, features: List[str], mask, *args, **kwargs
+):
     # Only check requested features
     data = data[features]
 
@@ -434,11 +305,15 @@ def RPC_test_sum_local_features(data: pd.DataFrame, features: List[str], mask, *
     return data.sum(axis=0).values
 
 
+def _get_java_command():
+    return ["java", "-jar", _get_jar_path()] + COMMODITY_PROPERTIES
+
+
+def _get_jar_path():
+    return os.environ.get("JAR_PATH")
+
+
 def _get_workaround_sysenv(target_uri):
     env = os.environ
     env[DATABASE_URI] = target_uri
     return env
-
-
-def _get_jar_path():
-    return os.environ.get('JAR_PATH')

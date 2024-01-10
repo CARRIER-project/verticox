@@ -14,3 +14,4 @@ env.sh
 /java/verticox/*.iml
 .env
 target/
+python/build/

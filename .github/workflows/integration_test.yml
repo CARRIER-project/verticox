@@ -1,0 +1,45 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Full integration test
+
+on:
+  pull_request:
+    branches: [ "main" ]
+env:
+  PWD: ./mock/
+jobs:
+  javabuild:
+    uses: ./.github/workflows/build_java.yml
+  integrationtest:
+    needs: javabuild
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download jar file
+        uses: actions/download-artifact@v3
+        with:
+          name: jarfile
+          path: java/verticox/target
+
+      - name: Check jar dir
+        run: ls -la ${{env.JARFILE}}
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Print jar file dir
+        env:
+          JARFILE: "${{env.GITHUB_WORKSPACE}}/java/verticox/target/verticox-1.0-SNAPSHOT.jar"
+          JARPATH: "${{env.GITHUB_WORKSPACE}}/java/verticox/target"
+        run: echo $GITHUB_WORKSPACE  && ls -la $GITHUB_WORKSPACE/$JARPATH
+
+      - name: Run the compose until aggregator exits
+
+        working-directory: ./mock
+        run: >
+          export JARFILE=$GITHUB_WORKSPACE/java/verticox/target/verticox-1.0-SNAPSHOT.jar  && 
+          docker compose up --exit-code-from aggregator
+        timeout-minutes: 20

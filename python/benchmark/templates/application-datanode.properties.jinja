@@ -1,0 +1,8 @@
+servers={% for s in servers %}{{ s }}{% if not loop.last %},{% endif %}{% endfor %}
+#  uit environment variable  DATABASE_URI halen
+{% if datafile %}
+datapath=/data/{{ datafile }}
+{% endif %}
+secretServer=http://commodity:80
+server.port=80
+server={{name}}
