@@ -72,7 +72,7 @@ def group_samples_on_event_time(
     return typed_Dt
 
 
-def load_aids_data_with_dummies(endpoint: str = "aids") -> pd.DataFrame:
+def load_aids_data_with_dummies(endpoint: str = "aids") -> (pd.DataFrame, np.array):
     """
     Load the aids dataset from sksurv. Categorical features will be converted to one-hot encoded
     columns.
@@ -117,6 +117,11 @@ def get_test_dataset(
         case other:
             raise Exception(f"Dataset \"{other}\" is not available.")
 
+    if len(features.columns) < feature_limit:
+        raise NotEnoughFeaturesException(f"Desired number of features ({feature_limit})"
+                                         f" is larger than number of available features "
+                                         f"({len(features.columns)}).")
+
     if not include_right_censored:
         features = features[_uncensored(events)]
         events = events[_uncensored(events)]
@@ -138,19 +143,19 @@ def get_test_dataset(
         events = events[all_idx]
         features = features.iloc[all_idx]
 
-    numerical_columns = features.columns[features.dtypes == float]
+    print(f"Features dtypes: {features.dtypes}")
 
-    features = features[numerical_columns]
+    features = features.select_dtypes(include="number")
 
     if limit:
         features = features.head(limit)
         events = events[:limit]
 
-    features = features.values.astype(float)
     if feature_limit:
-        features = features[:, :feature_limit]
-        numerical_columns = numerical_columns[:feature_limit]
-    return features, events, list(numerical_columns)
+        columns = features.columns[:feature_limit]
+        features = features[columns]
+
+    return features.values.astype(float), events, list(features.columns)
 
 
 def unpack_events(events):
@@ -170,3 +175,7 @@ def unpack_events(events):
     if right_censored.dtype != bool:
         raise Exception('Status is not boolean.')
     return np.array(times), right_censored
+
+
+class NotEnoughFeaturesException(Exception):
+    pass

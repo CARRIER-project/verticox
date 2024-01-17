@@ -14,7 +14,7 @@ import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 from python_on_whales import docker, DockerException
 
-from verticox.common import get_test_dataset, unpack_events
+from verticox.common import get_test_dataset, unpack_events, NotEnoughFeaturesException
 
 _BENCHMARK_DIR = Path(__file__).absolute().parent
 _TEMPLATES_DIR = _BENCHMARK_DIR / "templates"
@@ -23,12 +23,8 @@ _DATA_DIR = _BENCHMARK_DIR / "data"
 _RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]+)")
 _COMPARISON_PATTERN = re.compile(r"Comparison metrics: (.+)")
 NUM_RECORDS = [20, 40, 60, 100, 200, 500]
-NUM_FEATURES = [3, 4, 5, 6]
+NUM_FEATURES = [50] #[3, 4, 5, 6]
 NUM_DATANODES = [1, 2, 3, 4, 5]
-
-
-class NotEnoughFeaturesException(Exception):
-    pass
 
 
 def benchmark(num_records, num_features, num_datanodes, dataset):

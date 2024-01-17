@@ -1,9 +1,11 @@
 from unittest import TestCase
 
 import numpy as np
+import pandas as pd
 from numpy.testing import assert_array_equal
 
 from verticox import common
+from verticox.common import load_aids_data_with_dummies, get_test_dataset
 
 
 def test_group_samples_at_risk_numbers_descend():
@@ -58,3 +60,16 @@ def test_group_deaths():
     target = {2: [0, 1], 4: [3]}
 
     TestCase().assertDictEqual(result, target)
+
+
+def test_load_aids_data_converts_dummies():
+    covariates, outcome = load_aids_data_with_dummies("aids")
+
+    datatypes = covariates.dtypes
+    assert pd.Categorical not in datatypes
+
+
+def test_get_test_dataset_get_all_features_dummies():
+    features, outcome, column_names = get_test_dataset(10, feature_limit=10, dataset="aids")
+
+    assert len(column_names) == 10
