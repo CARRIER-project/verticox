@@ -86,7 +86,7 @@ def load_aids_data_with_dummies(endpoint: str = "aids") -> (pd.DataFrame, np.arr
     covariates, outcome = load_aids(endpoint)
 
     categorical_columns = [name for name, dtype in covariates.dtypes.items() if dtype == "category"]
-    dummies = pd.get_dummies(covariates[categorical_columns])
+    dummies = pd.get_dummies(covariates[categorical_columns]).astype(float)
     numerical_df = covariates.drop(categorical_columns, axis=1)
 
     combined = pd.concat([numerical_df, dummies], axis=1)
