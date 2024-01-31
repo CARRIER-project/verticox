@@ -8,8 +8,9 @@ from typing import List, Union, Tuple
 
 import pandas as pd
 from sksurv.functions import StepFunction
-from vantage6.client import ContainerClient
-from vantage6.tools.util import info
+from vantage6.algorithm.client import AlgorithmClient
+from vantage6.algorithm.tools.decorators import algorithm_client, data
+from vantage6.algorithm.tools.util import info, get_env_var
 
 from verticox import datanode, node_manager
 from verticox.cross_validation import kfold_cross_validate
@@ -29,8 +30,10 @@ _WORKAROUND_DATABASE_URI = "default.parquet"
 NO_OP = "no_op"
 
 
+@data(1)
+@algorithm_client
 def fit(
-        client: ContainerClient,
+        client: AlgorithmClient,
         data: pd.DataFrame,
         feature_columns: List[str],
         event_times_column: str,
@@ -40,6 +43,7 @@ def fit(
         central_node_id: int = None,
         precision: float = DEFAULT_PRECISION,
         rho=DEFAULT_RHO,
+        database=None,
         *_args,
         **_kwargs,
 ):
@@ -73,11 +77,10 @@ def fit(
         include_value,
         convergence_precision=precision,
         rho=rho,
+        database=database,
     )
     try:
         info(f"Start running verticox on features: {feature_columns}")
-
-        info(f"My database: {client.database}")
 
         manager.start_nodes()
 
@@ -99,7 +102,7 @@ def fit(
         manager.kill_all_algorithms()
 
 
-def cross_validate(client: ContainerClient,
+def cross_validate(client: AlgorithmClient,
                    data: pd.DataFrame,
                    feature_columns: List[str],
                    event_times_column: str,
@@ -126,8 +129,6 @@ def cross_validate(client: ContainerClient,
     )
     try:
         info(f"Start running verticox on features: {feature_columns}")
-
-        info(f"My database: {client.database}")
 
         manager.start_nodes()
 
@@ -166,10 +167,13 @@ def stepfunction_to_tuple(f: StepFunction) -> Tuple[
 
 
 # TODO: Remove this ugly workaround!
-def _move_parquet_file():
-    current_location = os.environ[DATABASE_URI]
+def _move_parquet_file(database:str):
+    env_name = f"{database.upper()}_{DATABASE_URI}"
+    info(f"Env name {env_name}")
+    current_location = get_env_var(env_name)
     current_location = Path(current_location)
 
+    info(f"Moving parquet file from {current_location} to {_WORKAROUND_DATABASE_URI}")
     target = current_location.parent / _WORKAROUND_DATABASE_URI
 
     if target != current_location:
@@ -178,34 +182,8 @@ def _move_parquet_file():
     return str(target.absolute())
 
 
-def _get_current_java_address(client: ContainerClient, some_id):
-    """
-
-    Args:
-        client:
-        some_id:
-
-    Returns:
-
-    """
-    input_ = {"method": "no_op"}
-    task = client.create_new_task(input_, organization_ids=[some_id])
-
-    info(f"No-op task {task}")
-
-    my_task_id = task["id"] - 1
-
-    info(f"Get task: {client.get_task(my_task_id)}")
-    info(f"Get previous task: {client.get_task(my_task_id - 1)}")
-
-    address = client.get_algorithm_addresses(task_id=my_task_id)
-    info(f" Current address {address}")
-    parsed = node_manager.ContainerAddresses.parse_addresses(address)
-
-    return parsed.java[0]
-
-
-def RPC_no_op(*args, **kwargs):
+@data(1)
+def no_op(*args, **kwargs):
     info(f"Sleeping for {NO_OP_TIME}")
     time.sleep(NO_OP_TIME)
     info("Shutting down.")
@@ -217,7 +195,8 @@ def _filter_algorithm_addresses(addresses, label):
             yield a
 
 
-def RPC_run_datanode(
+@data(1)
+def run_datanode(
         data: pd.DataFrame,
         *args,
         feature_columns: List[str] = (),
@@ -270,7 +249,8 @@ def RPC_run_datanode(
 
 # Note this function also exists in other algorithm packages but since it is so easy to implement I
 # decided to do that rather than rely on other algorithm packages.
-def RPC_column_names(data: pd.DataFrame, *args, **kwargs):
+@data(1)
+def column_names(data: pd.DataFrame, *args, **kwargs):
     """
 
 
@@ -284,16 +264,17 @@ def RPC_column_names(data: pd.DataFrame, *args, **kwargs):
     return data.columns.tolist()
 
 
-def RPC_run_java_server(_data, *_args, **_kwargs):
+@data(1)
+def run_java_server(_data, *_args, database=None, **kwargs):
     info("Starting java server")
-
     command = _get_java_command()
     info(f"Running command: {command}")
-    target_uri = _move_parquet_file()
+    target_uri = _move_parquet_file(database)
     subprocess.run(command, env=_get_workaround_sysenv(target_uri))
 
 
-def RPC_test_sum_local_features(
+@data(1)
+def test_sum_local_features(
         data: pd.DataFrame, features: List[str], mask, *args, **kwargs
 ):
     # Only check requested features

@@ -29,7 +29,7 @@ class VerticoxClient:
         self._logger.setLevel(log_level)
         self._v6client = v6client
         self._image = image
-        collaborations = self._v6client.collaboration.list()
+        collaborations = self._v6client.collaboration.list()["data"]
         if len(collaborations) > 1:
             raise VerticoxClientException(
                 f"You are in multiple collaborations, please specify "
@@ -122,9 +122,10 @@ class VerticoxClient:
     ):
         if kwargs is None:
             kwargs = {}
+        kwargs["database"] = database
         # TODO: Construct description out of parameters
         description = ""
-        name = ""
+        name = "method"
         task_input = {"method": method, "master": master, "kwargs": kwargs}
 
         print(
@@ -146,9 +147,8 @@ class VerticoxClient:
             name=name,
             image=self._image,
             description=description,
-            input=task_input,
-            data_format=_DATA_FORMAT,
-            database=database,
+            input_=task_input,
+            databases=database,
         )
 
         match method:
@@ -166,9 +166,9 @@ class FitResult:
     baseline_hazard: HazardFunction
 
     @staticmethod
-    def parse(partialResults: List[PartialResult]):
+    def parse(results: List[Dict[str, any]]):
         # Assume that there is only one "partial" result
-        content = partialResults[0].content
+        content = results[0]["result"]
         coefs = content["coefs"]
         baseline_hazard = HazardFunction(content["baseline_hazard_x"], content["baseline_hazard_y"])
 
@@ -214,34 +214,12 @@ class Task:
     def __init__(self, client: Client, task_data):
         self._raw_data = task_data
         self.client = client
-
-        self.result_ids = [r["id"] for r in task_data["results"]]
+        self.task_id = task_data["id"]
 
     def get_results(self, timeout=_TIMEOUT):
-        results = []
-        max_retries = timeout // _SLEEP
-        retries = 0
-        result_ids = set(self.result_ids)
-        results_complete = set()
+        results = self.client.wait_for_results(self.task_id)
+        return self._parse_results(results["data"])
 
-        while retries < max_retries:
-            results_missing = result_ids - results_complete
-            for missing in results_missing:
-                result = self.client.result.get(missing)
-                if result["finished_at"] is not None:
-                    print("Received a result")
-                    organization_id = result["organization"]["id"]
-                    result_content = result["result"]
-                    result_log = result["log"]
-                    results.append(PartialResult(organization_id, result_content, result_log))
-                    results_complete.add(missing)
-
-            if len(results) >= len(self.result_ids):
-                return self._parse_results(results)
-            retries += 1
-            time.sleep(_SLEEP)
-
-        raise VerticoxClientException(f"Timeout after {timeout} seconds")
 
     @staticmethod
     def _parse_results(results):

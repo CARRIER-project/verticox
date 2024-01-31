@@ -33,7 +33,9 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag="latest
     column_name_results = task.get_results()
 
     for r in column_name_results:
-        print(f"organization: {r.organization}, columns: {r.content}")
+        run_id = r["run"]["id"]
+        run = client.run.get(run_id)
+        print(f"organization: {run['organization']}, columns: {r['result']}")
 
     feature_columns = list(TARGET_COEFS.keys())
 

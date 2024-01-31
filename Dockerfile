@@ -26,5 +26,4 @@ RUN --mount=type=cache,target=/root/.cache/pypoetry/cache \
 
 ENV PKG_NAME=${PKG_NAME}
 
-# Tell docker to execute `docker_wrapper()` when the image is run.
-CMD poetry run python -c "from vantage6.tools.docker_wrapper import auto_wrapper; auto_wrapper('${PKG_NAME}')"
+CMD poetry run python -c "from vantage6.algorithm.tools.wrap import wrap_algorithm; wrap_algorithm()"

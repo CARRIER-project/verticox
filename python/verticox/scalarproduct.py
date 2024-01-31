@@ -3,7 +3,7 @@ from typing import List, Optional, Iterable
 import requests
 from requests.exceptions import ConnectionError
 from vantage6.common import debug
-from vantage6.tools.util import info
+from vantage6.algorithm.tools.util import info
 import logging
 
 _logger = logging.getLogger(__name__)

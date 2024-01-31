@@ -22,9 +22,9 @@ _DATA_DIR = _BENCHMARK_DIR / "data"
 
 _RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]+)")
 _COMPARISON_PATTERN = re.compile(r"Comparison metrics: (.+)")
-NUM_RECORDS = [20, 40, 60, 100, 200, 500]
-NUM_FEATURES = [3, 6, 9, 12, 15]
-NUM_DATANODES = [1, 2, 3, 4, 5]
+NUM_RECORDS = [200] #[20, 40, 60, 100, 200, 500]
+NUM_FEATURES = [6] #[3, 6, 9, 12, 15]
+NUM_DATANODES = [1]#[1, 2, 3, 4, 5]
 
 
 def benchmark(num_records, num_features, num_datanodes, dataset):
@@ -204,7 +204,7 @@ def main(dataset="whas500"):
                         print("Skipping")
                     except DockerException:
                         print(f"Current run threw error, skipping")
-                        writer.writerow((records, features, datanodes, "error"))
+                        writer.writerow((records, features, datanodes, "error", None, None))
 
 
 if __name__ == "__main__":
