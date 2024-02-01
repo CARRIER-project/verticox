@@ -8,7 +8,7 @@ import clize
 import grpc
 import numpy as np
 import pandas as pd
-from vantage6.tools.util import info
+from vantage6.algorithm.tools.util import info
 
 import verticox.ssl
 from verticox.common import Split
