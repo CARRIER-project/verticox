@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 from collections import namedtuple
@@ -168,7 +169,8 @@ class FitResult:
     @staticmethod
     def parse(results: List[Dict[str, any]]):
         # Assume that there is only one "partial" result
-        content = results[0]["result"]
+        content = json.loads(results[0]["result"])
+
         coefs = content["coefs"]
         baseline_hazard = HazardFunction(content["baseline_hazard_x"], content["baseline_hazard_y"])
 
@@ -218,6 +220,7 @@ class Task:
 
     def get_results(self, timeout=_TIMEOUT):
         results = self.client.wait_for_results(self.task_id)
+        print(f"Results: {results}")
         return self._parse_results(results["data"])
 
 

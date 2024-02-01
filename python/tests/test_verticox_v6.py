@@ -2,6 +2,7 @@ import json
 import numpy as np
 import vantage6.client as v6client
 from clize import run
+from verticox.client import FitResult
 
 from test_constants import OUTCOME_TIME_COLUMN, OUTCOME, PRECISION
 from verticox.client import VerticoxClient
@@ -64,17 +65,13 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag="latest
             )
 
     results = task.get_results(timeout=TIMEOUT)
-    for result in results:
-        print(f"Organization: {result.organization}")
-        print(f"Log: {result.log}")
-        print(f"Content: {json.dumps(result.content)}")
 
-    if method == "fit":
-        # Results should be close to [ 0.06169848, -0.00783813]
-        coefs = dict(results[0].content[0])
+    match results:
+        case FitResult(coefs, baseline_hazard):
+            for key, value in coefs.items():
+                np.testing.assert_almost_equal(value, TARGET_COEFS[key], decimal=4)
 
-        for key, value in coefs.items():
-            np.testing.assert_almost_equal(value, TARGET_COEFS[key], decimal=4)
+    print("Test passed")
 
 
 if __name__ == "__main__":
