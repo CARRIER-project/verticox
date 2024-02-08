@@ -52,7 +52,8 @@ def benchmark(num_records, num_features, num_datanodes, dataset):
     orchestrate_nodes(num_datanodes, num_features, num_records, dataset)
 
     # Run test
-    docker.compose.up(force_recreate=True, abort_on_container_exit=True, remove_orphans=True)
+    docker.compose.up(force_recreate=True, abort_on_container_exit=True, remove_orphans=True,
+                      build=True)
     log = docker.compose.logs(services=["aggregator"], tail=10)
 
     print(f"Tail of aggregator log: \n{log}")
