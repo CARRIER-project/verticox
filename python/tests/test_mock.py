@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import warnings
 from abc import ABC
 from datetime import datetime
 from pathlib import Path
@@ -9,7 +10,9 @@ from typing import Tuple
 import clize
 import numpy as np
 import pandas as pd
+from clize import parser
 from numpy import vectorize
+from scipy.linalg import LinAlgWarning
 from sklearn.model_selection import KFold
 from sksurv.datasets import get_x_y
 from sksurv.linear_model import CoxPHSurvivalAnalysis
@@ -20,7 +23,6 @@ from test_constants import CONVERGENCE_PRECISION
 from verticox.common import unpack_events
 from verticox.cross_validation import kfold_cross_validate
 from verticox.node_manager import LocalNodeManager
-from clize import parser
 
 _logger = logging.getLogger()
 _logger.setLevel(os.environ.get("LOGLEVEL", "INFO"))
@@ -41,7 +43,9 @@ def strlist(l: str):
 
 def compute_central_coefs(all_data_features, all_data_outcome):
     central_model = CoxPHSurvivalAnalysis()
-    central_model.fit(all_data_features, all_data_outcome)
+    with warnings.catch_warnings():
+        warnings.filterwarnings('error', category=LinAlgWarning)
+        central_model.fit(all_data_features, all_data_outcome)
 
     coef_dict = dict(zip(all_data_features.columns, central_model.coef_))
     return coef_dict
@@ -138,20 +142,26 @@ class OnlyTrain(IntegrationTest):
             "       Starting test on full dataset..."
             "\n----------------------------------------"
         )
-        node_manager.reset()
-        node_manager.fit()
-        coefs = node_manager.coefs
-        print(f"Betas: {coefs}")
-        print(f"Baseline hazard ratio {node_manager.baseline_hazard}")
+        try:
+            # Doing central one first to see if it succeeds
+            target_coefs = compute_central_coefs(all_data_features, all_data_outcome)
 
-        target_coefs = compute_central_coefs(all_data_features, all_data_outcome)
-        comparison_metrics = compare_central_coefs(coefs, target_coefs)
+            node_manager.reset()
+            node_manager.fit()
+            coefs = node_manager.coefs
+            print(f"Betas: {coefs}")
+            print(f"Baseline hazard ratio {node_manager.baseline_hazard}")
 
-        print(f"Comparison metrics: {json.dumps(comparison_metrics)}")
+            comparison_metrics = compare_central_coefs(coefs, target_coefs)
+            comparison_metrics["comment"] = "success"
 
-        for key, value in target_coefs.items():
-            np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
+            print(f"Benchmark output: {json.dumps(comparison_metrics)}")
 
+            for key, value in target_coefs.items():
+                np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
+        except LinAlgWarning as e:
+            output = {"mse": None, "sad": None, "mad": None, "comment": "unsolvable"}
+            print(f"Benchmark output: {json.dumps(output)}")
 
 class TrainTest(IntegrationTest):
     @staticmethod
@@ -199,6 +209,7 @@ class TrainTest(IntegrationTest):
         event_time, event_indicator = unpack_events(all_data_outcome_test)
 
         central_model = CoxPHSurvivalAnalysis()
+
         central_model.fit(all_data_features_train, all_data_outcome_train)
 
         central_predictions = central_model.predict(all_data_features_test)

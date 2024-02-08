@@ -21,7 +21,7 @@ _TEMPLATES_DIR = _BENCHMARK_DIR / "templates"
 _DATA_DIR = _BENCHMARK_DIR / "data"
 
 _RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]+)")
-_COMPARISON_PATTERN = re.compile(r"Comparison metrics: (.+)")
+_COMPARISON_PATTERN = re.compile(r"Benchmark output: (.+)")
 NUM_RECORDS = [200] #[20, 40, 60, 100, 200, 500]
 NUM_FEATURES = [6] #[3, 6, 9, 12, 15]
 NUM_DATANODES = [1]#[1, 2, 3, 4, 5]
@@ -183,7 +183,8 @@ def main(dataset="whas500"):
     Returns:
 
     """
-    columns = ["num_records", "num_features", "datanodes", "runtime", "mse", "sad", "mad"]
+    columns = ["num_records", "num_features", "datanodes", "runtime", "mse", "sad", "mad",
+               "comment"]
     report_filename = f"report-{dataset}_{datetime.now().isoformat()}.csv"
 
     report_path = _BENCHMARK_DIR / report_filename
@@ -200,12 +201,12 @@ def main(dataset="whas500"):
                     try:
                         runtime, metrics = benchmark(records, features, datanodes, dataset)
                         writer.writerow((records, features, datanodes, runtime, metrics["mse"],
-                                         metrics["sad"], metrics["mad"]))
+                                         metrics["sad"], metrics["mad"], metrics["comment"]))
                     except NotEnoughFeaturesException:
                         print("Skipping")
                     except DockerException:
                         print(f"Current run threw error, skipping")
-                        writer.writerow((records, features, datanodes, "error", None, None))
+                        writer.writerow((records, features, datanodes, None, None, None, "error"))
 
 
 if __name__ == "__main__":
