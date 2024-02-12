@@ -27,15 +27,17 @@ NUM_FEATURES = [3, 6, 9, 12, 15]
 NUM_DATANODES = [1, 2, 3, 4, 5]
 
 
-def benchmark(num_records, num_features, num_datanodes, dataset):
+def benchmark(num_records, num_features, num_datanodes, dataset, rebuild=False):
     """
     TODO: Make it possible to specify number of nodes.
     Benchmark verticox+ with specific parameters.
     Args:
+
         num_datanodes:
         num_records: Total number of records in dataset
         num_features: Total number of features
         dataset: Which dataset to use, options are "whas500" and "aids".
+        rebuild:
 
     Returns:
 
@@ -53,7 +55,7 @@ def benchmark(num_records, num_features, num_datanodes, dataset):
 
     # Run test
     docker.compose.up(force_recreate=True, abort_on_container_exit=True, remove_orphans=True,
-                      build=True)
+                      build=rebuild)
     log = docker.compose.logs(services=["aggregator"], tail=10)
 
     print(f"Tail of aggregator log: \n{log}")
@@ -194,14 +196,16 @@ def main(dataset="whas500"):
 
         # Write header first
         writer.writerow(columns)
-
+        rebuild = True
         for records in NUM_RECORDS:
             for features in NUM_FEATURES:
                 for datanodes in NUM_DATANODES:
                     try:
-                        runtime, metrics = benchmark(records, features, datanodes, dataset)
+                        runtime, metrics = benchmark(records, features, datanodes, dataset,
+                                                     rebuild=rebuild)
                         writer.writerow((records, features, datanodes, runtime, metrics["mse"],
                                          metrics["sad"], metrics["mad"], metrics["comment"]))
+                        rebuild = False
                     except NotEnoughFeaturesException:
                         print("Skipping")
                     except DockerException:
