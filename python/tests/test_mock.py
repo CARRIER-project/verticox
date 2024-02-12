@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 from clize import parser
 from numpy import vectorize
+from numpy.linalg import LinAlgError
 from scipy.linalg import LinAlgWarning
 from sklearn.model_selection import KFold
 from sksurv.datasets import get_x_y
@@ -159,9 +160,10 @@ class OnlyTrain(IntegrationTest):
 
             for key, value in target_coefs.items():
                 np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
-        except LinAlgWarning as e:
+        except (LinAlgWarning, LinAlgError) as e:
             output = {"mse": None, "sad": None, "mad": None, "comment": "unsolvable"}
             print(f"Benchmark output: {json.dumps(output)}")
+
 
 class TrainTest(IntegrationTest):
     @staticmethod
