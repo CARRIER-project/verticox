@@ -21,7 +21,7 @@ from verticox.likelihood import find_z
 
 logger = logging.getLogger(__name__)
 
-RHO = 0.5
+RHO = 0.25
 DEFAULT_PRECISION = 1e-5
 BETA = 0
 Z = 0
@@ -48,6 +48,7 @@ class Aggregator:
             convergence_precision: float = DEFAULT_PRECISION,
             newton_raphson_precision: float = DEFAULT_PRECISION,
             rho=RHO,
+            total_num_iterations=None
     ):
         """
         Initialize regular verticox aggregator. Note that this type of aggregator needs access to
@@ -82,6 +83,7 @@ class Aggregator:
         self.sigma = np.zeros(self.num_samples)
 
         self.num_iterations = 0
+        self.total_num_iterations = total_num_iterations
         logger.debug(f"Institution stubs: {self.institutions}")
 
         beta = np.full(self.num_samples, BETA)
@@ -153,10 +155,7 @@ class Aggregator:
             z_diff = np.linalg.norm(self.z - self.z_old)
             z_sigma_diff = np.linalg.norm(self.z - self.sigma)
 
-            if (
-                    z_diff <= self.convergence_precision
-                    and z_sigma_diff <= self.convergence_precision
-            ):
+            if self._stopping_condtions_met(z_diff, z_sigma_diff):
                 break
 
             previous_time = current_time
@@ -191,6 +190,15 @@ class Aggregator:
         logger.info("Computing baseline survival...")
         self.baseline_survival_function_ = self.compute_baseline_survival_function()
         logger.info("Done")
+
+    def _stopping_condtions_met(self, z_diff, z_sigma_diff):
+        if (self.total_num_iterations is not None) and (
+                self.num_iterations > self.total_num_iterations):
+            return True
+        if z_diff <= self.convergence_precision and z_sigma_diff <= self.convergence_precision:
+            return True
+
+        return False
 
     def fit_one(self):
         # TODO: Parallelize

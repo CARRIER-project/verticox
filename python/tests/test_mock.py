@@ -95,7 +95,8 @@ class IntegrationTest(ABC):
 
     def run(self, local_data, all_data, event_times_column, event_happened_column, *,
             pythonnodes: strlist = ("pythonnode1:7777", "pythonnode2:7777"),
-            javanodes: strlist = ("javanode1:80", "javanode2:80", "javanode-outcome:80")):
+            javanodes: strlist = ("javanode1:80", "javanode2:80", "javanode-outcome:80"),
+            total_num_iterations=None):
         """
         Run an integration test
         Args:
@@ -110,17 +111,17 @@ class IntegrationTest(ABC):
 
         """
         print(f"Javanodes {javanodes}")
+        total_num_iterations = int(total_num_iterations)
         start_time = datetime.now()
         all_data_features, all_data_outcome, node_manager = prepare_test(all_data,
                                                                          event_happened_column,
                                                                          event_times_column,
                                                                          local_data,
                                                                          python_datanodes=pythonnodes,
-                                                                         java_datanodes=javanodes)
+                                                                         java_datanodes=javanodes,
+                                                                          total_num_iterations=total_num_iterations)
         end_time = datetime.now()
         preparation_runtime = end_time - start_time
-
-
         start_time = datetime.now()
         results = self.run_integration_test(all_data_features, all_data_outcome, node_manager)
         end_time = datetime.now()
@@ -362,18 +363,19 @@ def run_all(local_data, all_data, event_times_column, event_happened_column):
 
 
 def prepare_test(all_data, event_happened_column, event_times_column, local_data,
-                 python_datanodes, java_datanodes) \
+                 python_datanodes, java_datanodes, total_num_iterations) \
         -> Tuple[pd.DataFrame, np.array, LocalNodeManager]:
     df = pd.read_parquet(local_data)
     all_data_df = collect_all_test_data(all_data)
     all_data_features, all_data_outcome = get_x_y(
-        all_data_df, (event_happened_column, event_times_column), pos_label=True
+        all_data_df, (event_happened_column, event_times_column), pos_label=True,
     )
     node_manager = LocalNodeManager(
         df,
         event_times_column,
         event_happened_column,
-        {"convergence_precision": CONVERGENCE_PRECISION},
+        {"convergence_precision": CONVERGENCE_PRECISION,
+         "total_num_iterations": total_num_iterations},
         python_datanode_addresses=python_datanodes,
         other_java_addresses=java_datanodes
     )

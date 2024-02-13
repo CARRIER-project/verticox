@@ -26,14 +26,17 @@ _COMPARISON_PATTERN = re.compile(r"Benchmark output: (.+)")
 NUM_RECORDS = [20, 40, 60, 100, 200, 500, 1000]
 NUM_FEATURES = [3, 6, 9, 12, 15]
 NUM_DATANODES = [1, 2, 3, 4, 5]
+TOTAL_NUM_ITERATIONS = [100, 500, 1000, 1500, 2000]
 
 
-def benchmark(num_records, num_features, num_datanodes, dataset, rebuild=False) -> dict:
+def benchmark(num_records, num_features, num_datanodes, dataset,
+              total_num_iterations=None, rebuild=False):
     """
     TODO: Make it possible to specify number of nodes.
     Benchmark verticox+ with specific parameters.
     Args:
 
+        total_num_iterations:
         num_datanodes:
         num_records: Total number of records in dataset
         num_features: Total number of features
@@ -45,14 +48,17 @@ def benchmark(num_records, num_features, num_datanodes, dataset, rebuild=False) 
     """
     print(f'Benchmarking with {num_records} records, '
           f'{num_features} features, '
-          f'{num_datanodes} datanodes')
+          f'{num_datanodes} datanodes, '
+          f'{total_num_iterations} iterations'
+          )
 
     if num_features < num_datanodes:
         raise NotEnoughFeaturesException(f"Less features than datanodes"
                                          f"\nNumber of features: {num_features}, "
                                          f"number of datanodes: {num_datanodes}")
 
-    orchestrate_nodes(num_datanodes, num_features, num_records, dataset)
+    orchestrate_nodes(num_datanodes, num_features, num_records, dataset,
+                      total_num_iterations=total_num_iterations)
 
     # Run test
     docker.compose.up(force_recreate=True, abort_on_container_exit=True, remove_orphans=True,
@@ -67,7 +73,8 @@ def benchmark(num_records, num_features, num_datanodes, dataset, rebuild=False) 
                "convergence_runtime": convergence_seconds,
                "num_records": num_records,
                "num_features": num_features,
-               "datanodes": num_datanodes
+               "datanodes": num_datanodes,
+               "total_num_iterations": total_num_iterations
                }
 
     comparison = re.search(_COMPARISON_PATTERN, log)
@@ -87,7 +94,7 @@ def get_runtime(pattern, log):
     return seconds
 
 
-def orchestrate_nodes(num_datanodes, num_features, num_records, dataset):
+def orchestrate_nodes(num_datanodes, num_features, num_records, dataset, total_num_iterations):
     # Prepare dataset
     features, outcome, column_names = get_test_dataset(num_records, feature_limit=num_features,
                                                        dataset=dataset)
@@ -98,7 +105,7 @@ def orchestrate_nodes(num_datanodes, num_features, num_records, dataset):
     # Check data dir
     print(f"Data dir content: {list(_DATA_DIR.iterdir())}")
     prepare_java_properties(num_datanodes)
-    prepare_compose_file(num_datanodes)
+    prepare_compose_file(num_datanodes, total_num_iterations)
 
 
 def split_features(features: pd.DataFrame, num_datanodes: int) -> list[pd.DataFrame]:
@@ -185,8 +192,9 @@ def create_properties_file(filename, server_name, data_filename, other_servers):
         f.write(properties)
 
 
-def prepare_compose_file(num_datanodes: int):
-    compose = get_compose_template().render(num_datanodes=num_datanodes)
+def prepare_compose_file(num_datanodes: int, total_num_iterations: int):
+    compose = get_compose_template().render(num_datanodes=num_datanodes,
+                                            total_num_iterations=total_num_iterations)
 
     with open(_BENCHMARK_DIR / "docker-compose.yml", "w") as f:
         f.write(compose)
@@ -201,33 +209,35 @@ def main(dataset="seer"):
     Returns:
 
     """
-    columns = ["num_records", "num_features", "datanodes", "preparation_runtime",
-               "convergence_runtime", "mse", "sad", "mad", "comment"]
+    columns = ["num_records", "num_features", "total_num_iterations", "datanodes",
+               "preparation_runtime", "convergence_runtime", "mse", "sad", "mad", "comment"]
     report_filename = f"report-{dataset}_{datetime.now().isoformat()}.csv"
 
     report_path = _BENCHMARK_DIR / report_filename
 
     with report_path.open('w', buffering=1) as f:
-        writer = csv.DictWriter(f,fieldnames=columns)
+        writer = csv.DictWriter(f, fieldnames=columns)
         writer.writeheader()
 
         rebuild = True
         for records in NUM_RECORDS:
             for features in NUM_FEATURES:
                 for datanodes in NUM_DATANODES:
-                    try:
-                        results = benchmark(records, features, datanodes,
-                                            dataset, rebuild=rebuild)
+                    for num_iterations in TOTAL_NUM_ITERATIONS:
+                        try:
+                            results = benchmark(records, features, datanodes,
+                                                dataset, total_num_iterations=num_iterations,
+                                                rebuild=rebuild)
 
-                        writer.writerow(results)
-                        rebuild = False
-                    except NotEnoughFeaturesException:
-                        writer.writerow({"comment": "Not enough features"})
-                        print("Skipping")
-                    except DockerException:
-                        print(f"Current run threw error, skipping")
-                        writer.writerow({"num_records": records, "num_features": features,
-                                         "datanodes": datanodes, "comment": "error"})
+                            writer.writerow(results)
+                            rebuild = False
+                        except NotEnoughFeaturesException:
+                            writer.writerow({"comment": "Not enough features"})
+                            print("Skipping")
+                        except DockerException:
+                            print(f"Current run threw error, skipping")
+                            writer.writerow({"num_records": records, "num_features": features,
+                                             "datanodes": datanodes, "comment": "error"})
 
 
 if __name__ == "__main__":
