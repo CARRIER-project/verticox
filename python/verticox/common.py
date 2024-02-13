@@ -1,16 +1,16 @@
 from collections import namedtuple
-from dataclasses import dataclass
-from typing import List, Tuple, Iterable
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
 from numba import typed, types
 from numpy.typing import ArrayLike
-from sksurv.datasets import load_whas500, load_aids
+from sksurv.datasets import load_whas500, load_aids, get_x_y
 
 Split = namedtuple("Split", ("train", "test", "all"))
 WHAS500 = "whas500"
 AIDS = "aids"
+SEER = "seer"
 
 
 @np.vectorize
@@ -93,11 +93,48 @@ def load_aids_data_with_dummies(endpoint: str = "aids") -> (pd.DataFrame, np.arr
     return combined, outcome
 
 
+def load_seer() -> (pd.DataFrame, np.array):
+    """
+    Load the seer dataset from zenodo.
+
+    Zhandos Sembay. (2021). Seer Breast Cancer Data [Data set]. Zenodo.
+    https://doi.org/10.5281/zenodo.5120960
+    Returns:
+
+    """
+
+    df = pd.read_csv(
+        "https://zenodo.org/records/5120960/files/SEER%20Breast%20Cancer%20Dataset%20.csv?download=1")
+    # Remove empty column
+    df = df.drop(columns=["Unnamed: 3"])
+
+    # Convert string columns to categorical.
+    for c in df.columns:
+        if df[c].dtype == object:
+            df[c] = df[c].astype("category")
+
+    # Split off outcome
+    outcome = df[["Survival Months", "Status"]]
+    df = df.drop(columns=outcome.columns)
+
+    # Categorical to dummies
+    for name in df.columns:
+        column = df[name]
+        if column.dtype.name == "category":
+            dummies = pd.get_dummies(column)
+            df = df.drop(columns=name)
+            df = pd.concat([df, dummies], axis=1)
+
+    _, events = get_x_y(outcome, attr_labels=["Status", "Survival Months"], pos_label="Dead")
+
+    return df, events
+
+
 def get_test_dataset(
-        limit=None, feature_limit=None, include_right_censored=True, dataset: str = WHAS500
+        limit=None, feature_limit=None, include_right_censored=True, dataset: str = SEER
 ) -> Tuple[ArrayLike, ArrayLike, List]:
     """
-    Prepare and provide the whas500 dataset for testing purposes.
+    Prepare and provide the whas500, aids or SEER dataset for testing purposes.
 
     Args:
         dataset: there are two datasets available: "whas500" and "aids". Whas500 is the default.
@@ -114,6 +151,8 @@ def get_test_dataset(
             features, events = load_whas500()
         case "aids":
             features, events = load_aids_data_with_dummies()
+        case "seer":
+            features, events = load_seer()
         case other:
             raise Exception(f"Dataset \"{other}\" is not available.")
 
