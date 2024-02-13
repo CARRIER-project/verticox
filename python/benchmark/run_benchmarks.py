@@ -20,14 +20,15 @@ _BENCHMARK_DIR = Path(__file__).absolute().parent
 _TEMPLATES_DIR = _BENCHMARK_DIR / "templates"
 _DATA_DIR = _BENCHMARK_DIR / "data"
 
-_RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]+)")
+_CONVERGENCE_RUNTIME_PATTERN = re.compile(r"Fitting runtime: ([\d\.]+)")
+_PREPARATION_RUNTIME_PATTERN = re.compile(r"Preparation runtime: ([\d\.]+)")
 _COMPARISON_PATTERN = re.compile(r"Benchmark output: (.+)")
 NUM_RECORDS = [20, 40, 60, 100, 200, 500, 1000]
 NUM_FEATURES = [3, 6, 9, 12, 15]
 NUM_DATANODES = [1, 2, 3, 4, 5]
 
 
-def benchmark(num_records, num_features, num_datanodes, dataset, rebuild=False):
+def benchmark(num_records, num_features, num_datanodes, dataset, rebuild=False) -> dict:
     """
     TODO: Make it possible to specify number of nodes.
     Benchmark verticox+ with specific parameters.
@@ -59,16 +60,31 @@ def benchmark(num_records, num_features, num_datanodes, dataset, rebuild=False):
     log = docker.compose.logs(services=["aggregator"], tail=10)
 
     print(f"Tail of aggregator log: \n{log}")
-    runtime = re.search(_RUNTIME_PATTERN, log)
-    seconds = runtime.groups()[0]
-    seconds = float(seconds)
+    preparation_seconds = get_runtime(_PREPARATION_RUNTIME_PATTERN, log)
+    convergence_seconds = get_runtime(_CONVERGENCE_RUNTIME_PATTERN, log)
+
+    results = {"preparation_runtime": preparation_seconds,
+               "convergence_runtime": convergence_seconds,
+               "num_records": num_records,
+               "num_features": num_features,
+               "datanodes": num_datanodes
+               }
 
     comparison = re.search(_COMPARISON_PATTERN, log)
     comparison = comparison.groups()[0]
     metrics = json.loads(comparison)
 
-    print(f"Run took {seconds} seconds")
-    return seconds, metrics
+    results.update(metrics)
+
+    print(f"Preparation took {preparation_seconds} seconds\nConvergence took {convergence_seconds}")
+    return results
+
+
+def get_runtime(pattern, log):
+    runtime = re.search(pattern, log)
+    seconds = runtime.groups()[0]
+    seconds = float(seconds)
+    return seconds
 
 
 def orchestrate_nodes(num_datanodes, num_features, num_records, dataset):
@@ -185,32 +201,33 @@ def main(dataset="seer"):
     Returns:
 
     """
-    columns = ["num_records", "num_features", "datanodes", "runtime", "mse", "sad", "mad",
-               "comment"]
+    columns = ["num_records", "num_features", "datanodes", "preparation_runtime",
+               "convergence_runtime", "mse", "sad", "mad", "comment"]
     report_filename = f"report-{dataset}_{datetime.now().isoformat()}.csv"
 
     report_path = _BENCHMARK_DIR / report_filename
 
     with report_path.open('w', buffering=1) as f:
-        writer = csv.writer(f)
+        writer = csv.DictWriter(f,fieldnames=columns)
+        writer.writeheader()
 
-        # Write header first
-        writer.writerow(columns)
         rebuild = True
         for records in NUM_RECORDS:
             for features in NUM_FEATURES:
                 for datanodes in NUM_DATANODES:
                     try:
-                        runtime, metrics = benchmark(records, features, datanodes, dataset,
-                                                     rebuild=rebuild)
-                        writer.writerow((records, features, datanodes, runtime, metrics["mse"],
-                                         metrics["sad"], metrics["mad"], metrics["comment"]))
+                        results = benchmark(records, features, datanodes,
+                                            dataset, rebuild=rebuild)
+
+                        writer.writerow(results)
                         rebuild = False
                     except NotEnoughFeaturesException:
+                        writer.writerow({"comment": "Not enough features"})
                         print("Skipping")
                     except DockerException:
                         print(f"Current run threw error, skipping")
-                        writer.writerow((records, features, datanodes, None, None, None, "error"))
+                        writer.writerow({"num_records": records, "num_features": features,
+                                         "datanodes": datanodes, "comment": "error"})
 
 
 if __name__ == "__main__":

@@ -110,19 +110,24 @@ class IntegrationTest(ABC):
 
         """
         print(f"Javanodes {javanodes}")
+        start_time = datetime.now()
         all_data_features, all_data_outcome, node_manager = prepare_test(all_data,
                                                                          event_happened_column,
                                                                          event_times_column,
                                                                          local_data,
                                                                          python_datanodes=pythonnodes,
                                                                          java_datanodes=javanodes)
+        end_time = datetime.now()
+        preparation_runtime = end_time - start_time
+
 
         start_time = datetime.now()
         results = self.run_integration_test(all_data_features, all_data_outcome, node_manager)
         end_time = datetime.now()
         runtime = end_time - start_time
 
-        print(f"Runtime: {runtime.total_seconds()}")
+        print(f"Preparation runtime: {preparation_runtime.total_seconds()}")
+        print(f"Fitting runtime: {runtime.total_seconds()}")
 
         return runtime.total_seconds()
 
