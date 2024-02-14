@@ -192,13 +192,11 @@ class Aggregator:
         logger.info("Done")
 
     def _stopping_condtions_met(self, z_diff, z_sigma_diff):
-        if (self.total_num_iterations is not None) and (
-                self.num_iterations > self.total_num_iterations):
-            return True
-        if z_diff <= self.convergence_precision and z_sigma_diff <= self.convergence_precision:
-            return True
-
-        return False
+        if self.total_num_iterations is not None:
+            return self.num_iterations > self.total_num_iterations
+        else:
+            return (z_diff <= self.convergence_precision and
+                    z_sigma_diff <= self.convergence_precision)
 
     def fit_one(self):
         # TODO: Parallelize
