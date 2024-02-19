@@ -113,9 +113,9 @@ class IntegrationTest(ABC):
         """
         print(f"Javanodes {javanodes}")
         if total_num_iterations is None:
-            check_correct = False
-        else:
             check_correct = True
+        else:
+            check_correct = False
             total_num_iterations = int(total_num_iterations)
 
         print(f"Check correct: {check_correct}, total number of iterations: {total_num_iterations}")
