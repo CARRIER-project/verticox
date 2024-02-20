@@ -156,7 +156,7 @@ def get_test_dataset(
         case other:
             raise Exception(f"Dataset \"{other}\" is not available.")
 
-    if len(features.columns) < feature_limit:
+    if feature_limit is not None and len(features.columns) < feature_limit:
         raise NotEnoughFeaturesException(f"Desired number of features ({feature_limit})"
                                          f" is larger than number of available features "
                                          f"({len(features.columns)}).")
