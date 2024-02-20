@@ -125,6 +125,8 @@ def load_seer() -> (pd.DataFrame, np.array):
             df = df.drop(columns=name)
             df = pd.concat([df, dummies], axis=1)
 
+
+
     _, events = get_x_y(outcome, attr_labels=["Status", "Survival Months"], pos_label="Dead")
 
     return df, events
@@ -181,8 +183,6 @@ def get_test_dataset(
 
         events = events[all_idx]
         features = features.iloc[all_idx]
-
-    print(f"Features dtypes: {features.dtypes}")
 
     features = features.select_dtypes(include="number")
 

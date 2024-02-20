@@ -4,6 +4,7 @@ import csv
 import json
 import re
 import shutil
+from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
 from typing import List
@@ -23,14 +24,15 @@ _DATA_DIR = _BENCHMARK_DIR / "data"
 _CONVERGENCE_RUNTIME_PATTERN = re.compile(r"Fitting runtime: ([\d\.]+)")
 _PREPARATION_RUNTIME_PATTERN = re.compile(r"Preparation runtime: ([\d\.]+)")
 _COMPARISON_PATTERN = re.compile(r"Benchmark output: (.+)")
-NUM_RECORDS = [20, 40, 60, 100, 200, 500, 1000]
-NUM_FEATURES = [3, 6, 9, 12, 15]
-NUM_DATANODES = [1, 2, 3, 4, 5]
-TOTAL_NUM_ITERATIONS = [100, 500, 1000, 1500, 2000]
+
+BenchmarkResult = namedtuple("BenchmarkResult", ["records", "features",
+                                                 "iterations", "parties",
+                                                 "preparation_runtime", "convergence_runtime",
+                                                 "mse", "sad", "mad", "comment"])
 
 
-def benchmark(num_records, num_features, num_datanodes, dataset,
-              total_num_iterations=None, rebuild=False):
+def benchmark(num_records: int, num_features: int, num_datanodes: int, dataset: str,
+              total_num_iterations: (None, int) = None, rebuild: bool = False) -> BenchmarkResult:
     """
     TODO: Make it possible to specify number of nodes.
     Benchmark verticox+ with specific parameters.
@@ -71,10 +73,10 @@ def benchmark(num_records, num_features, num_datanodes, dataset,
 
     results = {"preparation_runtime": preparation_seconds,
                "convergence_runtime": convergence_seconds,
-               "num_records": num_records,
-               "num_features": num_features,
-               "datanodes": num_datanodes,
-               "total_num_iterations": total_num_iterations
+               "records": num_records,
+               "features": num_features,
+               "parties": num_datanodes,
+               "iterations": total_num_iterations
                }
 
     comparison = re.search(_COMPARISON_PATTERN, log)
@@ -84,7 +86,7 @@ def benchmark(num_records, num_features, num_datanodes, dataset,
     results.update(metrics)
 
     print(f"Preparation took {preparation_seconds} seconds\nConvergence took {convergence_seconds}")
-    return results
+    return BenchmarkResult(**results)
 
 
 def get_runtime(pattern, log):
@@ -94,16 +96,14 @@ def get_runtime(pattern, log):
     return seconds
 
 
-def orchestrate_nodes(num_datanodes, num_features, num_records, dataset, total_num_iterations):
+def orchestrate_nodes(num_datanodes: int, num_features: int, num_records: int, dataset: str,
+                      total_num_iterations):
     # Prepare dataset
     features, outcome, column_names = get_test_dataset(num_records, feature_limit=num_features,
                                                        dataset=dataset)
-    print(f"Column names: {column_names}")
     features = pd.DataFrame(features, columns=column_names)
     feature_sets = split_features(features, num_datanodes)
     write_datasets(feature_sets, outcome)
-    # Check data dir
-    print(f"Data dir content: {list(_DATA_DIR.iterdir())}")
     prepare_java_properties(num_datanodes)
     prepare_compose_file(num_datanodes, total_num_iterations)
 
@@ -200,44 +200,53 @@ def prepare_compose_file(num_datanodes: int, total_num_iterations: int):
         f.write(compose)
 
 
-def main(dataset="seer"):
+def main(parameter_table: str, dataset="seer"):
     """
     Benchmark verticox+ while varying number of datanodes, number of records and number of features.
     Args:
+        parameter_table:
         dataset:
 
     Returns:
 
     """
-    columns = ["num_records", "num_features", "total_num_iterations", "datanodes",
-               "preparation_runtime", "convergence_runtime", "mse", "sad", "mad", "comment"]
     report_filename = f"report-{dataset}_{datetime.now().isoformat()}.csv"
 
     report_path = _BENCHMARK_DIR / report_filename
+    parameter_path = _BENCHMARK_DIR / parameter_table
 
-    with report_path.open('w', buffering=1) as f:
-        writer = csv.DictWriter(f, fieldnames=columns)
+    with (parameter_path.open("r") as parameter_file,
+          report_path.open("w", buffering=1) as result_file):
+        reader = csv.DictReader(parameter_file)
+
+        writer = csv.DictWriter(result_file, fieldnames=BenchmarkResult._fields)
         writer.writeheader()
 
         rebuild = True
-        for records in NUM_RECORDS:
-            for features in NUM_FEATURES:
-                for datanodes in NUM_DATANODES:
-                    for num_iterations in TOTAL_NUM_ITERATIONS:
-                        try:
-                            results = benchmark(records, features, datanodes,
-                                                dataset, total_num_iterations=num_iterations,
-                                                rebuild=rebuild)
 
-                            writer.writerow(results)
-                            rebuild = False
-                        except NotEnoughFeaturesException:
-                            writer.writerow({"comment": "Not enough features"})
-                            print("Skipping")
-                        except DockerException:
-                            print(f"Current run threw error, skipping")
-                            writer.writerow({"num_records": records, "num_features": features,
-                                             "datanodes": datanodes, "comment": "error"})
+        for parameters in reader:
+            try:
+                records = int(parameters["records"])
+                features = int(parameters["features"])
+                parties = int(parameters["parties"])
+                iterations = int(parameters["iterations"])
+
+                results = benchmark(records,
+                                    features,
+                                    parties,
+                                    dataset,
+                                    total_num_iterations=iterations,
+                                    rebuild=rebuild)
+
+                writer.writerow(results._asdict())
+                rebuild = False
+            except NotEnoughFeaturesException:
+                writer.writerow({"comment": "Not enough features"})
+                print("Skipping")
+            except DockerException:
+                print(f"Current run threw error, skipping")
+                writer.writerow({"num_records": records, "num_features": features,
+                                 "datanodes": parties, "comment": "error"})
 
 
 if __name__ == "__main__":
