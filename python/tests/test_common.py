@@ -73,3 +73,19 @@ def test_get_test_dataset_get_all_features_dummies():
     features, outcome, column_names = get_test_dataset(10, feature_limit=10, dataset="aids")
 
     assert len(column_names) == 10
+
+
+def test_get_test_dataset_is_stratified():
+    # First load without limit
+    _, outcome, _ = get_test_dataset()
+
+    # Get ratio of full dataset
+    ratio = common.uncensored(outcome).shape[0] / outcome.shape[0]
+
+    # Now get a sample of the dataset
+    _, sampled_outcome, _ = get_test_dataset(100)
+
+    target_num  = np.round(sampled_outcome.shape[0] * ratio)
+
+    num_uncensored = common.uncensored(sampled_outcome).shape[0]
+    assert num_uncensored == target_num

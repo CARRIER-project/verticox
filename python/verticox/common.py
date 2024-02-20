@@ -1,6 +1,7 @@
 from collections import namedtuple
 from typing import List, Tuple
-
+from importlib import resources as impresources
+from . import resources
 import numpy as np
 import pandas as pd
 from numba import typed, types
@@ -11,11 +12,21 @@ Split = namedtuple("Split", ("train", "test", "all"))
 WHAS500 = "whas500"
 AIDS = "aids"
 SEER = "seer"
+SEER_SHUFFLE_FILE = "seer_shuffle.txt"
 
 
 @np.vectorize
-def _uncensored(event):
+def uncensored(event):
     return event[0]
+
+
+def _load_seer_shuffle():
+    shuffle_file = impresources.files(resources) / SEER_SHUFFLE_FILE
+    with shuffle_file.open("r") as f:
+        indices = f.readlines()
+        indices = [i.strip() for i in indices]
+
+        return np.array(indices, dtype=int)
 
 
 def group_samples_at_risk(
@@ -96,6 +107,7 @@ def load_aids_data_with_dummies(endpoint: str = "aids") -> (pd.DataFrame, np.arr
 def load_seer() -> (pd.DataFrame, np.array):
     """
     Load the seer dataset from zenodo.
+    The dataset will be shuffled in a deterministic way.
 
     Zhandos Sembay. (2021). Seer Breast Cancer Data [Data set]. Zenodo.
     https://doi.org/10.5281/zenodo.5120960
@@ -107,6 +119,10 @@ def load_seer() -> (pd.DataFrame, np.array):
         "https://zenodo.org/records/5120960/files/SEER%20Breast%20Cancer%20Dataset%20.csv?download=1")
     # Remove empty column
     df = df.drop(columns=["Unnamed: 3"])
+
+    # Shuffle the data
+    shuffled_idx = _load_seer_shuffle()
+    df = df.iloc[shuffled_idx]
 
     # Convert string columns to categorical.
     for c in df.columns:
@@ -132,7 +148,7 @@ def load_seer() -> (pd.DataFrame, np.array):
 
 def get_test_dataset(
         limit=None, feature_limit=None, include_right_censored=True, dataset: str = SEER
-) -> Tuple[ArrayLike, ArrayLike, List]:
+) -> Tuple[np.array, np.array, List]:
     """
     Prepare and provide the whas500, aids or SEER dataset for testing purposes.
 
@@ -162,39 +178,38 @@ def get_test_dataset(
                                          f"({len(features.columns)}).")
 
     if not include_right_censored:
-        features = features[_uncensored(events)]
-        events = events[_uncensored(events)]
+        features = features[uncensored(events)]
+        events = events[uncensored(events)]
     if include_right_censored and limit:
-        # Make sure there's both right censored and non-right censored data
-        # Since the behavior should be deterministic we will still just take the first samples we
-        # that meets the requirements.
-        non_censored = _uncensored(events)
-        non_censored_idx = np.argwhere(non_censored).flatten()
-        right_censored_idx = np.argwhere(~non_censored).flatten()
-
-        limit_per_type = limit // 2
-
-        non_censored_idx = non_censored_idx[:limit_per_type]
-        right_censored_idx = right_censored_idx[: (limit - limit_per_type)]
-
-        all_idx = np.concatenate([non_censored_idx, right_censored_idx])
-
-        events = events[all_idx]
-        features = features.iloc[all_idx]
-
-    print(f"Features dtypes: {features.dtypes}")
+        events, features = stratified_sample(events, features, limit)
 
     features = features.select_dtypes(include="number")
-
-    if limit:
-        features = features.head(limit)
-        events = events[:limit]
 
     if feature_limit:
         columns = features.columns[:feature_limit]
         features = features[columns]
 
     return features.values.astype(float), events, list(features.columns)
+
+
+def stratified_sample(events, features, limit):
+    # Make sure there's both right censored and non-right censored data
+    # Since the behavior should be deterministic we will still just take the first samples
+    # that meet the requirements.
+    non_censored = uncensored(events)
+    non_censored_idx = np.argwhere(non_censored).flatten()
+    right_censored_idx = np.argwhere(~non_censored).flatten()
+    num_non_censored = non_censored_idx.shape[0]
+    total_num_records = events.shape[0]
+    ratio = num_non_censored / total_num_records
+    sample_non_censored = round(ratio * limit)
+    sample_censored = total_num_records - sample_non_censored
+    non_censored_idx = non_censored_idx[:sample_non_censored]
+    right_censored_idx = right_censored_idx[:sample_censored]
+    all_idx = np.concatenate([non_censored_idx, right_censored_idx])
+    events = events[all_idx]
+    features = features.iloc[all_idx]
+    return events, features
 
 
 def unpack_events(events):
