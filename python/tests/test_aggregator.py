@@ -6,10 +6,11 @@ from pytest import mark
 from sksurv.functions import StepFunction
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 
+import verticox.datasets
 from common import compare_stepfunctions
 from verticox import common
 from verticox.aggregator import Aggregator
-from verticox.common import unpack_events
+from verticox.datasets import unpack_events
 from verticox.grpc.datanode_pb2 import RecordLevelSigma, NumSamples, Subset
 
 
@@ -53,9 +54,9 @@ def test_compute_deaths_per_t_with_right_censored_returns_0_deaths():
 )
 def test_compute_baseline_hazard(num_records, num_features, num_institutions):
     features_per_institution = num_features // num_institutions
-    features, events, names = common.get_test_dataset(num_records, num_features)
+    features, events, names = verticox.datasets.get_test_dataset(num_records, num_features)
 
-    event_times, event_happened = common.unpack_events(events)
+    event_times, event_happened = verticox.datasets.unpack_events(events)
 
     centralized_model = CoxPHSurvivalAnalysis()
     centralized_model.fit(features, events)
@@ -130,7 +131,7 @@ def test_compute_cumulative_survival_decreases():
 
 
 def test_compute_cumulative_hazard():
-    features, outcome, column_names = common.get_test_dataset(20, 2)
+    features, outcome, column_names = verticox.datasets.get_test_dataset(20, 2)
 
     central_model = CoxPHSurvivalAnalysis()
     central_model.fit(features, outcome)
@@ -155,7 +156,7 @@ def compute_hazard_ratio(features, coefficients):
 
 
 def compute_baseline_hazard(outcome, predictions):
-    event_times, event_happened = common.unpack_events(outcome)
+    event_times, event_happened = verticox.datasets.unpack_events(outcome)
 
     at_risk_per_event_time = common.group_samples_at_risk(event_times)
 
