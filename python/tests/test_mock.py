@@ -326,7 +326,9 @@ def collect_all_test_data(data_path):
     for f in data_path.iterdir():
         dfs.append(pd.read_parquet(f))
 
-    return pd.concat(dfs, axis=1)
+    concatenated = pd.concat(dfs, axis=1)
+
+    return concatenated.loc[:, ~concatenated.columns.duplicated()].copy()
 
 
 @vectorize
