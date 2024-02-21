@@ -25,7 +25,7 @@ def get_dummies(categorical_features: pd.DataFrame):
         current_dummies = all_dummies[idx]
 
         # Always leave out the last category
-        if len(current_dummies) == 1:
+        if len(current_dummies.columns) <= 1:
             idx = (idx + 1) % num_dummies
             continue
 
@@ -88,22 +88,11 @@ def load_seer() -> (pd.DataFrame, np.array):
     # Remove empty column
     df = df.drop(columns=["Unnamed: 3"])
 
-    # Convert string columns to categorical.
-    for c in df.columns:
-        if df[c].dtype == object:
-            df[c] = df[c].astype("category")
-
     # Split off outcome
     outcome = df[["Survival Months", "Status"]]
     df = df.drop(columns=outcome.columns)
 
-    # Categorical to dummies
-    for name in df.columns:
-        column = df[name]
-        if column.dtype.name == "category":
-            dummies = pd.get_dummies(column)
-            df = df.drop(columns=name)
-            df = pd.concat([df, dummies], axis=1)
+    df = get_prioritized_features(df)
 
     _, events = get_x_y(outcome, attr_labels=["Status", "Survival Months"], pos_label="Dead")
 
