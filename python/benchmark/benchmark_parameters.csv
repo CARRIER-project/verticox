@@ -27,8 +27,7 @@ parties,iterations,records,features,category
 3,1000,3000,6,records
 3,1000,4000,6,records
 3,1000,5000,6,records
-3,1000,100,4,features
-3,1000,100,8,features
+3,1000,100,3,features
+3,1000,100,6,features
+3,1000,100,9,features
 3,1000,100,12,features
-3,1000,100,16,features
-3,1000,100,20,features

@@ -1,4 +1,4 @@
-from verticox.common import get_test_dataset
+from verticox.datasets import get_test_dataset
 import pandas as pd
 from pathlib import Path
 from test_constants import FEATURE_COLUMNS

@@ -21,7 +21,7 @@ from sksurv.metrics import concordance_index_censored
 from sksurv.util import Surv
 
 from test_constants import CONVERGENCE_PRECISION
-from verticox.common import unpack_events
+from verticox.datasets import unpack_events
 from verticox.cross_validation import kfold_cross_validate
 from verticox.node_manager import LocalNodeManager
 

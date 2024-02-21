@@ -15,7 +15,7 @@ import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 from python_on_whales import docker, DockerException
 
-from verticox.common import get_test_dataset, unpack_events, NotEnoughFeaturesException
+from verticox.datasets import get_test_dataset, unpack_events, NotEnoughFeaturesException
 
 _BENCHMARK_DIR = Path(__file__).absolute().parent
 _TEMPLATES_DIR = _BENCHMARK_DIR / "templates"
