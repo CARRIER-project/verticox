@@ -56,9 +56,6 @@ def group_samples_on_event_time(
 
     """
     Dt = {}
-    print("Grouping samples on event time")
-    print(f"event times{event_times}")
-    print(f"event happened: {event_happened}")
 
     for idx, events in enumerate(zip(event_times, event_happened)):
         t, i = events
