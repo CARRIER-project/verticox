@@ -21,9 +21,11 @@ def get_dummies(categorical_features: pd.DataFrame):
     idx = 0
     num_dummies = len(all_dummies)
 
-    while not all_empty_dataframes(all_dummies):
+    while not all_single_columns(all_dummies):
         current_dummies = all_dummies[idx]
-        if len(current_dummies) == 0:
+
+        # Always leave out the last category
+        if len(current_dummies) == 1:
             idx = (idx + 1) % num_dummies
             continue
 
@@ -43,9 +45,9 @@ def get_prioritized_features(df: pd.DataFrame):
     return pd.concat([numerical_features] + sorted_dummies, axis=1)
 
 
-def all_empty_dataframes(df):
+def all_single_columns(df):
     for df in df:
-        if len(df.columns) > 0:
+        if len(df.columns) > 1:
             return False
 
     return True

@@ -23,6 +23,6 @@ def test_dummy_features_are_mixed():
 
     prioritized = get_prioritized_features(df)
 
-    target_column_order = ["cat", "female", "dog", "male"]
+    target_column_order = ["cat", "female"]
 
     assert list(prioritized.columns) == target_column_order
