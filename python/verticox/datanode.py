@@ -36,7 +36,7 @@ from verticox.scalarproduct import NPartyScalarProductClient
 logger = logging.getLogger(__name__)
 DEFAULT_PORT = 7777
 GRACE = 30
-TIMEOUT = 3600 * 24
+TIMEOUT = 3600 * 24 * 30
 DEFAULT_DATA = "whas500"
 
 
