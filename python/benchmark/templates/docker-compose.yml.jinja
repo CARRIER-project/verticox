@@ -43,8 +43,8 @@ services:
       - ./data:/data
     command: >
       poetry run python -m verticox.datanode --data-path /data/features_{{n}}.parquet
-      --commodity-address
-      commodity --address pythonnode{{n}} --include-column event_happened
+      --commodity-address commodity --address pythonnode{{n}} --include-column event_happened
+      --timeout -1
 
 {% endfor %}
   aggregator:

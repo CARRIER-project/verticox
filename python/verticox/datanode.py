@@ -400,6 +400,10 @@ def serve(
         loglevel = logging.DEBUG
     else:
         loglevel = logging.INFO
+
+    if int(timeout) < 0:
+        timeout = None
+
     logging.basicConfig(level=loglevel)
     info(f"Data shape {data.shape}")
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
@@ -433,7 +437,7 @@ def serve(
     info(f"Stopped datanode after {total_time} seconds")
 
 
-def serve_standalone(*, data_path, address, commodity_address, include_column):
+def serve_standalone(*, data_path, address, commodity_address, include_column, timeout):
     data = pd.read_parquet(data_path)
     serve(
         data=data.values,
@@ -441,6 +445,7 @@ def serve_standalone(*, data_path, address, commodity_address, include_column):
         address=address,
         commodity_address=commodity_address,
         include_column=include_column,
+        timeout=timeout
     )
 
 
