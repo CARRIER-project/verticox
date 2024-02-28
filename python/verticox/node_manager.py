@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from sksurv.metrics import concordance_index_censored
 from vantage6.algorithm.client import AlgorithmClient
-from vantage6.common import info, debug
+from vantage6.common import info
 
 from verticox.aggregator import Aggregator
 from verticox.common import Split
