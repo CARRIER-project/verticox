@@ -28,7 +28,8 @@ _COMPARISON_PATTERN = re.compile(r"Benchmark output: (.+)")
 BenchmarkResult = namedtuple("BenchmarkResult", ["records", "features",
                                                  "iterations", "parties",
                                                  "preparation_runtime", "convergence_runtime",
-                                                 "mse", "sad", "mad", "comment"])
+                                                 "mse", "sad", "mad", "c_index_verticox",
+                                                 "c_index_central", "comment"])
 
 
 def benchmark(num_records: int, num_features: int, num_datanodes: int, dataset: str,

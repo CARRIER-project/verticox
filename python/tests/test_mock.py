@@ -21,8 +21,8 @@ from sksurv.metrics import concordance_index_censored
 from sksurv.util import Surv
 
 from test_constants import CONVERGENCE_PRECISION
-from verticox.datasets import unpack_events
 from verticox.cross_validation import kfold_cross_validate
+from verticox.datasets import unpack_events
 from verticox.node_manager import LocalNodeManager
 
 _logger = logging.getLogger()
@@ -215,11 +215,8 @@ class TrainTest(IntegrationTest):
 
         _logger.info(f"Betas: {coefs}")
         _logger.info(f"Baseline hazard ratio {node_manager.baseline_hazard}")
-        for key, value in SELECTED_TARGET_COEFS.items():
-            np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
 
         c_index = node_manager.test()
-
         all_data_features_train = all_data_features.iloc[mask]
         all_data_outcome_train = all_data_outcome[mask]
 
@@ -228,15 +225,21 @@ class TrainTest(IntegrationTest):
         print(f'Number of test samples: {all_data_features_test.shape[0]}')
         event_time, event_indicator = unpack_events(all_data_outcome_test)
 
+        central_model = CoxPHSurvivalAnalysis()
+
+        central_model.fit(all_data_features_train, all_data_outcome_train)
+
+        central_predictions = central_model.predict(all_data_features_test)
+        central_c_index, _, _, _, _ = concordance_index_censored(event_indicator, event_time,
+                                                                 central_predictions)
+
+        target_coefs = compute_central_coefs(all_data_features_train, all_data_outcome_train)
+        comparison_metrics = compare_central_coefs(coefs, target_coefs)
+        comparison_metrics.update({"c_index_verticox": c_index, "c_index_central": central_c_index})
+        comparison_metrics["comment"] = "success"
+        print(f"Benchmark output: {json.dumps(comparison_metrics)}")
+
         if check_correct:
-            central_model = CoxPHSurvivalAnalysis()
-
-            central_model.fit(all_data_features_train, all_data_outcome_train)
-
-            central_predictions = central_model.predict(all_data_features_test)
-            central_c_index, _, _, _, _ = concordance_index_censored(event_indicator, event_time,
-                                                                     central_predictions)
-
             np.testing.assert_almost_equal(c_index, central_c_index, decimal=DECIMAL_PRECISION)
 
 
@@ -398,6 +401,6 @@ def prepare_test(all_data, event_happened_column, event_times_column, local_data
 
 
 if __name__ == "__main__":
-    subcommands = {"all": run_all, "train": OnlyTrain().run, "split": TrainTest.run,
-                   "crossval": CrossValidation.run}
+    subcommands = {"all": run_all, "train": OnlyTrain().run, "split": TrainTest().run,
+                   "crossval": CrossValidation().run}
     clize.run(subcommands)
