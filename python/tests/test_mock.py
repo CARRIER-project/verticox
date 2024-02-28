@@ -137,7 +137,8 @@ class IntegrationTest(ABC):
 
 
     @staticmethod
-    def run_integration_test(all_data_features, all_data_outcome, node_manager, check_correct=True):
+    def run_integration_test(all_data_features, all_data_outcome, node_manager,
+                             check_correct=True) -> (float, float):
         pass
 
 
