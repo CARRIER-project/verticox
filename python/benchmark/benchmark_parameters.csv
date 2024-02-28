@@ -19,11 +19,12 @@ parties,iterations,records,features,category
 5,1000,100,6,parties_vs_iterations
 5,1500,100,6,parties_vs_iterations
 5,2000,100,6,parties_vs_iterations
+3,500,100,2,features
+3,500,100,4,features
+3,500,100,6,features
+3,500,100,8,features
+3,500,100,10,features
 3,500,50,6,records
 3,500,100,6,records
 3,500,500,6,records
 3,500,1000,6,records
-3,500,100,3,features
-3,500,100,6,features
-3,500,100,9,features
-3,500,100,12,features
