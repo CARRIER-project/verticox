@@ -15,7 +15,7 @@ def get_dummies(categorical_features: pd.DataFrame):
     columns = categorical_features.columns
 
     for c in columns:
-        dummies = pd.get_dummies(categorical_features[c])
+        dummies = pd.get_dummies(categorical_features[c], prefix=c)
         all_dummies.append(dummies)
 
     idx = 0
