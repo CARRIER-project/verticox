@@ -135,10 +135,6 @@ class IntegrationTest(ABC):
         end_time = datetime.now()
         runtime = end_time - start_time
 
-        print(f"Preparation runtime: {preparation_runtime.total_seconds()}")
-        print(f"Fitting runtime: {runtime.total_seconds()}")
-
-        return runtime.total_seconds()
 
     @staticmethod
     def run_integration_test(all_data_features, all_data_outcome, node_manager, check_correct=True):

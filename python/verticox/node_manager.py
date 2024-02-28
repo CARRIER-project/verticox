@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from datetime import datetime
 from typing import List, Any, Union, Iterable
 
 import numpy as np
@@ -214,14 +215,24 @@ class BaseNodeManager(ABC):
             stub.reset(message)
 
     def fit(self):
+        preparation_start = datetime.now()
         self._aggregator = Aggregator(
             self.stubs,
             self.split.train.time,
             self.split.train.event_happened,
             **self._aggregator_kwargs,
         )
+        preparation_end = datetime.now()
 
+        preparation_runtime = preparation_end - preparation_start
+
+        runtime_start = datetime.now()
         self._aggregator.fit()
+        runtime_end = datetime.now()
+
+        runtime = runtime_end - runtime_start
+        print(f"Preparation runtime: {preparation_runtime.total_seconds()}")
+        print(f"Fitting runtime: {runtime.total_seconds()}")
 
         info(f"Finished fitting model")
 
