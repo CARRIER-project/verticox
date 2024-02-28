@@ -135,7 +135,6 @@ class IntegrationTest(ABC):
         end_time = datetime.now()
         runtime = end_time - start_time
 
-
     @staticmethod
     def run_integration_test(all_data_features, all_data_outcome, node_manager,
                              check_correct=True) -> (float, float):
@@ -205,6 +204,9 @@ class TrainTest(IntegrationTest):
         mask = np.zeros(full_data_length, dtype=bool)
         mask[selected_idx] = True
 
+        all_data_features_test, all_data_features_train, all_data_outcome_train, central_model, event_indicator, event_time = TrainTest.train_central_model(
+            all_data_features, all_data_outcome, mask)
+
         # TODO: This flow is not ideal
         node_manager.reset(selected_idx)
         node_manager.fit()
@@ -214,17 +216,6 @@ class TrainTest(IntegrationTest):
         _logger.info(f"Baseline hazard ratio {node_manager.baseline_hazard}")
 
         c_index = node_manager.test()
-        all_data_features_train = all_data_features.iloc[mask]
-        all_data_outcome_train = all_data_outcome[mask]
-
-        all_data_features_test = all_data_features.iloc[~mask]
-        all_data_outcome_test = all_data_outcome[~mask]
-        print(f'Number of test samples: {all_data_features_test.shape[0]}')
-        event_time, event_indicator = unpack_events(all_data_outcome_test)
-
-        central_model = CoxPHSurvivalAnalysis()
-
-        central_model.fit(all_data_features_train, all_data_outcome_train)
 
         central_predictions = central_model.predict(all_data_features_test)
         central_c_index, _, _, _, _ = concordance_index_censored(event_indicator, event_time,
@@ -238,6 +229,18 @@ class TrainTest(IntegrationTest):
 
         if check_correct:
             np.testing.assert_almost_equal(c_index, central_c_index, decimal=DECIMAL_PRECISION)
+
+    @staticmethod
+    def train_central_model(all_data_features, all_data_outcome, mask):
+        all_data_features_train = all_data_features.iloc[mask]
+        all_data_outcome_train = all_data_outcome[mask]
+        all_data_features_test = all_data_features.iloc[~mask]
+        all_data_outcome_test = all_data_outcome[~mask]
+        print(f'Number of test samples: {all_data_features_test.shape[0]}')
+        event_time, event_indicator = unpack_events(all_data_outcome_test)
+        central_model = CoxPHSurvivalAnalysis()
+        central_model.fit(all_data_features_train, all_data_outcome_train)
+        return all_data_features_test, all_data_features_train, all_data_outcome_train, central_model, event_indicator, event_time
 
 
 class CrossValidation(IntegrationTest):
