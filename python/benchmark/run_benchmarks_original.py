@@ -201,10 +201,11 @@ def prepare_compose_file(num_datanodes: int, total_num_iterations: int):
         f.write(compose)
 
 
-def main(parameter_table: str, dataset="seer"):
+def main(parameter_table: str, *, dataset="seer", repeats=1):
     """
     Benchmark verticox+ while varying number of datanodes, number of records and number of features.
     Args:
+        repeats:
         parameter_table:
         dataset:
 
@@ -226,28 +227,29 @@ def main(parameter_table: str, dataset="seer"):
         rebuild = True
 
         for parameters in reader:
-            try:
-                records = int(parameters["records"])
-                features = int(parameters["features"])
-                parties = int(parameters["parties"])
-                iterations = int(parameters["iterations"])
+            for repeat in range(repeats):
+                try:
+                    records = int(parameters["records"])
+                    features = int(parameters["features"])
+                    parties = int(parameters["parties"])
+                    iterations = int(parameters["iterations"])
 
-                results = benchmark(records,
-                                    features,
-                                    parties,
-                                    dataset,
-                                    total_num_iterations=iterations,
-                                    rebuild=rebuild)
+                    results = benchmark(records,
+                                        features,
+                                        parties,
+                                        dataset,
+                                        total_num_iterations=iterations,
+                                        rebuild=rebuild)
 
-                writer.writerow(results._asdict())
-                rebuild = False
-            except NotEnoughFeaturesException:
-                writer.writerow({"comment": "Not enough features"})
-                print("Skipping")
-            except DockerException:
-                print(f"Current run threw error, skipping")
-                writer.writerow({"num_records": records, "num_features": features,
-                                 "datanodes": parties, "comment": "error"})
+                    writer.writerow(results._asdict())
+                    rebuild = False
+                except NotEnoughFeaturesException:
+                    writer.writerow({"comment": "Not enough features"})
+                    print("Skipping")
+                except DockerException:
+                    print(f"Current run threw error, skipping")
+                    writer.writerow({"num_records": records, "num_features": features,
+                                     "datanodes": parties, "comment": "error"})
 
 
 if __name__ == "__main__":
