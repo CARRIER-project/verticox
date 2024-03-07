@@ -248,8 +248,8 @@ def main(parameter_table: str, *, dataset="seer", repeats=1):
                     print("Skipping")
                 except DockerException:
                     print(f"Current run threw error, skipping")
-                    writer.writerow({"num_records": records, "num_features": features,
-                                     "datanodes": parties, "comment": "error"})
+                    writer.writerow({"records": records, "features": features,
+                                     "parties": parties, "comment": "error"})
 
 
 if __name__ == "__main__":

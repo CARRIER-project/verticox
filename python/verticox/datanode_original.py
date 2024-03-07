@@ -413,7 +413,7 @@ def serve(
     info(f"Stopped datanode after {total_time} seconds")
 
 
-def serve_standalone(*, data_path, address):
+def serve_standalone(*, data_path, address, timeout):
     data = pd.read_parquet(data_path)
     columns = data.columns
 
@@ -431,7 +431,9 @@ def serve_standalone(*, data_path, address):
         feature_names=features.columns,
         address=address,
         event_times=event_times,
-        event_happened=event_happened
+        event_happened=event_happened,
+        timeout=timeout
+
     )
 
 
