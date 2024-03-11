@@ -134,12 +134,13 @@ def write_datasets(feature_sets: List[pd.DataFrame], outcome: np.array):
     if _DATA_DIR.exists():
         shutil.rmtree(_DATA_DIR.absolute())
     _DATA_DIR.absolute().mkdir()
+    event_time, event_happened = unpack_events(outcome)
 
     for idx, feature_set in enumerate(feature_sets):
+        feature_set.loc[:, "event_happened"] = event_happened
+        feature_set.loc[:, "event_time"] = event_time
         filename = f"features_{idx}.parquet"
         feature_set.to_parquet(_DATA_DIR / filename)
-
-    event_time, event_happened = unpack_events(outcome)
 
     outcome_df = pd.DataFrame({"event_happened": event_happened, "event_time": event_time})
     outcome_df.to_parquet(_DATA_DIR / "outcome.parquet")
@@ -248,8 +249,8 @@ def main(parameter_table: str, *, dataset="seer", repeats=1):
                     print("Skipping")
                 except DockerException:
                     print(f"Current run threw error, skipping")
-                    writer.writerow({"num_records": records, "num_features": features,
-                                     "datanodes": parties, "comment": "error"})
+                    writer.writerow({"records": records, "features": features,
+                                     "parties": parties, "comment": "error"})
 
 
 if __name__ == "__main__":
