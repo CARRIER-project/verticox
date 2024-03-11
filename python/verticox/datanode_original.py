@@ -381,6 +381,9 @@ def serve(
         loglevel = logging.DEBUG
     else:
         loglevel = logging.INFO
+
+    if int(timeout) < 0:
+        timeout = None
     logging.basicConfig(level=loglevel)
     info(f"Data shape {data.shape}")
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
@@ -414,6 +417,9 @@ def serve(
 
 
 def serve_standalone(*, data_path, address, timeout):
+    if timeout is not None:
+        timeout = int(timeout)
+
     data = pd.read_parquet(data_path)
     columns = data.columns
 

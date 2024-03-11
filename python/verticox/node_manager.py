@@ -162,7 +162,7 @@ class BaseNodeManager(ABC):
 
         self._train_selection = train_selection
         self._reset_central_node(train_selection)
-        self._reset_java_nodes(train_selection)
+        # self._reset_java_nodes(train_selection)
         self._reset_python_nodes(train_selection)
 
         self._aggregator = None
@@ -269,7 +269,7 @@ class BaseNodeManager(ABC):
 
     def start_nodes(self):
         info("Starting java containers")
-        self.start_java_algorithms()
+#        self.start_java_algorithms()
 
         info("Starting python containers")
         self.start_python_algorithms()
@@ -338,12 +338,12 @@ class LocalNodeManager(BaseNodeManager):
         pass
 
     def start_java_algorithms(self):
-        self._scalar_product_client = NPartyScalarProductClient(
-            commodity_address=self._commodity_address,
-            other_addresses=self._other_java_addresses,
-        )
-        self._scalar_product_client.initialize_servers()
-
+        # self._scalar_product_client = NPartyScalarProductClient(
+        #     commodity_address=self._commodity_address,
+        #     other_addresses=self._other_java_addresses,
+        # )
+        # self._scalar_product_client.initialize_servers()
+        ...
 
 class V6NodeManager(BaseNodeManager):
     def __init__(
