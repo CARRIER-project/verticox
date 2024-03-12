@@ -66,7 +66,7 @@ def benchmark(num_records: int, num_features: int, num_datanodes: int, dataset: 
     # Run test
     docker.compose.up(force_recreate=True, abort_on_container_exit=True, remove_orphans=True,
                       build=rebuild)
-    log = docker.compose.logs(services=["aggregator"], tail=10)
+    log = docker.compose.logs(services=["aggregator"], tail=20)
 
     print(f"Tail of aggregator log: \n{log}")
     preparation_seconds = get_runtime(_PREPARATION_RUNTIME_PATTERN, log)
