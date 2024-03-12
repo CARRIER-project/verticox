@@ -277,15 +277,18 @@ class CrossValidation(IntegrationTest):
             np.testing.assert_almost_equal(c_indices, central_c_indices, decimal=DECIMAL_PRECISION)
 
 
-def select_rows(data_length, num_rows=NUM_SELECTED_ROWS):
+def select_rows(data_length, ratio=0.8):
     """
     Select a subset of data so that it includes both censored and non-censored data. Assuming the
     censored data follows after the non-censored data.
     Args:
-        data:
+        ratio: proportion of data reserved for training
+        data_length:
 
     Returns:
     """
+    num_rows = round(data_length * ratio)
+
     if num_rows > data_length:
         raise Exception(
             f"Selecting too many rows. There are only {data_length} available."
