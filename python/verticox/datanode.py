@@ -2,7 +2,7 @@ import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Optional, List, Union
+from typing import List, Union
 
 import clize
 import grpc
@@ -11,7 +11,7 @@ import pandas as pd
 from vantage6.algorithm.tools.util import info
 
 import verticox.ssl
-from verticox.common import Split
+from verticox.common import Split, group_samples_on_event_time
 from verticox.grpc.datanode_pb2 import (
     LocalParameters,
     NumFeatures,
@@ -62,10 +62,10 @@ class DataNode(DataNodeServicer):
             self,
             all_features: np.array,
             feature_names: List[str],
+            event_time,
+            event_happened,
             name=None,
             server=None,
-            include_column: Optional[str] = None,
-            include_value: bool = True,
             commodity_address: str = None,
     ):
         """
@@ -80,8 +80,8 @@ class DataNode(DataNodeServicer):
         self._logger = logging.getLogger(f"{__name__} :: {self.name}")
         self._logger.debug(f"Initializing datanode {self.name}")
         self._all_data = all_features
-        self._censor_name = include_column
-        self._censor_value = include_value
+        self._event_time = event_time
+        self._event_happened = event_happened
 
         self.feature_names = feature_names
         self.server = server
@@ -115,11 +115,19 @@ class DataNode(DataNodeServicer):
 
         """
         if not selected_rows:
-            return Split(self._all_data, self._all_data, self._all_data)
+            all_data = self._get_selected_data()
+            return Split(all_data, all_data, all_data)
 
         mask = np.zeros(self._all_data.shape[0], dtype=bool)
         mask[selected_rows] = True
-        return Split(self._all_data[mask], self._all_data[~mask], self._all_data)
+
+        return Split(self._get_selected_data(mask), self._get_selected_data(~mask),
+                     self._get_selected_data())
+
+    def _get_selected_data(self, mask=None):
+        if mask is None:
+            mask = np.ones(self._all_data.shape[0], dtype=bool)
+        return self._all_data[mask], self._event_time[mask], self._event_happened[mask]
 
     def prepare(self, request: InitialValues, context=None):
         """
@@ -136,14 +144,10 @@ class DataNode(DataNodeServicer):
         return Empty()
 
     def _prepare(self, gamma, z, beta, rho):
-        num_samples = self.split.train.shape[0]
-        covariates_multiplied = DataNode._multiply_features(self.split.train)
-        sum_Dt = self._compute_sum_Dt_n_party_scalar_product(
-            self.feature_names,
-            self._censor_name,
-            self._censor_value,
-            self.n_party_address,
-        )
+        covariates_multiplied = DataNode._multiply_features(self.split.train[0])
+        Dt = group_samples_on_event_time(self.split.train[1], self.split.train[2])
+        sum_Dt = self._compute_sum_Dt(Dt, self.split.train[0])
+
         self.state = DataNode.State(
             features_multiplied=covariates_multiplied,
             gamma=np.array(gamma),
@@ -203,7 +207,7 @@ class DataNode(DataNodeServicer):
         self._logger.debug("Performing local update...")
 
         sigma, beta = DataNode._local_update(
-            self.split.train,
+            self.split.train[0],
             self.state.z,
             self.state.gamma,
             self.state.rho,
@@ -250,7 +254,7 @@ class DataNode(DataNodeServicer):
 
     def getNumSamples(self, request, context=None):
         if self.prepared:
-            num_samples = self.split.train.shape[0]
+            num_samples = self.split.train[0].shape[0]
             return NumSamples(numSamples=num_samples)
 
         raise DataNodeException("Datanode has not been prepared yet!")
@@ -292,11 +296,11 @@ class DataNode(DataNodeServicer):
     def retrieve_subset(self, subset: Subset):
         match subset:
             case Subset.TEST:
-                data = self.split.test
+                data = self.split.test[0]
             case Subset.TRAIN:
-                data = self.split.train
+                data = self.split.train[0]
             case Subset.ALL:
-                data = self.split.all
+                data = self.split.all[0]
         return data
 
     @staticmethod
@@ -313,11 +317,11 @@ class DataNode(DataNodeServicer):
         :return:
         """
         if request.subset == Subset.TRAIN:
-            average = DataNode.compute_average_sigma(self.split.train, self.state.beta)
+            average = DataNode.compute_average_sigma(self.split.train[0], self.state.beta)
         elif request.subset == Subset.TEST:
-            average = DataNode.compute_average_sigma(self.split.test, self.state.beta)
+            average = DataNode.compute_average_sigma(self.split.test[0], self.state.beta)
         else:
-            average = DataNode.compute_average_sigma(self._all_data, self.state.beta)
+            average = DataNode.compute_average_sigma(self._all_data[0], self.state.beta)
 
         return AverageSigma(sigma=average)
 
@@ -386,10 +390,9 @@ class DataNode(DataNodeServicer):
 def serve(
         *,
         data: np.array,
+        event_time,
+        event_happened,
         feature_names=None,
-        include_column=None,
-        include_value=True,
-        commodity_address=None,
         port=DEFAULT_PORT,
         timeout=TIMEOUT,
         secure=True,
@@ -411,9 +414,8 @@ def serve(
         DataNode(
             all_features=data,
             feature_names=feature_names,
-            include_column=include_column,
-            include_value=include_value,
-            commodity_address=commodity_address,
+            event_time=event_time,
+            event_happened=event_happened,
             server=server,
         ),
         server,
@@ -439,12 +441,17 @@ def serve(
 
 def serve_standalone(*, data_path, address, commodity_address, include_column, timeout: int):
     data = pd.read_parquet(data_path)
+    event_time = data["event_time"]
+    event_happened = data["event_happened"]
+
+    data = data.drop(columns=["event_time", "event_happened"])
+
     serve(
         data=data.values,
+        event_time=event_time.values,
+        event_happened=event_happened.values,
         feature_names=data.columns,
         address=address,
-        commodity_address=commodity_address,
-        include_column=include_column,
         timeout=timeout
     )
 

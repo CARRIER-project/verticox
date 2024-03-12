@@ -135,12 +135,13 @@ def write_datasets(feature_sets: List[pd.DataFrame], outcome: np.array):
     if _DATA_DIR.exists():
         shutil.rmtree(_DATA_DIR.absolute())
     _DATA_DIR.absolute().mkdir()
+    event_time, event_happened = unpack_events(outcome)
 
     for idx, feature_set in enumerate(feature_sets):
         filename = f"features_{idx}.parquet"
+        feature_set["event_time"] = event_time
+        feature_set["event_happened"] = event_happened
         feature_set.to_parquet(_DATA_DIR / filename)
-
-    event_time, event_happened = unpack_events(outcome)
 
     outcome_df = pd.DataFrame({"event_happened": event_happened, "event_time": event_time})
     outcome_df.to_parquet(_DATA_DIR / "outcome.parquet")
