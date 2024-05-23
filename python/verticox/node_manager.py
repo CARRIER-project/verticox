@@ -7,13 +7,14 @@ from abc import ABC, abstractmethod
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from datetime import datetime
 from typing import List, Any, Union, Iterable
 
 import numpy as np
 import pandas as pd
 from sksurv.metrics import concordance_index_censored
-from vantage6.client import ContainerClient
-from vantage6.common import info, debug
+from vantage6.algorithm.client import AlgorithmClient
+from vantage6.common import info
 
 from verticox.aggregator import Aggregator
 from verticox.common import Split
@@ -214,14 +215,24 @@ class BaseNodeManager(ABC):
             stub.reset(message)
 
     def fit(self):
+        preparation_start = datetime.now()
         self._aggregator = Aggregator(
             self.stubs,
             self.split.train.time,
             self.split.train.event_happened,
             **self._aggregator_kwargs,
         )
+        preparation_end = datetime.now()
 
+        preparation_runtime = preparation_end - preparation_start
+
+        runtime_start = datetime.now()
         self._aggregator.fit()
+        runtime_end = datetime.now()
+
+        runtime = runtime_end - runtime_start
+        print(f"Preparation runtime: {preparation_runtime.total_seconds()}")
+        print(f"Fitting runtime: {runtime.total_seconds()}")
 
         info(f"Finished fitting model")
 
@@ -337,7 +348,7 @@ class LocalNodeManager(BaseNodeManager):
 class V6NodeManager(BaseNodeManager):
     def __init__(
             self,
-            v6_client: ContainerClient,
+            v6_client: AlgorithmClient,
             data: pd.DataFrame,
             datanode_organizations: List[int],
             central_organization: int,
@@ -346,6 +357,7 @@ class V6NodeManager(BaseNodeManager):
             features: List[str],
             include_value: Any,
             rows: Union[Iterable, None] = None,
+            database=None,
             **aggregator_kwargs,
     ):
         """
@@ -377,10 +389,11 @@ class V6NodeManager(BaseNodeManager):
             include_value=include_value,
         )
 
-        self._v6_client = v6_client
+        self._v6_client: AlgorithmClient = v6_client
         self._datanode_organizations = datanode_organizations
         self._central_organization = central_organization
         self._commodity_address = None
+        self._database = database
 
     def _start_containers(self, input, org_ids) -> ContainerAddresses:
         """
@@ -397,7 +410,7 @@ class V6NodeManager(BaseNodeManager):
         # Every container will have two addresses because it has both a java and a python endpoint
         expected_num_addresses = len(org_ids) * PORTS_PER_CONTAINER
 
-        task = self._v6_client.create_new_task(input, organization_ids=org_ids)
+        task = self._v6_client.task.create(input, organizations=org_ids, name="Start containers")
         addresses = self._get_algorithm_addresses(expected_num_addresses, task["id"])
         return addresses
 
@@ -405,7 +418,7 @@ class V6NodeManager(BaseNodeManager):
         params = {"method": "no_op"}
 
         info(f"Getting ip for organization {organization_id}")
-        task = self._v6_client.create_new_task(params, [organization_id])
+        task = self._v6_client.task.create(params, [organization_id], "no_op", "no_op task")
         addresses = self._get_algorithm_addresses(1, task["id"])
 
         address = addresses.python[0]
@@ -433,9 +446,14 @@ class V6NodeManager(BaseNodeManager):
             self, expected_amount: int, task_id
     ) -> ContainerAddresses:
         retries = 0
+
         # Wait for nodes to get ready
         while True:
-            addresses = self._v6_client.get_algorithm_addresses(task_id=task_id)
+            addresses = self._v6_client.vpn.get_child_addresses()
+
+            info(f"Addresses: {addresses}")
+            # Filter on current task
+            addresses = [a for a in addresses if a["task_id"] == task_id]
 
             if len(addresses) >= expected_amount:
                 break
@@ -479,13 +497,14 @@ class V6NodeManager(BaseNodeManager):
         }
         # create a new task for all organizations in the collaboration.
         info("Dispatching python datanode task")
-        task = self._v6_client.create_new_task(datanode_input, organization_ids=[id])
+        task = self._v6_client.task.create(datanode_input, [id], "python_datanode",
+                                           "start python datanode")
         addresses = self._get_algorithm_addresses(1, task["id"])
         return addresses.python[0]
 
     def start_java_algorithms(self):
         # Kick off java nodes
-        java_node_input = {"method": "run_java_server"}
+        java_node_input = {"method": "run_java_server", "kwargs": {"database": self._database}}
 
         commodity_address = self._start_containers(
             java_node_input, [self._central_organization]

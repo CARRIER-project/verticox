@@ -1,16 +1,13 @@
 from collections import namedtuple
-from dataclasses import dataclass
-from typing import List, Tuple, Iterable
 
 import numpy as np
-import pandas as pd
 from numba import typed, types
 from numpy.typing import ArrayLike
-from sksurv.datasets import load_whas500, load_aids
 
 Split = namedtuple("Split", ("train", "test", "all"))
 WHAS500 = "whas500"
 AIDS = "aids"
+SEER = "seer"
 
 
 @np.vectorize
@@ -70,103 +67,3 @@ def group_samples_on_event_time(
         typed_Dt[key] = np.array(value)
 
     return typed_Dt
-
-
-def load_aids_data_with_dummies(endpoint: str = "aids") -> pd.DataFrame:
-    """
-    Load the aids dataset from sksurv. Categorical features will be converted to one-hot encoded
-    columns.
-
-    Args:
-        endpoint: either "aids" or "death". Default is "aids".
-
-    Returns:
-
-    """
-    covariates, outcome = load_aids(endpoint)
-
-    categorical_columns = [name for name, dtype in covariates.dtypes.items() if dtype == "category"]
-    dummies = pd.get_dummies(covariates[categorical_columns])
-    numerical_df = covariates.drop(categorical_columns, axis=1)
-
-    combined = pd.concat([numerical_df, dummies], axis=1)
-    return combined, outcome
-
-
-def get_test_dataset(
-        limit=None, feature_limit=None, include_right_censored=True, dataset: str = WHAS500
-) -> Tuple[ArrayLike, ArrayLike, List]:
-    """
-    Prepare and provide the whas500 dataset for testing purposes.
-
-    Args:
-        dataset: there are two datasets available: "whas500" and "aids". Whas500 is the default.
-        limit: Limit on the number of samples, by default all 500 samples will be used
-        feature_limit:  Limit on the features that should be included
-        include_right_censored: Whether to include right censored data. By default it is True
-
-    Returns: A tuple containing features, outcome and column names as
-     (FEATURES, OUTCOME, COLUMN_NAMES)
-
-    """
-    match dataset:
-        case "whas500":
-            features, events = load_whas500()
-        case "aids":
-            features, events = load_aids_data_with_dummies()
-        case other:
-            raise Exception(f"Dataset \"{other}\" is not available.")
-
-    if not include_right_censored:
-        features = features[_uncensored(events)]
-        events = events[_uncensored(events)]
-    if include_right_censored and limit:
-        # Make sure there's both right censored and non-right censored data
-        # Since the behavior should be deterministic we will still just take the first samples we
-        # that meets the requirements.
-        non_censored = _uncensored(events)
-        non_censored_idx = np.argwhere(non_censored).flatten()
-        right_censored_idx = np.argwhere(~non_censored).flatten()
-
-        limit_per_type = limit // 2
-
-        non_censored_idx = non_censored_idx[:limit_per_type]
-        right_censored_idx = right_censored_idx[: (limit - limit_per_type)]
-
-        all_idx = np.concatenate([non_censored_idx, right_censored_idx])
-
-        events = events[all_idx]
-        features = features.iloc[all_idx]
-
-    numerical_columns = features.columns[features.dtypes == float]
-
-    features = features[numerical_columns]
-
-    if limit:
-        features = features.head(limit)
-        events = events[:limit]
-
-    features = features.values.astype(float)
-    if feature_limit:
-        features = features[:, :feature_limit]
-        numerical_columns = numerical_columns[:feature_limit]
-    return features, events, list(numerical_columns)
-
-
-def unpack_events(events):
-    """
-    Unpacks outcome arrays from sksurv into two separate arrays with censor and event time
-    :param events:
-    :return: (times array, status array)
-    """
-    times = []
-    right_censored = []
-
-    for event in events:
-        times.append(event[1])
-        right_censored.append(event[0])
-
-    right_censored = np.array(right_censored)
-    if right_censored.dtype != bool:
-        raise Exception('Status is not boolean.')
-    return np.array(times), right_censored

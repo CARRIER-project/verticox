@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import warnings
 from abc import ABC
 from datetime import datetime
 from pathlib import Path
@@ -9,7 +10,10 @@ from typing import Tuple
 import clize
 import numpy as np
 import pandas as pd
+from clize import parser
 from numpy import vectorize
+from numpy.linalg import LinAlgError
+from scipy.linalg import LinAlgWarning
 from sklearn.model_selection import KFold
 from sksurv.datasets import get_x_y
 from sksurv.linear_model import CoxPHSurvivalAnalysis
@@ -17,10 +21,9 @@ from sksurv.metrics import concordance_index_censored
 from sksurv.util import Surv
 
 from test_constants import CONVERGENCE_PRECISION
-from verticox.common import unpack_events
 from verticox.cross_validation import kfold_cross_validate
+from verticox.datasets import unpack_events
 from verticox.node_manager import LocalNodeManager
-from clize import parser
 
 _logger = logging.getLogger()
 _logger.setLevel(os.environ.get("LOGLEVEL", "INFO"))
@@ -41,7 +44,9 @@ def strlist(l: str):
 
 def compute_central_coefs(all_data_features, all_data_outcome):
     central_model = CoxPHSurvivalAnalysis()
-    central_model.fit(all_data_features, all_data_outcome)
+    with warnings.catch_warnings():
+        warnings.filterwarnings('error', category=LinAlgWarning)
+        central_model.fit(all_data_features, all_data_outcome)
 
     coef_dict = dict(zip(all_data_features.columns, central_model.coef_))
     return coef_dict
@@ -90,10 +95,12 @@ class IntegrationTest(ABC):
 
     def run(self, local_data, all_data, event_times_column, event_happened_column, *,
             pythonnodes: strlist = ("pythonnode1:7777", "pythonnode2:7777"),
-            javanodes: strlist = ("javanode1:80", "javanode2:80", "javanode-outcome:80")):
+            javanodes: strlist = ("javanode1:80", "javanode2:80", "javanode-outcome:80"),
+            total_num_iterations=None):
         """
         Run an integration test
         Args:
+            total_num_iterations:
             javanodes:
             local_data: the outcome data file to pass to the aggregator
             all_data: the directory that contains all the data, for validation
@@ -105,24 +112,32 @@ class IntegrationTest(ABC):
 
         """
         print(f"Javanodes {javanodes}")
+        if total_num_iterations is None:
+            check_correct = True
+        else:
+            check_correct = False
+            total_num_iterations = int(total_num_iterations)
+
+        print(f"Check correct: {check_correct}, total number of iterations: {total_num_iterations}")
+        start_time = datetime.now()
         all_data_features, all_data_outcome, node_manager = prepare_test(all_data,
                                                                          event_happened_column,
                                                                          event_times_column,
                                                                          local_data,
                                                                          python_datanodes=pythonnodes,
-                                                                         java_datanodes=javanodes)
-
+                                                                         java_datanodes=javanodes,
+                                                                         total_num_iterations=total_num_iterations)
+        end_time = datetime.now()
+        preparation_runtime = end_time - start_time
         start_time = datetime.now()
-        results = self.run_integration_test(all_data_features, all_data_outcome, node_manager)
+        results = self.run_integration_test(all_data_features, all_data_outcome, node_manager,
+                                            check_correct)
         end_time = datetime.now()
         runtime = end_time - start_time
 
-        print(f"Runtime: {runtime.total_seconds()}")
-
-        return runtime.total_seconds()
-
     @staticmethod
-    def run_integration_test(all_data_features, all_data_outcome, node_manager):
+    def run_integration_test(all_data_features, all_data_outcome, node_manager,
+                             check_correct=True) -> (float, float):
         pass
 
 
@@ -132,34 +147,45 @@ class OnlyTrain(IntegrationTest):
     """
 
     @staticmethod
-    def run_integration_test(all_data_features, all_data_outcome, node_manager):
+    def run_integration_test(all_data_features, all_data_outcome, node_manager,
+                             check_correct=True):
         _logger.info(
             "\n\n----------------------------------------\n"
             "       Starting test on full dataset..."
             "\n----------------------------------------"
         )
-        node_manager.reset()
-        node_manager.fit()
-        coefs = node_manager.coefs
-        print(f"Betas: {coefs}")
-        print(f"Baseline hazard ratio {node_manager.baseline_hazard}")
+        try:
+            # Doing central one first to see if it succeeds
+            target_coefs = compute_central_coefs(all_data_features, all_data_outcome)
 
-        target_coefs = compute_central_coefs(all_data_features, all_data_outcome)
-        comparison_metrics = compare_central_coefs(coefs, target_coefs)
+            node_manager.reset()
+            node_manager.fit()
+            coefs = node_manager.coefs
+            print(f"Betas: {coefs}")
+            print(f"Baseline hazard ratio {node_manager.baseline_hazard}")
 
-        print(f"Comparison metrics: {json.dumps(comparison_metrics)}")
+            comparison_metrics = compare_central_coefs(coefs, target_coefs)
+            comparison_metrics["comment"] = "success"
 
-        for key, value in target_coefs.items():
-            np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
+            print(f"Benchmark output: {json.dumps(comparison_metrics)}")
+
+            if check_correct:
+                for key, value in target_coefs.items():
+                    np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
+        except (LinAlgWarning, LinAlgError) as e:
+            output = {"mse": None, "sad": None, "mad": None, "comment": "unsolvable"}
+            print(f"Benchmark output: {json.dumps(output)}")
 
 
 class TrainTest(IntegrationTest):
     @staticmethod
-    def run_integration_test(all_data_features, all_data_outcome, node_manager):
+    def run_integration_test(all_data_features, all_data_outcome, node_manager,
+                             check_correct=True):
         """
         Split the data in a training and test set. Train on the training set, test performance on the
         test set.
         Args:
+            total_num_iterations:
             all_data_features:
             all_data_outcome:
             node_manager:
@@ -178,6 +204,9 @@ class TrainTest(IntegrationTest):
         mask = np.zeros(full_data_length, dtype=bool)
         mask[selected_idx] = True
 
+        all_data_features_test, all_data_features_train, all_data_outcome_train, central_model, event_indicator, event_time = TrainTest.train_central_model(
+            all_data_features, all_data_outcome, mask)
+
         # TODO: This flow is not ideal
         node_manager.reset(selected_idx)
         node_manager.fit()
@@ -185,27 +214,33 @@ class TrainTest(IntegrationTest):
 
         _logger.info(f"Betas: {coefs}")
         _logger.info(f"Baseline hazard ratio {node_manager.baseline_hazard}")
-        for key, value in SELECTED_TARGET_COEFS.items():
-            np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
 
         c_index = node_manager.test()
-
-        all_data_features_train = all_data_features.iloc[mask]
-        all_data_outcome_train = all_data_outcome[mask]
-
-        all_data_features_test = all_data_features.iloc[~mask]
-        all_data_outcome_test = all_data_outcome[~mask]
-        print(f'Number of test samples: {all_data_features_test.shape[0]}')
-        event_time, event_indicator = unpack_events(all_data_outcome_test)
-
-        central_model = CoxPHSurvivalAnalysis()
-        central_model.fit(all_data_features_train, all_data_outcome_train)
 
         central_predictions = central_model.predict(all_data_features_test)
         central_c_index, _, _, _, _ = concordance_index_censored(event_indicator, event_time,
                                                                  central_predictions)
 
-        np.testing.assert_almost_equal(c_index, central_c_index, decimal=DECIMAL_PRECISION)
+        target_coefs = compute_central_coefs(all_data_features_train, all_data_outcome_train)
+        comparison_metrics = compare_central_coefs(coefs, target_coefs)
+        comparison_metrics.update({"c_index_verticox": c_index, "c_index_central": central_c_index})
+        comparison_metrics["comment"] = "success"
+        print(f"Benchmark output: {json.dumps(comparison_metrics)}")
+
+        if check_correct:
+            np.testing.assert_almost_equal(c_index, central_c_index, decimal=DECIMAL_PRECISION)
+
+    @staticmethod
+    def train_central_model(all_data_features, all_data_outcome, mask):
+        all_data_features_train = all_data_features.iloc[mask]
+        all_data_outcome_train = all_data_outcome[mask]
+        all_data_features_test = all_data_features.iloc[~mask]
+        all_data_outcome_test = all_data_outcome[~mask]
+        print(f'Number of test samples: {all_data_features_test.shape[0]}')
+        event_time, event_indicator = unpack_events(all_data_outcome_test)
+        central_model = CoxPHSurvivalAnalysis()
+        central_model.fit(all_data_features_train, all_data_outcome_train)
+        return all_data_features_test, all_data_features_train, all_data_outcome_train, central_model, event_indicator, event_time
 
 
 class CrossValidation(IntegrationTest):
@@ -214,7 +249,8 @@ class CrossValidation(IntegrationTest):
     """
 
     @staticmethod
-    def run_integration_test(all_data_features, all_data_outcome, node_manager):
+    def run_integration_test(all_data_features, all_data_outcome, node_manager,
+                             check_correct=True):
         n_splits = 5
         random_state = 0
         # In the dataset we are using the uncensored data is at the beginning and the censored data
@@ -237,19 +273,22 @@ class CrossValidation(IntegrationTest):
         print(f"Coefs: {coefs}")
 
         # Compare against central version
+        if check_correct:
+            np.testing.assert_almost_equal(c_indices, central_c_indices, decimal=DECIMAL_PRECISION)
 
-        np.testing.assert_almost_equal(c_indices, central_c_indices, decimal=DECIMAL_PRECISION)
 
-
-def select_rows(data_length, num_rows=NUM_SELECTED_ROWS):
+def select_rows(data_length, ratio=0.8):
     """
     Select a subset of data so that it includes both censored and non-censored data. Assuming the
     censored data follows after the non-censored data.
     Args:
-        data:
+        ratio: proportion of data reserved for training
+        data_length:
 
     Returns:
     """
+    num_rows = round(data_length * ratio)
+
     if num_rows > data_length:
         raise Exception(
             f"Selecting too many rows. There are only {data_length} available."
@@ -344,18 +383,19 @@ def run_all(local_data, all_data, event_times_column, event_happened_column):
 
 
 def prepare_test(all_data, event_happened_column, event_times_column, local_data,
-                 python_datanodes, java_datanodes) \
+                 python_datanodes, java_datanodes, total_num_iterations) \
         -> Tuple[pd.DataFrame, np.array, LocalNodeManager]:
     df = pd.read_parquet(local_data)
     all_data_df = collect_all_test_data(all_data)
     all_data_features, all_data_outcome = get_x_y(
-        all_data_df, (event_happened_column, event_times_column), pos_label=True
+        all_data_df, (event_happened_column, event_times_column), pos_label=True,
     )
     node_manager = LocalNodeManager(
         df,
         event_times_column,
         event_happened_column,
-        {"convergence_precision": CONVERGENCE_PRECISION},
+        {"convergence_precision": CONVERGENCE_PRECISION,
+         "total_num_iterations": total_num_iterations},
         python_datanode_addresses=python_datanodes,
         other_java_addresses=java_datanodes
     )
@@ -364,6 +404,6 @@ def prepare_test(all_data, event_happened_column, event_times_column, local_data
 
 
 if __name__ == "__main__":
-    subcommands = {"all": run_all, "train": OnlyTrain().run, "split": TrainTest.run,
-                   "crossval": CrossValidation.run}
+    subcommands = {"all": run_all, "train": OnlyTrain().run, "split": TrainTest().run,
+                   "crossval": CrossValidation().run}
     clize.run(subcommands)

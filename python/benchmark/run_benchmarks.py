@@ -4,6 +4,7 @@ import csv
 import json
 import re
 import shutil
+from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
 from typing import List
@@ -14,76 +15,98 @@ import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 from python_on_whales import docker, DockerException
 
-from verticox.common import get_test_dataset, unpack_events
+from verticox.datasets import get_test_dataset, unpack_events, NotEnoughFeaturesException
 
 _BENCHMARK_DIR = Path(__file__).absolute().parent
 _TEMPLATES_DIR = _BENCHMARK_DIR / "templates"
 _DATA_DIR = _BENCHMARK_DIR / "data"
 
-_RUNTIME_PATTERN = re.compile(r"Runtime: ([\d\.]+)")
-_COMPARISON_PATTERN = re.compile(r"Comparison metrics: (.+)")
-NUM_RECORDS = [20, 40, 60, 100, 200, 500]
-NUM_FEATURES = [3, 4, 5, 6]
-NUM_DATANODES = [1, 2, 3, 4, 5]
+_CONVERGENCE_RUNTIME_PATTERN = re.compile(r"Fitting runtime: ([\d\.]+)")
+_PREPARATION_RUNTIME_PATTERN = re.compile(r"Preparation runtime: ([\d\.]+)")
+_COMPARISON_PATTERN = re.compile(r"Benchmark output: (.+)")
+
+BenchmarkResult = namedtuple("BenchmarkResult", ["records", "features",
+                                                 "iterations", "parties",
+                                                 "preparation_runtime", "convergence_runtime",
+                                                 "mse", "sad", "mad", "c_index_verticox",
+                                                 "c_index_central", "comment"])
 
 
-class NotEnoughFeaturesException(Exception):
-    pass
-
-
-def benchmark(num_records, num_features, num_datanodes, dataset):
+def benchmark(num_records: int, num_features: int, num_datanodes: int, dataset: str,
+              total_num_iterations: (None, int) = None, rebuild: bool = False) -> BenchmarkResult:
     """
     TODO: Make it possible to specify number of nodes.
     Benchmark verticox+ with specific parameters.
     Args:
+
+        total_num_iterations:
         num_datanodes:
         num_records: Total number of records in dataset
         num_features: Total number of features
         dataset: Which dataset to use, options are "whas500" and "aids".
+        rebuild:
 
     Returns:
 
     """
     print(f'Benchmarking with {num_records} records, '
           f'{num_features} features, '
-          f'{num_datanodes} datanodes')
+          f'{num_datanodes} datanodes, '
+          f'{total_num_iterations} iterations'
+          )
 
     if num_features < num_datanodes:
         raise NotEnoughFeaturesException(f"Less features than datanodes"
                                          f"\nNumber of features: {num_features}, "
                                          f"number of datanodes: {num_datanodes}")
 
-    orchestrate_nodes(num_datanodes, num_features, num_records, dataset)
+    orchestrate_nodes(num_datanodes, num_features, num_records, dataset,
+                      total_num_iterations=total_num_iterations)
 
     # Run test
-    docker.compose.up(force_recreate=True, abort_on_container_exit=True, remove_orphans=True)
-    log = docker.compose.logs(services=["aggregator"], tail=10)
+    docker.compose.up(force_recreate=True, abort_on_container_exit=True, remove_orphans=True,
+                      build=rebuild)
+    log = docker.compose.logs(services=["aggregator"], tail=50)
 
     print(f"Tail of aggregator log: \n{log}")
-    runtime = re.search(_RUNTIME_PATTERN, log)
-    seconds = runtime.groups()[0]
-    seconds = float(seconds)
+    preparation_seconds = get_runtime(_PREPARATION_RUNTIME_PATTERN, log)
+    convergence_seconds = get_runtime(_CONVERGENCE_RUNTIME_PATTERN, log)
+
+    results = {"preparation_runtime": preparation_seconds,
+               "convergence_runtime": convergence_seconds,
+               "records": num_records,
+               "features": num_features,
+               "parties": num_datanodes,
+               "iterations": total_num_iterations
+               }
 
     comparison = re.search(_COMPARISON_PATTERN, log)
     comparison = comparison.groups()[0]
     metrics = json.loads(comparison)
 
-    print(f"Run took {seconds} seconds")
-    return seconds, metrics
+    results.update(metrics)
+
+    print(f"Preparation took {preparation_seconds} seconds\nConvergence took {convergence_seconds}")
+    return BenchmarkResult(**results)
 
 
-def orchestrate_nodes(num_datanodes, num_features, num_records, dataset):
+def get_runtime(pattern, log):
+    runtime = re.search(pattern, log)
+    seconds = runtime.groups()[0]
+    seconds = float(seconds)
+    return seconds
+
+
+def orchestrate_nodes(num_datanodes: int, num_features: int, num_records: int, dataset: str,
+                      total_num_iterations):
     # Prepare dataset
     features, outcome, column_names = get_test_dataset(num_records, feature_limit=num_features,
                                                        dataset=dataset)
-    print(f"Column names: {column_names}")
     features = pd.DataFrame(features, columns=column_names)
     feature_sets = split_features(features, num_datanodes)
     write_datasets(feature_sets, outcome)
-    # Check data dir
-    print(f"Data dir content: {list(_DATA_DIR.iterdir())}")
     prepare_java_properties(num_datanodes)
-    prepare_compose_file(num_datanodes)
+    prepare_compose_file(num_datanodes, total_num_iterations)
 
 
 def split_features(features: pd.DataFrame, num_datanodes: int) -> list[pd.DataFrame]:
@@ -170,45 +193,63 @@ def create_properties_file(filename, server_name, data_filename, other_servers):
         f.write(properties)
 
 
-def prepare_compose_file(num_datanodes: int):
-    compose = get_compose_template().render(num_datanodes=num_datanodes)
+def prepare_compose_file(num_datanodes: int, total_num_iterations: int):
+    compose = get_compose_template().render(num_datanodes=num_datanodes,
+                                            total_num_iterations=total_num_iterations)
 
     with open(_BENCHMARK_DIR / "docker-compose.yml", "w") as f:
         f.write(compose)
 
 
-def main(dataset="whas500"):
+def main(parameter_table: str, *, dataset="seer", repeats=1):
     """
     Benchmark verticox+ while varying number of datanodes, number of records and number of features.
     Args:
+        repeats:
+        parameter_table:
         dataset:
 
     Returns:
 
     """
-    columns = ["num_records", "num_features", "datanodes", "runtime", "mse", "sad", "mad"]
     report_filename = f"report-{dataset}_{datetime.now().isoformat()}.csv"
 
     report_path = _BENCHMARK_DIR / report_filename
+    parameter_path = _BENCHMARK_DIR / parameter_table
 
-    with report_path.open('w', buffering=1) as f:
-        writer = csv.writer(f)
+    with (parameter_path.open("r") as parameter_file,
+          report_path.open("w", buffering=1) as result_file):
+        reader = csv.DictReader(parameter_file)
 
-        # Write header first
-        writer.writerow(columns)
+        writer = csv.DictWriter(result_file, fieldnames=BenchmarkResult._fields)
+        writer.writeheader()
 
-        for records in NUM_RECORDS:
-            for features in NUM_FEATURES:
-                for datanodes in NUM_DATANODES:
-                    try:
-                        runtime, metrics = benchmark(records, features, datanodes, dataset)
-                        writer.writerow((records, features, datanodes, runtime, metrics["mse"],
-                                         metrics["sad"], metrics["mad"]))
-                    except NotEnoughFeaturesException:
-                        print("Skipping")
-                    except DockerException:
-                        print(f"Current run threw error, skipping")
-                        writer.writerow((records, features, datanodes, "error"))
+        rebuild = True
+
+        for parameters in reader:
+            for repeat in range(repeats):
+                try:
+                    records = int(parameters["records"])
+                    features = int(parameters["features"])
+                    parties = int(parameters["parties"])
+                    iterations = int(parameters["iterations"])
+
+                    results = benchmark(records,
+                                        features,
+                                        parties,
+                                        dataset,
+                                        total_num_iterations=iterations,
+                                        rebuild=rebuild)
+
+                    writer.writerow(results._asdict())
+                    rebuild = False
+                except NotEnoughFeaturesException:
+                    writer.writerow({"comment": "Not enough features"})
+                    print("Skipping")
+                except DockerException:
+                    print(f"Current run threw error, skipping")
+                    writer.writerow({"num_records": records, "num_features": features,
+                                     "datanodes": parties, "comment": "error"})
 
 
 if __name__ == "__main__":
