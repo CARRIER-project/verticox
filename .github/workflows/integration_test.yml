@@ -14,9 +14,8 @@ jobs:
   javabuild:
 
     uses: ./.github/workflows/build_java.yml
-    with:
-      maven_token: MAVEN_TOKEN
-      gitbot: gitBot
+    secrets: inherit
+    
     
   integrationtest:
     needs: javabuild

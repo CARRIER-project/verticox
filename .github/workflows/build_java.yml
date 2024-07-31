@@ -1,21 +1,12 @@
 name: Build java package
 on:
   workflow_call:
-    inputs:
-      maven_token:
-        description: 'Maven token for authentication'
-        required: true
-        type: string
-      gitbot:
-        description: 'GitBot username'
-        required: true
-        type: string
-        default: 'gitBot'
+
 jobs:
   build:
     env:
-      MAVEN_TOKEN: ${{ inputs.maven_token }}
-      GITBOT: ${{ inputs.gitbot }}
+      MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN }}
+      GITBOT: gitBot
     runs-on: ubuntu-latest
     permissions:
       contents: read
