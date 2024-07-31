@@ -3,9 +3,9 @@ on:
   workflow_call:
 jobs:
   build:
-    env:
-      MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN }}
-      GITBOT: gitBot
+    # env:
+      # MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN }}
+      # GITBOT: gitBot
     runs-on: ubuntu-latest
     permissions:
       contents: read
