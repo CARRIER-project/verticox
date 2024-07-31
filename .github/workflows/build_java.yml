@@ -1,6 +1,9 @@
 name: Build java package
 on:
   workflow_call:
+  push:
+    branches:
+      - 185-build-is-failing
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,7 +21,7 @@ jobs:
       - name: Build
         working-directory: java/verticox
         run: |
-          mvn --settings settings.xml clean package
+          mvn clean package
           ls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
