@@ -13,9 +13,9 @@ on:
         default: 'gitBot'
 jobs:
   build:
-    # env:
-      # MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN }}
-      # GITBOT: gitBot
+    env:
+      MAVEN_TOKEN: ${{ inputs.maven_token }}
+      GITBOT: ${{ inputs.gitbot }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
