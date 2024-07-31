@@ -25,7 +25,7 @@ jobs:
       - name: Build
         working-directory: java/verticox
         run: |
-          mvn clean package
+          mvn --settings  ~/.m2/settings.xml clean package
           ls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
