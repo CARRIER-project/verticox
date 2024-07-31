@@ -18,7 +18,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'adopt'
-          server-id: gitbot
+          server-id: gitBot
           server-username: gitBot
           server-password: ${{ secrets.MAVEN_TOKEN }}
 
