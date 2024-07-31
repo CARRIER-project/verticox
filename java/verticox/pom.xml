@@ -160,7 +160,7 @@
 
     <repositories>
         <repository>
-            <id>gitBot</id>
+            <id>github</id>
             <url>https://maven.pkg.github.com/MaastrichtU-CDS/*</url>
         </repository>
     </repositories>
