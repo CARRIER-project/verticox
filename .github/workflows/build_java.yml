@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
+      packages: read
     outputs:
       jarfile: ${{steps.jarpath.outputs}}
     steps:
