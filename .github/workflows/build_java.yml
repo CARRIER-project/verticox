@@ -21,7 +21,8 @@ jobs:
           server-id: github
           server-username: gitBot
           server-password: ${{ secrets.MAVEN_TOKEN }}
-
+      - name: Check settings
+        run: cat ~/.m2/settings.xml
       - name: Build
         working-directory: java/verticox
         run: |
