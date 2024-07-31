@@ -17,16 +17,16 @@ jobs:
       - uses: actions/setup-java@v3
         env:
           MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN }}
+          GITBOT: gitBot
         with:
           java-version: '17'
           distribution: 'adopt'
           server-id: github
-          server-username: gitBot
+          server-username: GITBOT
           server-password: MAVEN_TOKEN
       - name: Check settings
         run: |
               cat ~/.m2/settings.xml
-              echo $MAVEN_TOKEN
       - name: Build
         working-directory: java/verticox
         run: |
