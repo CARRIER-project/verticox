@@ -27,6 +27,7 @@ jobs:
       - name: Check settings
         run: |
               cat ~/.m2/settings.xml
+              echo maven token: $MAVEN_TOKEN
       - name: Build
         working-directory: java/verticox
         run: |
