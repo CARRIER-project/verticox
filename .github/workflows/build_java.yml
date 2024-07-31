@@ -18,10 +18,14 @@ jobs:
         with:
           java-version: '17'
           distribution: 'adopt'
+          server-id: gitbot
+          server-username: gitBot
+          server-password: ${{ secrets.MAVEN_TOKEN }}
+
       - name: Build
         working-directory: java/verticox
         run: |
-          mvn --settings settings.xml clean package
+          mvn clean package
           ls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
