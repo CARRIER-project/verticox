@@ -1,9 +1,6 @@
 name: Build java package
 on:
   workflow_call:
-  push:
-    branches:
-      - 185-build-is-failing
 jobs:
   build:
     env:
