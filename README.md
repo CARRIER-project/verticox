@@ -8,12 +8,8 @@ The solution is based on the Verticox algorithm from
 [Dai et al., 2022](https://ieeexplore.ieee.org/document/9076318). It has been adapted to be used
 within the [Vantage6](https://vantage6.ai) framework.
 
-This solution will be extended with the scalar vector product protocol to solve certain privacy concerns
-in "vanilla" Verticox.
-
-## Current status
-The current vantage6 algorithm only implements the original Verticox algorithm. The addition of the 
-scalar vector product protocol will be released in the near future. 
+This solution is extended with the scalar vector product protocol to remove the requirement that outcome
+data needs to be available at all parties.
 
 ## N-party-scalar-product-protocol
 We are going to enhance the verticox algorithm by applying the n-party scalar product protocol to the 
@@ -27,23 +23,6 @@ $\sum \limits_{n \in E} \mathbf{x}_{nk}$ (for datanodes)
 Where $E$ is the collection of samples that are NOT right-censored.
 
 $\sum \limits_{j \in R_t} exp(K \overline{z}_j)$ (at the central server)
-
-## Encryption
-Communication over the vpn network needs an extra layer of encryption so that the vpn server cannot
-inspect the traffic.
-
-If we are going to use TLS we will need to generate certificates and place them at the nodes.
-Questions:
-
-- Do we only need server side certificates, or also client side?
-  - We have our encryption when we have server side certificates, but maybe we want the client side 
-    certificates to be sure the client is who he says he is? However, we didn't really care about this
-    before now so is this really within the scope of this particular functionality?
-
-- What will be our CA (Certificate Authority)? The vantage6 server has a tls certificate. Could that
-  be the root certificate?
-- Is the distribution of certificates really something that needs to be picked up by the algorithm,
-  isn't it better if the v6 infrastructure would provide the certificates?
 
 ## How to use
 ### Prerequisites
