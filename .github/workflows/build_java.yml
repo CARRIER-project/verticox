@@ -1,6 +1,16 @@
 name: Build java package
 on:
   workflow_call:
+    inputs:
+      maven_token:
+        description: 'Maven token for authentication'
+        required: true
+        type: string
+      gitbot:
+        description: 'GitBot username'
+        required: true
+        type: string
+        default: 'gitBot'
 jobs:
   build:
     # env:

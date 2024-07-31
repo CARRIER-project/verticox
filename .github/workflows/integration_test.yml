@@ -8,14 +8,16 @@ on:
     branches: [ "main" ]
 env:
   PWD: ./mock/
+  MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN}}
 
 jobs:
   javabuild:
-    uses: ./.github/workflows/build_java.yml
-    env:
-        MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN }}
-        GITBOT: gitBot
 
+    uses: ./.github/workflows/build_java.yml
+    with:
+      maven_token: MAVEN_TOKEN
+      gitbot: gitBot
+    
   integrationtest:
     needs: javabuild
     runs-on: ubuntu-latest
