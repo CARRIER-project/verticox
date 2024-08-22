@@ -52,7 +52,7 @@ services:
       - ./data/data_1.parquet:/data/data.parquet
     command: >
       poetry run python -m verticox.datanode --data-path /data/data.parquet --commodity-address 
-      commodity --address pythonnode1 --include-column event_happened
+      commodity --address pythonnode1 --include-column event_happened --timeout 1200
 
 
   pythonnode2:
@@ -62,7 +62,7 @@ services:
       - ./data/data_2.parquet:/data/data.parquet
     command: >
       poetry run python -m verticox.datanode --data-path /data/data.parquet --commodity-address 
-      commodity --address pythonnode2 --include-column event_happened
+      commodity --address pythonnode2 --include-column event_happened --timeout 1200
 
   aggregator:
     build: ../

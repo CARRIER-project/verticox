@@ -8,9 +8,15 @@ on:
     branches: [ "main" ]
 env:
   PWD: ./mock/
+  MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN}}
+
 jobs:
   javabuild:
+
     uses: ./.github/workflows/build_java.yml
+    secrets: inherit
+    
+    
   integrationtest:
     needs: javabuild
     runs-on: ubuntu-latest
