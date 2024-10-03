@@ -16,3 +16,5 @@ env.sh
 target/
 python/build/
 *.pem
+.venv/
+.vscode/

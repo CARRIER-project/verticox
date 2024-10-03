@@ -20,7 +20,6 @@ numba = "^0.56.0"
 pyarrow = "^12.0.1"
 fastparquet = "^2023.7.0"
 clize = "^5.0.1"
-sphinx-autoapi = "^3.0.0"
 vantage6-algorithm-tools = "^4.2.2"
 
 
@@ -38,6 +37,7 @@ docker = "6.1.2"
 python-on-whales = "^0.65.0"
 Jinja2 = "^3.1.2"
 vantage6 = "4.2.2"
+sphinx-autoapi = "^3.0.0"
 
 
 [tool.poetry.scripts]

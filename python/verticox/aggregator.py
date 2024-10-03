@@ -105,6 +105,10 @@ class Aggregator:
     def _group_relevant_event_times(
             unique_event_times,
     ) -> types.DictType(types.float64, types.float64[:]):
+        # Make sure event times are unique
+        unique_event_times = np.unique(unique_event_times)
+
+
         result = typed.Dict.empty(types.float64, types.float64[:])
 
         for current_t in unique_event_times:
