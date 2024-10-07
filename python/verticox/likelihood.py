@@ -1,6 +1,6 @@
 import logging
 from typing import Dict
-
+from scipy import optimize
 import numba
 import numpy as np
 from numba import types, prange
@@ -111,6 +111,29 @@ def find_z(
 
     minimum = minimize_newton_raphson(
         z_start, jacobian_parametrized, hessian_parametrized, params=params, eps=eps
+    )
+
+    return minimum
+
+def find_z_fast(
+    gamma: ArrayLike,
+    sigma: ArrayLike,
+    rho: float,
+    Rt: types.DictType(types.float64, types.int64[:]),
+    z_start: types.float64[:],
+    K: int,
+    event_times: types.float64[:],
+    Dt: types.DictType(types.float64, types.int64[:]),
+    deaths_per_t: types.DictType(types.float64, types.int64),
+    relevant_event_times: types.DictType(types.float64, types.float64[:]),
+    eps: float = EPSILON,
+):
+    params = Parameters(
+        gamma, sigma, rho, Rt, K, event_times, Dt, deaths_per_t, relevant_event_times
+    )
+
+    minimum = fast_minimize(
+        z_start,params
     )
 
     return minimum
@@ -267,3 +290,8 @@ def minimize_newton_raphson(
 
         x = x - np.linalg.inv(current_hess) @ current_jac
     return x
+
+def fast_minimize(x_0, parameters):
+    x = x_0
+    
+    return optimize.minimize(fun=parametrized, x0=x_0, args=(parameters, ), method="BFGS", jac=jacobian_parametrized)
