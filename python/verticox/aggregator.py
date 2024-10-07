@@ -73,7 +73,7 @@ class Aggregator:
         self.Dt = group_samples_on_event_time(event_times, event_happened)
         # I only need unique event times, therefore I use Rt.keys()
         self.relevant_event_times = Aggregator._group_relevant_event_times(
-            self.Rt.keys()
+            list(self.Rt.keys())
         )
         self.deaths_per_t = Aggregator.compute_deaths_per_t(event_times, event_happened)
         # Initializing parameters
@@ -106,14 +106,15 @@ class Aggregator:
             unique_event_times,
     ) -> types.DictType(types.float64, types.float64[:]):
         # Make sure event times are unique
-        unique_event_times = np.unique(unique_event_times)
+        unique_event_times = np.array(np.unique(unique_event_times))   
 
 
         result = typed.Dict.empty(types.float64, types.float64[:])
 
         for current_t in unique_event_times:
             result[current_t] = np.array(
-                [t for t in unique_event_times if t <= current_t]
+                [t for t in unique_event_times if t <= current_t],
+                dtype=np.float64
             )
 
         return result
