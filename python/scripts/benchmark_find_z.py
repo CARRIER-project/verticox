@@ -18,7 +18,7 @@ EPSILON = 1e-4
 def main():
     # Prepare data
 
-    features, events, columns = get_test_dataset(feature_limit=10, dataset="aids")
+    features, events, columns = get_test_dataset(feature_limit=3, dataset="aids", limit=50)
     event_times, event_happened = unpack_events(events)
     rho = RHO
     Rt = group_samples_at_risk(event_times)
@@ -41,8 +41,7 @@ def main():
     for k,v in deaths_per_t.items():
         typed_deaths_per_t[k] = v
 
-    # start timing
-    start = time.time()
+   
     # call find_z
 
     # TODO: first time is slow, subsequent calls are faster. We need to call this multiple times.
@@ -59,9 +58,25 @@ def main():
         relevant_event_times=relevant_event_times,
         eps=eps
     )
+   
+    # start timingsu
+    start = time.time()
+    find_z(
+        gamma=gamma,
+        sigma=sigma,
+        rho=rho,
+        Rt=Rt,
+        z_start=z_start,
+        K=1,
+        event_times=event_times,
+        Dt=Dt,
+        deaths_per_t=typed_deaths_per_t,
+        relevant_event_times=relevant_event_times,
+        eps=eps
+    )
+     
     # end timing
     end = time.time()
-
     print(f"Time taken: {end - start} seconds")
 
 if __name__ == "__main__":
