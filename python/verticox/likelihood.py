@@ -165,11 +165,11 @@ def aggregated_hazard_at_t(z, params, t):
     return denominator
 
 
-@numba.njit()
+@numba.njit(parallel=True)
 def jacobian_parametrized(z: types.float64[:], params: Parameters) -> types.float64[:]:
     result = np.zeros(z.shape)
 
-    for i in range(z.shape[0]):
+    for i in prange(z.shape[0]):
         result[i] = derivative_1(z, params, sample_idx=i)
 
     return result

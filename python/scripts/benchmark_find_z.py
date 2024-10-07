@@ -18,7 +18,7 @@ EPSILON = 1e-4
 def main():
     # Prepare data
 
-    features, events, columns = get_test_dataset(feature_limit=3, dataset="aids", limit=50)
+    features, events, columns = get_test_dataset(feature_limit=3, dataset="aids", limit=500)
     event_times, event_happened = unpack_events(events)
     rho = RHO
     Rt = group_samples_at_risk(event_times)
