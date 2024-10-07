@@ -137,6 +137,7 @@ def derivative_1(z, params: Parameters, sample_idx: int):
     enumerator = params.K * np.exp(params.K * z[sample_idx])
 
     first_part = 0
+
     for t in relevant_event_times:
         denominator = aggregated_hazard_at_t(z, params, t)
 
