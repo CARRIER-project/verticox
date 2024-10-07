@@ -22,7 +22,7 @@ fastparquet = "^2023.7.0"
 clize = "^5.0.1"
 vantage6-algorithm-tools = "4.2.3"
 psutil = "6.0.0"
-
+matplotlib = "3.9.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.1.2"
