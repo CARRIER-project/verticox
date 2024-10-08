@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 from verticox.aggregator import Aggregator
-from verticox.likelihood import find_z_fast
+from verticox.likelihood import find_z
 from verticox.datasets import get_test_dataset, unpack_events
 from verticox.common import group_samples_at_risk, group_samples_on_event_time
 import numpy as np
@@ -56,40 +56,42 @@ def main():
     # call find_z
 
     # TODO: first time is slow, subsequent calls are faster. We need to call this multiple times.
-    # find_z(
-    #     gamma=gamma,
-    #     sigma=sigma,
-    #     rho=rho,
-    #     Rt=Rt,
-    #     z_start=z_start,
-    #     K=1,
-    #     event_times=event_times,
-    #     Dt=Dt,
-    #     deaths_per_t=typed_deaths_per_t,
-    #     relevant_event_times=relevant_event_times,
-    #     eps=eps
-    # )
+    print("First call")
 
-    # start timingsu
+    find_z(
+        gamma=gamma,
+        sigma=sigma,
+        rho=rho,
+        Rt=Rt,
+        z_start=z_start,
+        K=1,
+        event_times=event_times,
+        Dt=Dt,
+        deaths_per_t=typed_deaths_per_t,
+        relevant_event_times=relevant_event_times,
+        eps=eps
+    )
+
+    print("Second call")
+    
+    # start timings
     start = time.time()
 
-    with cProfile.Profile() as pr:
-        z = find_z_fast(
-            gamma=gamma,
-            sigma=sigma,
-            rho=rho,
-            Rt=Rt,
-            z_start=z_start,
-            K=1,
-            event_times=event_times,
-            Dt=Dt,
-            deaths_per_t=typed_deaths_per_t,
-            relevant_event_times=relevant_event_times,
-            eps=eps,
-        )
-        pr.dump_stats(PYTHON_ROOT_DIR / "profile.stats")
+    z = find_z(
+        gamma=gamma,
+        sigma=sigma,
+        rho=rho,
+        Rt=Rt,
+        z_start=z_start,
+        K=1,
+        event_times=event_times,
+        Dt=Dt,
+        deaths_per_t=typed_deaths_per_t,
+        relevant_event_times=relevant_event_times,
+        eps=eps,
+    )
 
-        print(f"Resulting z: {z}")
+    print(f"Resulting z: {z}")
 
     # end timing
     end = time.time()

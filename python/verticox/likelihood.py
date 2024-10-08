@@ -114,29 +114,6 @@ def find_z(
 
     return minimum
 
-def find_z_fast(
-    gamma: ArrayLike,
-    sigma: ArrayLike,
-    rho: float,
-    Rt: types.DictType(types.float64, types.int64[:]),
-    z_start: types.float64[:],
-    K: int,
-    event_times: types.float64[:],
-    Dt: types.DictType(types.float64, types.int64[:]),
-    deaths_per_t: types.DictType(types.float64, types.int64),
-    relevant_event_times: types.DictType(types.float64, types.float64[:]),
-    eps: float = EPSILON,
-):
-    params = Parameters(
-        gamma, sigma, rho, Rt, K, event_times, Dt, deaths_per_t, relevant_event_times
-    )
-
-    minimum = minimize_newton_raphson(
-        z_start, jacobian_parametrized, hessian_parametrized, params=params, eps=eps
-    )
-
-    return minimum
-
 
 @numba.njit()
 def derivative_1(z, params: Parameters, sample_idx: int):
