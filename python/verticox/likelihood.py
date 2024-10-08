@@ -1,11 +1,10 @@
 import logging
 from typing import Dict
-from scipy import optimize
 import numba
 import numpy as np
 from numba import types, prange
 from numpy.typing import ArrayLike
-
+import time
 EPSILON = 1e-4
 
 _logger = logging.getLogger(__name__)
@@ -132,8 +131,8 @@ def find_z_fast(
         gamma, sigma, rho, Rt, K, event_times, Dt, deaths_per_t, relevant_event_times
     )
 
-    minimum = fast_minimize(
-        z_start,params
+    minimum = minimize_newton_raphson(
+        z_start, jacobian_parametrized, hessian_parametrized, params=params, eps=eps
     )
 
     return minimum
@@ -237,12 +236,47 @@ def derivative_2_off_diagonal(z: ArrayLike, params, u, v):
         elements[i] = (
             params.deaths_per_t[t]
             * K_squared
-            * np.exp(params.K * z[u])
-            * np.exp(params.K * z[v])
-            / np.square(np.exp(params.K * z[params.Rt[t]]).sum())
+            * np.exp(params.K * z[u]) # exp_k_z of u
+            * np.exp(params.K * z[v]) # exp_k_z of v
+            / np.square(np.exp(params.K * z[params.Rt[t]]).sum()) # derivative2_denominator
         )
 
     return -1 * elements.sum()
+
+@numba.njit()
+def derivative_2_off_diagonal_fast(z: ArrayLike, params, u, v, precomp_derivative_denominator, precomp_exp_k_z):
+    min_event_time = min(params.event_times[u], params.event_times[v])
+    relevant_event_times = params.relevant_event_times[min_event_time]
+
+    elements = np.zeros(relevant_event_times.shape[0])
+    K_squared = params.K * params.K
+
+    for i in range(relevant_event_times.shape[0]):
+        t = relevant_event_times[i]
+        elements[i] = (
+            params.deaths_per_t[t]
+            * K_squared
+            * precomp_exp_k_z[u]
+            * precomp_exp_k_z[v]
+            * precomp_derivative_denominator[t]
+        )
+
+    return -1 * elements.sum()
+
+@numba.njit()
+def derivative2_denominator(z, params):
+    event_times = params.Rt.keys()
+
+    result = {}
+
+    for t in event_times:
+        result[t] = 1/np.square(np.exp(params.K * z[params.Rt[t]]).sum())
+
+    return result
+
+@numba.njit()
+def exp_k_z(z, k):
+    return np.exp(k * z)
 
 
 @numba.njit(parallel=True)
@@ -250,6 +284,9 @@ def hessian_parametrized(z: types.float64[:], params: Parameters):
     # The hessian is a N x N matrix where N is the number of elements in z
     N = z.shape[0]
     mat = np.zeros((N, N))
+    
+    precomputed_derivative_denominator = derivative2_denominator(z, params)
+    precomputed_exp_k_z = exp_k_z(z, params.K)
 
     for u in range(N):
         mat[u, u] = derivative_2_diagonal(z, params, u)
@@ -257,7 +294,7 @@ def hessian_parametrized(z: types.float64[:], params: Parameters):
     for u in prange(N):
         for v in range(u + 1, N):
             # Formula for off-diagonals
-            mat[u, v] = derivative_2_off_diagonal(z, params, u, v)
+            mat[u, v] = derivative_2_off_diagonal_fast(z, params, u, v, precomputed_derivative_denominator, precomputed_exp_k_z)
             mat[v, u] = mat[u, v]
 
     return mat
@@ -285,13 +322,21 @@ def minimize_newton_raphson(
     x = x_0
     current_jac = jacobian(x, params)
     while np.linalg.norm(current_jac) > eps:
+        # before = time.time()
         current_hess = hessian(x, params)
+        # after = time.time()
+
+        #print(f"Time taken for hessian: {after - before}")
+
+        # before = time.time()
         current_jac = jacobian(x, params)
+        # after = time.time()
 
+        #print(f"Time taken for jacobian: {after - before}")
+
+        # before = time.time()
         x = x - np.linalg.inv(current_hess) @ current_jac
-    return x
+        # after = time.time()
 
-def fast_minimize(x_0, parameters):
-    x = x_0
-    
-    return optimize.minimize(fun=parametrized, x0=x_0, args=(parameters, ), method="BFGS", jac=jacobian_parametrized)
+        #print(f"Time taken for inversion: {after - before}")
+    return x

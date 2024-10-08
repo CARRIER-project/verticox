@@ -17,7 +17,7 @@ from verticox.grpc.datanode_pb2 import (
     AverageSigmaRequest,
 )
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
-from verticox.likelihood import find_z
+from verticox.likelihood import find_z, find_z_fast
 
 logger = logging.getLogger(__name__)
 
@@ -227,7 +227,7 @@ class Aggregator:
         self.gamma = self.aggregate_gammas(gamma_per_institution)
 
         self.z_old = self.z
-        self.z = find_z(
+        self.z = find_z_fast(
             self.gamma,
             self.sigma,
             self.rho,

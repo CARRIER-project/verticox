@@ -19,7 +19,7 @@ COPY java/verticox/target/verticox*.jar $JAR_PATH
 COPY python/ /app/
 
 WORKDIR /app
-RUN pip install .
+RUN pip install -e .
 
 
 ENV PKG_NAME=${PKG_NAME}
