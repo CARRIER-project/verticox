@@ -42,7 +42,7 @@ services:
       - ..:/app
       - ./data:/data
     command: >
-      poetry run python -m verticox.datanode --data-path /data/features_{{n}}.parquet
+      python -m verticox.datanode --data-path /data/features_{{n}}.parquet
       --commodity-address commodity --address pythonnode{{n}} --include-column event_happened
       --timeout -1
 
@@ -53,7 +53,7 @@ services:
       - ..:/app
       - ./data:/data
     command: >
-      poetry run python tests/test_mock.py split
+      python tests/test_mock.py split
       --pythonnodes {% for n in range(num_datanodes) %}pythonnode{{n}}:7777{% if n < num_datanodes - 1 %},{% endif %}{% endfor %}
       --javanodes javanode-outcome:80,{% for n in range(num_datanodes) %}javanode{{n}}:80{% if n < num_datanodes - 1 %},{% endif %}{% endfor %}
       --total-num-iterations {{ total_num_iterations }}

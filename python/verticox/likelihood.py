@@ -91,6 +91,30 @@ def auxiliary_variables_component(z, K, sigma, gamma, rho):
     return K * rho * element_wise.sum()
 
 
+def find_z_fast(
+    gamma: ArrayLike,
+    sigma: ArrayLike,
+    rho: float,
+    Rt: types.DictType(types.float64, types.int64[:]),
+    z_start: types.float64[:],
+    K: int,
+    event_times: types.float64[:],
+    Dt: types.DictType(types.float64, types.int64[:]),
+    deaths_per_t: types.DictType(types.float64, types.int64),
+    relevant_event_times: types.DictType(types.float64, types.float64[:]),
+    eps: float = EPSILON,
+):
+    params = Parameters(
+        gamma, sigma, rho, Rt, K, event_times, Dt, deaths_per_t, relevant_event_times
+    )
+
+    minimum = minimize_newton_raphson_fast(
+        z_start, params=params, eps=eps
+    )
+
+    return minimum
+
+
 def find_z(
     gamma: ArrayLike,
     sigma: ArrayLike,
@@ -113,7 +137,6 @@ def find_z(
     )
 
     return minimum
-
 
 @numba.njit()
 def derivative_1(z, params: Parameters, sample_idx: int):
@@ -257,7 +280,7 @@ def exp_k_z(z, k):
 
 
 @numba.njit(parallel=True)
-def hessian_parametrized(z: types.float64[:], params: Parameters):
+def hessian_parametrized_fast(z: types.float64[:], params: Parameters):
     # The hessian is a N x N matrix where N is the number of elements in z
     N = z.shape[0]
     mat = np.zeros((N, N))
@@ -272,6 +295,23 @@ def hessian_parametrized(z: types.float64[:], params: Parameters):
         for v in range(u + 1, N):
             # Formula for off-diagonals
             mat[u, v] = derivative_2_off_diagonal_fast(z, params, u, v, precomputed_derivative_denominator, precomputed_exp_k_z)
+            mat[v, u] = mat[u, v]
+
+    return mat
+
+@numba.njit(parallel=True)
+def hessian_parametrized(z: types.float64[:], params: Parameters):
+    # The hessian is a N x N matrix where N is the number of elements in z
+    N = z.shape[0]
+    mat = np.zeros((N, N))
+
+    for u in range(N):
+        mat[u, u] = derivative_2_diagonal(z, params, u)
+
+    for u in prange(N):
+        for v in range(u + 1, N):
+            # Formula for off-diagonals
+            mat[u, v] = derivative_2_off_diagonal(z, params, u, v)
             mat[v, u] = mat[u, v]
 
     return mat
@@ -307,6 +347,47 @@ def minimize_newton_raphson(
 
         # before = time.time()
         current_jac = jacobian(x, params)
+        # after = time.time()
+
+        #print(f"Time taken for jacobian: {after - before}")
+
+        # before = time.time()
+        x = x - np.linalg.inv(current_hess) @ current_jac
+        # after = time.time()
+
+        #print(f"Time taken for inversion: {after - before}")
+    return x
+
+@numba.njit()
+def minimize_newton_raphson_fast(
+    x_0: types.float64[:], params: Parameters, eps: float
+) -> types.float64[:]:
+    """
+    The terminology is a little confusing here. We are trying to find the minimum,
+    but newton-raphson is a root-finding algorithm. Therefore we are looking for the x where the
+    norm of the first-order derivative (jacobian) is 0. In the context of newton-rhapson this
+    would be function F(x), while our hessian matrix would be F'(x).
+    Args:
+        x_0:
+        jacobian:
+        hessian:
+        params:
+        eps:
+
+    Returns:
+
+    """
+    x = x_0
+    current_jac = jacobian_parametrized(x, params)
+    while np.linalg.norm(current_jac) > eps:
+        # before = time.time()
+        current_hess = hessian_parametrized_fast(x, params)
+        # after = time.time()
+
+        #print(f"Time taken for hessian: {after - before}")
+
+        # before = time.time()
+        current_jac = jacobian_parametrized(x, params)
         # after = time.time()
 
         #print(f"Time taken for jacobian: {after - before}")
