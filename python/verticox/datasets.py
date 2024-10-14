@@ -100,7 +100,8 @@ def load_seer() -> (pd.DataFrame, np.array):
 
 
 def get_test_dataset(
-        limit=None, feature_limit=None, include_right_censored=True, dataset: str = SEER
+        limit=None, feature_limit=None, include_right_censored=True, dataset: str = SEER,
+        allow_repeat: bool =False
 ) -> Tuple[np.array, np.array, List]:
     """
     Prepare and provide the whas500, aids or SEER dataset for testing purposes.
@@ -110,6 +111,8 @@ def get_test_dataset(
         limit: Limit on the number of samples, by default all 500 samples will be used
         feature_limit:  Limit on the features that should be included
         include_right_censored: Whether to include right censored data. By default it is True
+        allow_repeat: If true, the dataset will be repeated until the limit is reached. This is useful
+        for benchmarking the performance.
 
     Returns: A tuple containing features, outcome and column names as
      (FEATURES, OUTCOME, COLUMN_NAMES)
@@ -156,6 +159,13 @@ def get_test_dataset(
     if limit:
         features = features.head(limit)
         events = events[:limit]
+
+    # Repeat data multiple times if it is allowed and limit is larger than the number of samples
+    if limit > len(features) and allow_repeat:
+        n_repeats = limit // len(features)
+        remainder = limit % len(features)
+        features = pd.concat([features] * n_repeats + [features.head(remainder)], ignore_index=True)
+        events = np.concatenate([events] * n_repeats + [events[:remainder]])
 
     if feature_limit:
         columns = features.columns[:feature_limit]
