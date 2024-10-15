@@ -222,6 +222,7 @@ class BaseNodeManager(ABC):
             self.split.train.event_happened,
             **self._aggregator_kwargs,
         )
+
         preparation_end = datetime.now()
 
         preparation_runtime = preparation_end - preparation_start
