@@ -21,6 +21,7 @@ from sksurv.metrics import concordance_index_censored
 from sksurv.util import Surv
 
 from test_constants import CONVERGENCE_PRECISION
+from verticox.common import is_uncensored
 from verticox.cross_validation import kfold_cross_validate
 from verticox.datasets import unpack_events
 from verticox.node_manager import LocalNodeManager
@@ -172,6 +173,7 @@ class OnlyTrain(IntegrationTest):
             if check_correct:
                 for key, value in target_coefs.items():
                     np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
+                print(f"Central and decentralized models are equal.")
         except (LinAlgWarning, LinAlgError) as e:
             output = {"mse": None, "sad": None, "mad": None, "comment": "unsolvable"}
             print(f"Benchmark output: {json.dumps(output)}")
@@ -200,7 +202,7 @@ class TrainTest(IntegrationTest):
             "\n----------------------------------------"
         )
         full_data_length = node_manager.num_total_records
-        selected_idx = select_rows(full_data_length)
+        selected_idx = select_rows(all_data_outcome)
         mask = np.zeros(full_data_length, dtype=bool)
         mask[selected_idx] = True
 
@@ -277,30 +279,31 @@ class CrossValidation(IntegrationTest):
             np.testing.assert_almost_equal(c_indices, central_c_indices, decimal=DECIMAL_PRECISION)
 
 
-def select_rows(data_length, ratio=0.8):
+def select_rows(outcome: pd.Series, ratio=0.8):
     """
     Select a subset of data so that it includes both censored and non-censored data. Assuming the
     censored data follows after the non-censored data.
     Args:
+        outcome: the outcome data
         ratio: proportion of data reserved for training
-        data_length:
+
 
     Returns:
     """
-    num_rows = round(data_length * ratio)
+    uncensored = is_uncensored(outcome)
+    uncensored_idx = np.nonzero(uncensored)[0]
+    censored_idx = np.nonzero(~uncensored)[0]
 
-    if num_rows > data_length:
-        raise Exception(
-            f"Selecting too many rows. There are only {data_length} available."
-        )
+    num_uncensored_train = round(len(uncensored_idx) * ratio)
+    num_censored_train = round(len(censored_idx) * ratio)
 
-    num_start = num_rows // 2
-    num_end = num_rows - num_start
+    train_idx = np.concatenate(
+        (uncensored_idx[:num_uncensored_train],
+                censored_idx[:num_censored_train]),
+        axis=0
+    )
 
-    censored_selection = range(num_start)
-    uncensored_selection = range(data_length - num_end, data_length)
-
-    return np.array(list(censored_selection) + list(uncensored_selection))
+    return train_idx
 
 
 def compute_centralized():

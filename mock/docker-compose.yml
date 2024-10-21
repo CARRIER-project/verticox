@@ -70,7 +70,7 @@ services:
       - ../python:/app
       - ./data:/data
     command: >
-      python tests/test_mock.py train /data/outcome.parquet /data event_time event_happened
+      python tests/test_mock.py split /data/outcome.parquet /data event_time event_happened
     depends_on:
       commodity:
         condition: service_healthy
