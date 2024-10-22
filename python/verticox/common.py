@@ -11,7 +11,7 @@ SEER = "seer"
 
 
 @np.vectorize
-def _uncensored(event):
+def is_uncensored(event):
     return event[0]
 
 
