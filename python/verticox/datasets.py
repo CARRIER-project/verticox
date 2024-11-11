@@ -173,7 +173,7 @@ def get_test_dataset(
         uncensored_idx = np.nonzero(uncensored)
         censored_idx = np.nonzero(censored)
 
-        events = pd.concatenate([events[uncensored_idx], events[censored_idx]])
+        events = np.concatenate([events[uncensored_idx], events[censored_idx]])
         features = pd.concat([features.iloc[uncensored_idx], features.iloc[censored_idx]])
 
     if feature_limit:
