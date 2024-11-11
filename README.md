@@ -1,4 +1,5 @@
 [![Build and Publish](https://github.com/CARRIER-project/verticox/actions/workflows/push.yml/badge.svg)](https://github.com/CARRIER-project/verticox/actions/workflows/push.yml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13933626.svg)](https://doi.org/10.5281/zenodo.13933626)
 # verticox+
 This repository contains the components for running vertical cox proportional hazards analysis in a
 setting where the data is vertically partitioned.
