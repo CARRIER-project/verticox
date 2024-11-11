@@ -1,0 +1,33 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Verticox+
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Djura
+    family-names: Smits
+    email: d.smits@esciencecenter.nl
+    affiliation: Netherlands eScience Center
+    orcid: 'https://orcid.org/0000-0003-4096-0260'
+  - given-names: Florian
+    family-names: van Daalen
+    email: f.vandaalen@maastrichtuniversity.nl
+    affiliation: Maastricht University
+    orcid: 'https://orcid.org/0000-0002-2229-8587'
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.13933625
+    description: Doi for all versions of the software
+repository-code: 'https://github.com/CARRIER-project/verticox/'
+abstract: >-
+  An implementation of cox proportional hazards for
+  vertically partioned data.
+keywords:
+  - federated learning
+  - survival analysis
+  - secure multiparty computation
+license: Apache-2.0
