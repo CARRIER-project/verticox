@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from sksurv.datasets import load_aids, get_x_y, load_whas500
 
-from verticox.common import SEER, _uncensored
+from verticox.common import SEER, is_uncensored
 
 
 def get_dummies(categorical_features: pd.DataFrame):
@@ -134,13 +134,13 @@ def get_test_dataset(
                                          f"({len(features.columns)}).")
 
     if not include_right_censored:
-        features = features[_uncensored(events)]
-        events = events[_uncensored(events)]
+        features = features[is_uncensored(events)]
+        events = events[is_uncensored(events)]
     if include_right_censored and limit:
         # Make sure there's both right censored and non-right censored data
         # Since the behavior should be deterministic we will still just take the first samples we
         # that meets the requirements.
-        non_censored = _uncensored(events)
+        non_censored = is_uncensored(events)
         non_censored_idx = np.argwhere(non_censored).flatten()
         right_censored_idx = np.argwhere(~non_censored).flatten()
 
@@ -166,6 +166,15 @@ def get_test_dataset(
         remainder = limit % len(features)
         features = pd.concat([features] * n_repeats + [features.head(remainder)], ignore_index=True)
         events = np.concatenate([events] * n_repeats + [events[:remainder]])
+
+        # Make sure data is sorted based on censoring
+        uncensored = is_uncensored(events)
+        censored = ~uncensored
+        uncensored_idx = np.nonzero(uncensored)
+        censored_idx = np.nonzero(censored)
+
+        events = np.concatenate([events[uncensored_idx], events[censored_idx]])
+        features = pd.concat([features.iloc[uncensored_idx], features.iloc[censored_idx]])
 
     if feature_limit:
         columns = features.columns[:feature_limit]
