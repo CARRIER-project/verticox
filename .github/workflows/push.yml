@@ -1,15 +1,15 @@
 name: Build and Publish
 env:
   HARBOR_HOST: harbor.carrier-mu.src.surf-hosted.nl
+  MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN}}
 on:
   # run it on push to the default repository branch
   push:
     branches:
       - main
 
-
 jobs:
-  job1:
+  javabuild:
     uses: ./.github/workflows/build_java.yml
   build-and-push:
     runs-on: ubuntu-latest
