@@ -29,11 +29,11 @@ BenchmarkResult = namedtuple("BenchmarkResult", ["records", "features",
                                                  "iterations", "parties",
                                                  "preparation_runtime", "convergence_runtime",
                                                  "mse", "sad", "mad", "c_index_verticox",
-                                                 "c_index_central", "comment"])
+                                                 "c_index_central", "comment", "category"])
 
 
 def benchmark(num_records: int, num_features: int, num_datanodes: int, dataset: str,
-              total_num_iterations: (None, int) = None, rebuild: bool = False) -> BenchmarkResult:
+              total_num_iterations: (None, int) = None, category=None, rebuild: bool = False)  -> BenchmarkResult:
     """
     TODO: Make it possible to specify number of nodes.
     Benchmark verticox+ with specific parameters.
@@ -77,7 +77,8 @@ def benchmark(num_records: int, num_features: int, num_datanodes: int, dataset: 
                "records": num_records,
                "features": num_features,
                "parties": num_datanodes,
-               "iterations": total_num_iterations
+               "iterations": total_num_iterations,
+               "category": category
                }
 
     comparison = re.search(_COMPARISON_PATTERN, log)
@@ -233,15 +234,17 @@ def main(parameter_table: str, *, dataset="seer", repeats=1):
                     features = int(parameters["features"])
                     parties = int(parameters["parties"])
                     iterations = int(parameters["iterations"])
-
+                    category = parameters["category"]
                     results = benchmark(records,
                                         features,
                                         parties,
                                         dataset,
                                         total_num_iterations=iterations,
+                                        category=category,
                                         rebuild=rebuild)
+                    results_dict = results._asdict()
 
-                    writer.writerow(results._asdict())
+                    writer.writerow(results_dict)
                     rebuild = False
                 except NotEnoughFeaturesException:
                     writer.writerow({"comment": "Not enough features"})
@@ -249,7 +252,7 @@ def main(parameter_table: str, *, dataset="seer", repeats=1):
                 except DockerException:
                     print(f"Current run threw error, skipping")
                     writer.writerow({"records": records, "features": features,
-                                     "parties": parties, "comment": "error"})
+                                     "parties": parties, "comment": "error", })
 
 
 if __name__ == "__main__":
