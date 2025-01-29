@@ -37,6 +37,12 @@ def get_dummies(categorical_features: pd.DataFrame):
 
 
 def get_prioritized_features(df: pd.DataFrame):
+    """
+    Prioritize numerical features over categorical features. Categorical features will be converted
+    to dummies.
+    :param df:
+    :return:
+    """
     numerical_features = df.select_dtypes(include="number")
     other_features = df.drop(columns=numerical_features.columns)
 
