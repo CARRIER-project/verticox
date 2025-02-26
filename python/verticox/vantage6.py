@@ -4,7 +4,7 @@ import subprocess
 import time
 import traceback
 from pathlib import Path
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, NamedTuple
 
 import pandas as pd
 from sksurv.functions import StepFunction
@@ -15,7 +15,7 @@ from vantage6.algorithm.tools.util import info, get_env_var
 from verticox import datanode, node_manager
 from verticox.cross_validation import kfold_cross_validate
 from verticox.defaults import DEFAULT_KFOLD_SPLITS
-from verticox.preprocess import preprocess_data
+from verticox.preprocess import preprocess_data, Columns
 
 DATABASE_URI = "DATABASE_URI"
 DATA_LIMIT = 10
@@ -29,7 +29,6 @@ DATABASE_DIR = "/mnt/data" # For preprocessing
 
 # Methods
 NO_OP = "no_op"
-
 
 @data(1)
 @algorithm_client
@@ -69,17 +68,17 @@ def fit(
     """
     # Preprocessing data
     # TODO: This can removed once we move to v6 version 5.x
-
-    data, data_location = preprocess_data(data, output_dir=DATABASE_DIR)
+    columns = Columns(feature_columns, event_times_column, event_happened_column)
+    data, columns, data_location = preprocess_data(data, output_dir=DATABASE_DIR,columns=columns )
 
     manager = node_manager.V6NodeManager(
         client,
         data,
         datanode_ids,
         central_node_id,
-        event_happened_column,
-        event_times_column,
-        feature_columns,
+        columns.event_happened_column,
+        columns.event_times_column,
+        columns.feature_columns,
         include_value,
         convergence_precision=precision,
         rho=rho,
