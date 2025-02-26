@@ -15,9 +15,9 @@ from vantage6.algorithm.tools.util import info, get_env_var
 from verticox import datanode, node_manager
 from verticox.cross_validation import kfold_cross_validate
 from verticox.defaults import DEFAULT_KFOLD_SPLITS
+from verticox.preprocess import preprocess_data
 
 DATABASE_URI = "DATABASE_URI"
-DATANODE_TIMEOUT = None
 DATA_LIMIT = 10
 DEFAULT_PRECISION = 1e-6
 DEFAULT_RHO = 0.5
@@ -25,6 +25,7 @@ COMMODITY_PROPERTIES = [f"--server.port={node_manager.JAVA_PORT}"]
 NO_OP_TIME = 360
 _SOME_ID = 1
 _WORKAROUND_DATABASE_URI = "default.parquet"
+DATABASE_DIR = "/mnt/data" # For preprocessing
 
 # Methods
 NO_OP = "no_op"
@@ -66,6 +67,11 @@ def fit(
     Returns:
 
     """
+    # Preprocessing data
+    # TODO: This can removed once we move to v6 version 5.x
+
+    data, data_location = preprocess_data(data, output_dir=DATABASE_DIR)
+
     manager = node_manager.V6NodeManager(
         client,
         data,
@@ -241,7 +247,6 @@ def run_datanode(
         port=node_manager.PYTHON_PORT,
         include_column=include_column,
         include_value=include_value,
-        timeout=DATANODE_TIMEOUT,
         commodity_address=external_commodity_address,
         address=address,
     )

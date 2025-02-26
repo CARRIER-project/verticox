@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 import json
 import numpy as np
 import vantage6.client as v6client
@@ -7,14 +9,14 @@ from verticox.client import FitResult
 from test_constants import OUTCOME_TIME_COLUMN, OUTCOME, PRECISION
 from verticox.client import VerticoxClient
 
-IMAGE = "harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox"
-DATABASE = "parquet"
+IMAGE = "harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox:latest"
+DATABASE = "default"
 TIMEOUT = 20 * 60
 TARGET_COEFS = {"age": 0.05566997593047372, "bmi": -0.0908968266847538}
 
 
-def run_verticox_v6(host, port, user, password, *, private_key=None, tag="latest", method="fit"):
-    image = f"{IMAGE}:{tag}"
+def run_verticox_v6(host, port, user, password, *, private_key=None, image: str=IMAGE,
+                    method="fit"):
 
     client = v6client.Client(host, port, log_level="warning")
 
@@ -22,21 +24,28 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag="latest
     client.setup_encryption(private_key)
     nodes = client.node.list(is_online=True)
 
-    orgs = [n["id"] for n in nodes["data"]]
-    orgs = sorted(orgs)
-    central_node = orgs[0]
-    datanodes = orgs[1:]
-
     verticox_client = VerticoxClient(client, image=image)
 
     task = verticox_client.get_column_names(database=DATABASE)
 
     column_name_results = task.get_results()
 
+    feature_orgs = []
+    central_node = None
     for r in column_name_results:
         run_id = r["run"]["id"]
         run = client.run.get(run_id)
-        print(f"organization: {run['organization']}, columns: {r['result']}")
+        organization = run["organization"]["id"]
+        columns = json.loads(r['result'])
+        print(f"organization: {organization}, columns: {columns}")
+
+        if {OUTCOME, OUTCOME_TIME_COLUMN} == set(columns):
+            central_node = organization
+        else:
+            feature_orgs.append(organization)
+
+    if central_node is None:
+        raise Exception("Central node not found")
 
     feature_columns = list(TARGET_COEFS.keys())
 
@@ -48,7 +57,7 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, tag="latest
                 feature_columns,
                 OUTCOME_TIME_COLUMN,
                 OUTCOME,
-                feature_nodes=datanodes,
+                feature_nodes=feature_orgs,
                 outcome_node=central_node,
                 precision=PRECISION,
                 database=DATABASE,
