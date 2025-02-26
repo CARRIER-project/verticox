@@ -62,7 +62,6 @@ class ContainerAddresses:
 
     @staticmethod
     def parse_addresses(v6_container_addresses):
-        info(f"Parsing addresses: {v6_container_addresses}")
         python_addresses = []
         java_addresses = []
 
@@ -200,6 +199,8 @@ class BaseNodeManager(ABC):
             )
         else:
             # If there is no selection train_outcome is all data and test set is None
+            info("No training selection, using all data for training")
+            info(f"Data columns: {self.data.columns}")
             self.split = Split(self._get_outcome(self.data), None, self.data)
 
     def _get_outcome(self, data):
@@ -452,7 +453,7 @@ class V6NodeManager(BaseNodeManager):
         while True:
             addresses = self._v6_client.vpn.get_child_addresses()
 
-            info(f"Addresses: {addresses}")
+            info(f"Found {len(addresses)} addresses")
             # Filter on current task
             addresses = [a for a in addresses if a["task_id"] == task_id]
 
@@ -524,8 +525,6 @@ class V6NodeManager(BaseNodeManager):
         datanode_addresses = self._start_containers(
             java_node_input, datanode_organizations
         )
-
-        info(f"Addresses: {datanode_addresses}")
 
         # Wait for a bit for the containers to start up
         time.sleep(WAIT_CONTAINER_STARTUP)
