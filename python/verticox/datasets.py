@@ -43,7 +43,7 @@ def get_prioritized_features(df: pd.DataFrame):
     :param df:
     :return:
     """
-    numerical_features = df.select_dtypes(include="number")
+    numerical_features = df.select_dtypes(include=["number", "bool"])
     other_features = df.drop(columns=numerical_features.columns)
 
     sorted_dummies = list(get_dummies(categorical_features=other_features))
