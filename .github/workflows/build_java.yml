@@ -40,7 +40,7 @@ jobs:
       - name: Print jarfile
         run: echo ${{ steps.jarfile.outputs.JARFILE }}
       - name: "Upload jar file as artifact"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.6.1
         with:
           name: jarfile
           path: "java/verticox/target/${{ steps.jarfile.outputs.JARFILE }}"
