@@ -489,7 +489,7 @@ class V6NodeManager(BaseNodeManager):
         datanode_input = {
             "method": "run_datanode",
             "kwargs": {
-                "feature_columns": self._features,
+                "selected_columns": self._features,
                 "event_time_column": self._event_times_column,
                 "include_column": self._event_happened_column,
                 "include_value": self._include_value,

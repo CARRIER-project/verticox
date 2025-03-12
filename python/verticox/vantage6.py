@@ -71,6 +71,8 @@ def fit(
     columns = Columns(feature_columns, event_times_column, event_happened_column)
     data, columns, data_location = preprocess_data(data, output_dir=DATABASE_DIR,columns=columns )
 
+    info(f"Columns: {columns}")
+
     manager = node_manager.V6NodeManager(
         client,
         data,
@@ -172,19 +174,15 @@ def stepfunction_to_tuple(f: StepFunction) -> Tuple[
 
 
 # TODO: Remove this ugly workaround!
-def _move_parquet_file(database:str):
+def _get_data_dir(database:str= "default"):
     env_name = f"{database.upper()}_{DATABASE_URI}"
     info(f"Env name {env_name}")
     current_location = get_env_var(env_name)
     current_location = Path(current_location)
 
-    info(f"Moving parquet file from {current_location} to {_WORKAROUND_DATABASE_URI}")
-    target = current_location.parent / _WORKAROUND_DATABASE_URI
+    data_dir = current_location.parent
 
-    if target != current_location:
-        shutil.copy(current_location, target)
-
-    return str(target.absolute())
+    return str(data_dir.absolute())
 
 
 @data(1)
@@ -204,7 +202,7 @@ def _filter_algorithm_addresses(addresses, label):
 def run_datanode(
         data: pd.DataFrame,
         *args,
-        feature_columns: List[str] = (),
+        selected_columns: List[str] = (),
         event_time_column: str = None,
         include_column: str = None,
         include_value: bool = None,
@@ -218,7 +216,7 @@ def run_datanode(
         data: the entire dataset
         external_commodity_address:
         include_value: This value in the data means the record is NOT right-censored
-        feature_columns: the names of the columns that will be treated as features (covariants) in
+        selected_columns: the names of the columns that will be treated as features (covariants) in
         the analysis
         event_time_column: the name of the column that indicates event time
         include_column: the name of the column that indicates whether an event has taken
@@ -230,19 +228,24 @@ def run_datanode(
 
 
     """
-    info(f"Feature columns: {feature_columns}")
-    info(f"All columns: {data.columns}")
+    info(f"Selected columns: {selected_columns}")
+    info(f"Columns present in dataset: {data.columns}")
     info(f"Event time column: {event_time_column}")
     info(f"Censor column: {include_column}")
-    # The current datanode might not have all the features
-    feature_columns = [f for f in feature_columns if f in data.columns]
 
-    info(f"Feature columns after filtering: {feature_columns}")
-    features = data[feature_columns].values
+
+    columns = Columns(selected_columns, None, None)
+
+    features, new_columns = preprocess_data(data, columns)
+
+    # The current datanode might not have all the features
+    selected_columns = [f for f in new_columns.feature_columns if f in data.columns]
+    info(f"Feature columns after filtering: {selected_columns}")
+    features = data[selected_columns]
 
     datanode.serve(
-        data=features,
-        feature_names=feature_columns,
+        data=features.values,
+        feature_names=selected_columns,
         port=node_manager.PYTHON_PORT,
         include_column=include_column,
         include_value=include_value,
@@ -273,8 +276,11 @@ def run_java_server(_data, *_args, database=None, **kwargs):
     info("Starting java server")
     command = _get_java_command()
     info(f"Running command: {command}")
-    target_uri = _move_parquet_file(database)
-    subprocess.run(command, env=_get_workaround_sysenv(target_uri))
+    #target_uri = _move_parquet_file(database)
+
+    data, column_names, data_path = preprocess_data(_data, _data.columns, _get_data_dir())
+
+    subprocess.run(command, env=_get_workaround_sysenv(data_path))
 
 
 @data(1)
