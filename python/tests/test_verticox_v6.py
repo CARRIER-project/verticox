@@ -32,6 +32,8 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, image: str=
 
     feature_orgs = []
     central_node = None
+    feature_columns = []
+
     for r in column_name_results:
         run_id = r["run"]["id"]
         run = client.run.get(run_id)
@@ -43,11 +45,12 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, image: str=
             central_node = organization
         else:
             feature_orgs.append(organization)
+            feature_columns += columns
 
     if central_node is None:
         raise Exception("Central node not found")
 
-    feature_columns = list(TARGET_COEFS.keys())
+    # feature_columns = list(TARGET_COEFS.keys())
 
     print(f'Using feature columns: {feature_columns}')
 

@@ -6,6 +6,7 @@ import numpy as np
 from numba import types, typed
 from numpy.typing import ArrayLike
 from sksurv.functions import StepFunction
+from vantage6.algorithm.tools.util import info
 
 from verticox.common import group_samples_at_risk, group_samples_on_event_time
 from verticox.grpc.datanode_pb2 import (
@@ -176,6 +177,8 @@ class Aggregator:
                 f"per run"
             )
             logger.info(f"Current progress: {100 * progress.get_value():.2f}%")
+
+            info(f"Current progress: {100 * progress.get_value():.2f}%")
 
         logger.info(f"Finished training after {self.num_iterations} iterations")
 
