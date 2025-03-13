@@ -506,7 +506,11 @@ class V6NodeManager(BaseNodeManager):
 
     def start_java_algorithms(self):
         # Kick off java nodes
-        java_node_input = {"method": "run_java_server", "kwargs": {"database": self._database}}
+        java_node_input = {"method": "run_java_server",
+                           "kwargs": {"database": self._database,
+                                      "features": self._features,
+                                      "event_times_column": self._event_times_column,
+                                      "event_happened_column": self._event_happened_column}}
 
         commodity_address = self._start_containers(
             java_node_input, [self._central_organization]

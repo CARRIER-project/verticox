@@ -272,13 +272,15 @@ def column_names(data: pd.DataFrame, *args, **kwargs):
 
 
 @data(1)
-def run_java_server(_data, *_args, database=None, **kwargs):
+def run_java_server(_data, *_args, database=None, features=None, event_times_column=None,
+                    event_happened_column=None, **kwargs):
     info("Starting java server")
     command = _get_java_command()
     info(f"Running command: {command}")
     #target_uri = _move_parquet_file(database)
 
-    data, column_names, data_path = preprocess_data(_data, _data.columns, _get_data_dir())
+    columns = Columns(features, event_times_column, event_happened_column)
+    data, column_names, data_path = preprocess_data(_data, columns, _get_data_dir())
 
     subprocess.run(command, env=_get_workaround_sysenv(data_path))
 
