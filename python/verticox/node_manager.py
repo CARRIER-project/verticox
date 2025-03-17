@@ -424,7 +424,6 @@ class V6NodeManager(BaseNodeManager):
         addresses = self._get_algorithm_addresses(1, task["id"])
 
         address = addresses.python[0]
-        info(f"Address: {address}")
         return address.split(":")[0]
 
     def kill_all_algorithms(self):
@@ -472,7 +471,6 @@ class V6NodeManager(BaseNodeManager):
 
     def start_python_algorithms(self):
         info(f"Datanode ids: {self._datanode_organizations}")
-        info(f"Commodity address: {self._commodity_address}")
 
         with ThreadPoolExecutor(MAX_WORKERS) as executor:
             addresses = executor.map(
@@ -515,7 +513,6 @@ class V6NodeManager(BaseNodeManager):
         commodity_address = self._start_containers(
             java_node_input, [self._central_organization]
         )
-        info(f"Commodity address: {commodity_address}")
         commodity_address = commodity_address.java[0]
 
         # For just the java part we need to run a datanode as well as a commodity node at the

@@ -39,12 +39,7 @@ class NPartyScalarProductClient:
         self.other_addresses = other_addresses
         self.precision = precision
 
-        info(
-            f"Initializing N party client with:\n"
-            f"Commodity address: {self.commodity_address}\n"
-            f"Scalar product Datanode addresses: {self.other_addresses}\n"
-            f"Precision: {self.precision}"
-        )
+        info(f"Initializing N party client with precision: {self.precision}")
 
     def initialize_servers(self):
         self._init_central_server(self.commodity_address, self.other_addresses)
@@ -96,7 +91,7 @@ class NPartyScalarProductClient:
                 pass
 
     def activate_fold(self, activated: Iterable[bool]):
-        _logger.debug(f"Activating fold: {activated}")
+        _logger.debug(f"Activating fold")
         activated = list(activated)
         payload = {"activeRecords": activated}
         self._post("activateFold", json=payload)
@@ -122,7 +117,7 @@ class NPartyScalarProductClient:
             "secretServer": f"{_PROTOCOL}{internal_address}",
             "servers": other_nodes,
         }
-        debug(f"Initializing central server with: {json}")
+        debug(f"Initializing central server")
         self._post(_INIT_CENTRAL_SERVER, json=json, timeout=_LONG_TIMEOUT)
 
         self._post(_SET_ID, params={"id": _COMMODITY_ID})
@@ -132,7 +127,7 @@ class NPartyScalarProductClient:
             address = self.commodity_address
         url = self._get_url(address, endpoint)
 
-        debug(f"Request {method}: {url} kwargs: {kwargs}")
+        debug(f"Request {method}")
 
         result = requests.request(method, url, **kwargs)
 
@@ -163,7 +158,7 @@ class NPartyScalarProductClient:
         payload = {"servers": others}
         url = f"{_PROTOCOL}{targetUrl}/{_SET_ENDPOINTS}"
 
-        debug(f"Request post: {url}, payload: {payload}")
+        debug(f"Request post: {url}")
         requests.post(url, json=payload, timeout=10)
 
     def _kill_node(self, target):
