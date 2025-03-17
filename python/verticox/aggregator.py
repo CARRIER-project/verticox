@@ -85,7 +85,6 @@ class Aggregator:
 
         self.num_iterations = 0
         self.total_num_iterations = total_num_iterations
-        logger.debug(f"Institution stubs: {self.institutions}")
 
         beta = np.full(self.num_samples, BETA)
         z = np.full(self.num_samples, Z)

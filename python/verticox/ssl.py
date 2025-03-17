@@ -26,7 +26,7 @@ def get_my_ip(interface=NETWORK_INTERFACE):
 
 
 def generate_self_signed_certificate(address):
-    info(f"creating self signed certificate for address: {address}")
+    info(f"creating self signed certificate")
     key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
@@ -85,7 +85,7 @@ def get_secure_stub(host, port):
 
     """
     addr = f"{host}:{port}"
-    info(f"Connecting to datanode at {addr}")
+    info(f"Connecting to datanode")
     server_cert = ssl.get_server_certificate((host, port))
     credentials = grpc.ssl_channel_credentials(server_cert.encode())
     channel = grpc.secure_channel(addr, credentials=credentials, options=GRPC_OPTIONS)

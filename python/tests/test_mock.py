@@ -345,7 +345,6 @@ def cross_validate_central(all_data_features, all_data_outcome, n_splits, random
     folds = kfold.split(all_data_outcome)
     central_c_indices = []
     for idx, (train_indices, test_indices) in enumerate(folds):
-        _logger.info(f'Fold {idx}')
         # Select data
         train_features = all_data_features.iloc[train_indices]
         train_outcome = all_data_outcome[train_indices]
