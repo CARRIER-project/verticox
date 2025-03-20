@@ -29,8 +29,8 @@ jobs:
       - name: Build
         working-directory: java/verticox
         run: |
-          mvn --settings  ~/.m2/settings.xml clean package
-          ls
+          make clean
+          make -e MVN_SETTINGS="~/.m2/settings.xml" build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Get jar file path"
