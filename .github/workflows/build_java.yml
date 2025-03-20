@@ -29,6 +29,8 @@ jobs:
       - name: Build
         run: |
           make clean
+          echo $PWD
+          ls
           make -e MVN_SETTINGS="~/.m2/settings.xml" build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
