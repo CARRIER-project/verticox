@@ -29,9 +29,8 @@ jobs:
       - name: Build
         run: |
           make clean
-          echo $PWD
-          ls
-          make -e MVN_SETTINGS="~/.m2/settings.xml" build
+
+          make -e MVN_SETTINGS="~/.m2/settings.xml" java
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Get jar file path"
