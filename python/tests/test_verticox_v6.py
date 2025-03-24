@@ -78,6 +78,8 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, image: str=
 
     results = task.get_results(timeout=TIMEOUT)
 
+    print("Results: ", results)
+
     match results:
         case FitResult(coefs, baseline_hazard):
             for key, value in coefs.items():
