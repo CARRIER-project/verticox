@@ -27,10 +27,10 @@ jobs:
               cat ~/.m2/settings.xml
               echo maven token: $MAVEN_TOKEN
       - name: Build
-        working-directory: java/verticox
         run: |
-          mvn --settings  ~/.m2/settings.xml clean package
-          ls
+          make clean
+
+          make -e MVN_SETTINGS="~/.m2/settings.xml" java
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Get jar file path"
