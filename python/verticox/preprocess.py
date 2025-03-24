@@ -91,16 +91,17 @@ def impute_missing_values(data: pd.DataFrame, columns: Columns) -> pd.DataFrame:
     :param data:
     :return: data with imputed values
     """
+
     # Make sure there are no Nones only np.nan
     data.replace({None: np.nan}, inplace=True)
 
     for col in data.columns:
         if col == columns.event_times_column:
-            data[col].fillna(0, inplace=True)
+            data[col] = data[col].fillna(0)
         elif col == columns.event_happened_column:
-            data[col].fillna(False, inplace=True)
+            data[col] = data[col].fillna(False)
         elif (data[col].dtype == "object") | (data[col].dtype == "category"):
-            data[col].fillna(data[col].mode()[0], inplace=True)
+            data[col] = data[col].fillna(data[col].mode()[0])
         else:
-            data[col].fillna(data[col].median(), inplace=True)
+            data[col] = data[col].fillna(data[col].median())
     return data

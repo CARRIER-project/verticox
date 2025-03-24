@@ -1,58 +1,53 @@
-[tool.poetry]
+[project]
 name = "verticox"
 version = "0.0.0"
 description = "Python implementation of the Verticox algorithm."
-authors = ["Djura Smits <djura.smits@gmail.com>"]
-license = "Apache 2.0"
+authors = [{ email = "djura.smits@gmail.com", name = "Djura Smits" },
+    { email = "f.vandaalen@maastrichtuniversity.nl", name = "Florian van Daalen" }]
+license = "Apache-2.0"
+requires-python = "== 3.10.*"
+dependencies = [
+    "numpy==1.22.2",
+    "pandas>=1.5.0",
+    "scikit-survival",
+    "scikit-learn==1.0.2",
+    "Flask==2.3.3",
+    "Flask-RESTful==0.3.10",
+    "grpcio==1.70.0",
+    "vantage6-client==4.7.1",
+    "protobuf==3.20.1",
+    "numba==0.56.0",
+    "pyarrow==12.0.1",
+    "fastparquet==2023.10.1",
+    "clize==5.0.2",
+    "vantage6-algorithm-tools==4.7.1",
+    "psutil==6.0.0"
+]
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "jupyter",
+    "matplotlib",
+    "seaborn",
+    "jupyterlab",
+    "black",
+    "pre-commit==3.3.3",
+    "docker==7.1.0",
+    "python-on-whales",
+    "Jinja2",
+    "vantage6==4.7.1",
+    "mkdocs==1.6.1"
+]
 
-[tool.poetry.dependencies]
-python = "^3.10.0"
-numpy = "^1.22.2"
-pandas = "^1.4.1"
-scikit-survival = "^0.17.0"
-scikit-learn = "^1.0.2"
-Flask = "^2.1.2"
-Flask-RESTful = "^0.3.9"
-grpcio = "^1.46.3"
-vantage6-client = "4.2.3"
-protobuf = "3.20.1"
-numba = "^0.56.0"
-pyarrow = "^12.0.1"
-fastparquet = "^2023.7.0"
-clize = "^5.0.1"
-vantage6-algorithm-tools = "4.2.3"
-psutil = "6.0.0"
-matplotlib = "3.9.2"
+[tool.setuptools]
+packages = ["verticox"]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.1.2"
-grpcio-tools = "^1.46.3"
-jupyter = "^1.0.0"
-matplotlib = "^3.5.1"
-seaborn = "^0.11.2"
-flake8 = "^4.0.1"
-jupyterlab = "^3.4.4"
-black = "^23.7.0"
-pre-commit = "^3.3.3"
-docker = "6.1.2"
-python-on-whales = "^0.65.0"
-Jinja2 = "^3.1.2"
-vantage6 = "4.2.2"
-sphinx-autoapi = "^3.0.0"
-
-
-[tool.poetry.scripts]
-datanode = { callable = "verticox:datanode.serve_standalone", extras = ["dev"] }
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 pythonpath = "."
 addopts = "-v --log-level=INFO --log-file=test.log"
 
-[tool.poetry-dynamic-versioning]
-enable = true
-vcs = "git"
-style = "semver"
 
-[build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
-build-backend = "poetry.core.masonry.api"
