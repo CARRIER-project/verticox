@@ -277,7 +277,8 @@ class DataNode(DataNodeServicer):
             self, request: RecordLevelSigmaRequest, context: grpc.ServicerContext = None
     ) -> RecordLevelSigma:
         """
-        Get the sigma value for every record. Sigma is defined as :math: `\beta_k \cdot x`
+        Get the sigma value for every record. Sigma is defined as
+        $$ beta_k \cdot x $$
 
         :param request:
         :param context:
