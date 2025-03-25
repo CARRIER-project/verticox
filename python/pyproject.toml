@@ -36,7 +36,9 @@ dev = [
     "python-on-whales",
     "Jinja2",
     "vantage6==4.7.1",
-    "mkdocs==1.6.1"
+    "pymdown-extensions",
+    "mkdocstrings[python]",
+    "mkdocs-material"
 ]
 
 [tool.setuptools]

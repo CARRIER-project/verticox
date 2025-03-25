@@ -1,0 +1,12 @@
+::: verticox.vantage6
+::: verticox.node_manager
+::: verticox.client
+::: verticox.common
+::: verticox.cross_validation
+::: verticox.datanode
+::: verticox.datasets
+::: verticox.defaults
+::: verticox.likelihood
+::: verticox.preprocess
+::: verticox.scalarproduct
+::: verticox.ssl

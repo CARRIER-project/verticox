@@ -29,3 +29,6 @@ docker: java
 
 clean:
 	cd java/verticox && mvn clean
+
+serve-docs:
+	mkdocs serve
