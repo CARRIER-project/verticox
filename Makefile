@@ -31,7 +31,7 @@ docs: python-docs-deps
 	mkdocs build
 
 deploy-docs: python-docs-deps
-	mkdocs gh-deploy
+	mkdocs gh-deploy --force
 
 
 docker: java
