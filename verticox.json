@@ -65,7 +65,7 @@
           "name": "datanode_ids",
           "is_frontend_only": false,
           "conditional_operator": null,
-          "default_value": null,
+          "default_value": "",
           "description": "The organization ids of the nodes that need to be treated as datanodes (nodes that contain the features)",
           "type": "organization_list",
           "has_default_value": false,
@@ -84,14 +84,14 @@
           "conditional_value": null
         },
         {
-          "name": "precision",
+          "name": "convergence_precision",
           "is_frontend_only": false,
           "conditional_operator": null,
           "default_value": "0.000001",
           "description": "Precision of verticox algorithm. Determines when the algorithm has been converged",
           "type": "float",
           "has_default_value": true,
-          "display_name": "Precision",
+          "display_name": "convergence precision",
           "conditional_value": null
         },
         {
@@ -123,6 +123,256 @@
       "databases": [],
       "display_name": "fit",
       "standalone": true,
+      "ui_visualizations": []
+    },
+    {
+      "arguments": [
+        {
+          "name": "feature_columns",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "",
+          "description": "Columns that need to be treated as covariates",
+          "type": "column_list",
+          "has_default_value": false,
+          "display_name": "feature columns",
+          "conditional_value": null
+        },
+        {
+          "name": "event_times_column",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "",
+          "description": "Column that holds time of event",
+          "type": "column",
+          "has_default_value": false,
+          "display_name": "Event times column",
+          "conditional_value": null
+        },
+        {
+          "name": "event_happened_column",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "",
+          "description": "Column that indicates whether either an event happened, or the record is right-censored",
+          "type": "column",
+          "has_default_value": false,
+          "display_name": "Event happened column",
+          "conditional_value": null
+        },
+        {
+          "name": "include_value",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "true",
+          "description": "The value that indicates event should be included (not right-censored",
+          "type": "boolean",
+          "has_default_value": true,
+          "display_name": "include value",
+          "conditional_value": null
+        },
+        {
+          "name": "datanode_ids",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "",
+          "description": "The organization ids of the nodes that need to be treated as datanodes (nodes that contain the features)",
+          "type": "organization_list",
+          "has_default_value": false,
+          "display_name": "Datanode ids",
+          "conditional_value": null
+        },
+        {
+          "name": "central_node_id",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "",
+          "description": "Organization id of the node that contains the outcome data",
+          "type": "organization",
+          "has_default_value": false,
+          "display_name": "Central node id",
+          "conditional_value": null
+        },
+        {
+          "name": "convergence_precision",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "0.000001",
+          "description": "Precision of verticox algorithm. Determines when the algorithm has been converged",
+          "type": "float",
+          "has_default_value": true,
+          "display_name": "Convergence precision",
+          "conditional_value": null
+        },
+        {
+          "name": "rho",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "0.5",
+          "description": "Penalty parameter, determines the step size",
+          "type": "float",
+          "has_default_value": true,
+          "display_name": "rho",
+          "conditional_value": null
+        },
+        {
+          "name": "n_splits",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "5",
+          "description": "Number of splits used for crossvalidation",
+          "type": "integer",
+          "has_default_value": true,
+          "display_name": "number of splits",
+          "conditional_value": null
+        }
+      ],
+      "name": "crossvalidate",
+      "description": "Fits the Cox proportional hazards model using crossvalidatoin",
+      "type": "central",
+      "databases": [],
+      "display_name": "crossvalidate",
+      "standalone": true,
+      "ui_visualizations": []
+    },
+    {
+      "arguments": [
+        {
+          "name": "selected_columns",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "",
+          "description": "Columns to be used as features (covariates)",
+          "type": "column_list",
+          "has_default_value": false,
+          "display_name": "Selected columns",
+          "conditional_value": null
+        },
+        {
+          "name": "event_time_column",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "",
+          "description": "Column that contains event time",
+          "type": "column",
+          "has_default_value": false,
+          "display_name": "Event time colum",
+          "conditional_value": null
+        },
+        {
+          "name": "include_column",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "",
+          "description": "Column that indicates included event (no right censoring)",
+          "type": "column",
+          "has_default_value": false,
+          "display_name": "Include column",
+          "conditional_value": null
+        },
+        {
+          "name": "include_value",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "description": "Value that indicates included event",
+          "type": "boolean",
+          "has_default_value": false,
+          "display_name": "Include value",
+          "conditional_value": null
+        },
+        {
+          "name": "external_commodity_address",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "",
+          "description": "Address of the commodity server",
+          "type": "string",
+          "has_default_value": false,
+          "display_name": "External commodity address",
+          "conditional_value": null
+        },
+        {
+          "name": "address",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "",
+          "description": "Address of the server",
+          "type": "string",
+          "has_default_value": false,
+          "display_name": "address",
+          "conditional_value": null
+        }
+      ],
+      "name": "run_datanode",
+      "description": "Run algorithm server for datanodes",
+      "type": "federated",
+      "databases": [
+        {
+          "description": "Database suitable for survival modeling",
+          "name": "survival database"
+        }
+      ],
+      "display_name": "Run datanode",
+      "standalone": false,
+      "ui_visualizations": []
+    },
+    {
+      "arguments": [
+        {
+          "name": "database",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "",
+          "description": "Obsolete",
+          "type": "string",
+          "has_default_value": false,
+          "display_name": "Database",
+          "conditional_value": null
+        },
+        {
+          "name": "features",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "description": "Features to be included",
+          "type": "column_list",
+          "has_default_value": false,
+          "display_name": "Features",
+          "conditional_value": null
+        },
+        {
+          "name": "event_times_column",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "",
+          "description": "Column that contains event time",
+          "type": "column",
+          "has_default_value": false,
+          "display_name": "Event time colum",
+          "conditional_value": null
+        },
+        {
+          "name": "event_happened_column",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "default_value": "",
+          "description": "Column that indicates included event (no right censoring)",
+          "type": "column",
+          "has_default_value": false,
+          "display_name": "Include column",
+          "conditional_value": null
+        }
+      ],
+      "name": "run_java_server",
+      "description": "Run server for n-party protocol",
+      "type": "federated",
+      "databases": [
+        {
+          "description": "Database suitable for survival modeling",
+          "name": "survival database"
+        }
+      ],
+      "display_name": "Run java server",
+      "standalone": false,
       "ui_visualizations": []
     }
   ],
