@@ -18,3 +18,5 @@ python/build/
 *.pem
 .venv/
 .vscode/
+*.egg-info/
+site/

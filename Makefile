@@ -24,6 +24,16 @@ java: $(JARFILE)
 python:
 	pip install -e python/
 
+python-docs-deps:
+	pip install -e "python[docs]"
+
+docs: python-docs-deps
+	mkdocs build
+
+deploy-docs: python-docs-deps
+	mkdocs gh-deploy --force
+
+
 docker: java
 	docker build -t $(image) .
 
