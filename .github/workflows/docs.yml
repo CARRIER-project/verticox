@@ -1,9 +1,6 @@
 name: Publish docs on gh pages
 
 on:
-  push:
-    branches:
-      - deploy-page-workflow
   release:
     types: [ published ]
 
