@@ -1,14 +1,13 @@
 import json
 import logging
-import time
 from collections import namedtuple
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import Dict, List
 
+from verticox.config import DOCKER_IMAGE
 from matplotlib import pyplot as plt
 from vantage6.client import Client
 
-_VERTICOX_IMAGE = "harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox"
 _DATA_FORMAT = "json"
 _SLEEP = 5
 _TIMEOUT = 5 * 60  # 5 minutes
@@ -19,12 +18,16 @@ HazardFunction = namedtuple("HazardFunction", ["x", "y"])
 
 
 class VerticoxClient:
+    """
+    Client for running verticox. This client is a wrapper around the vantage6 client to simplify
+    use.
+    """
     def __init__(
             self,
             v6client: Client,
             collaboration=None,
             log_level=logging.INFO,
-            image=_VERTICOX_IMAGE,
+            image=DOCKER_IMAGE,
     ):
         self._logger = logging.getLogger(__name__)
         self._logger.setLevel(log_level)

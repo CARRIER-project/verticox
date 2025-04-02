@@ -3,8 +3,11 @@ IMAGE_NAME ?= harbor2.vantage6.ai/carrier/verticox
 IMAGE_TAG ?=
 MVN_ARGS =
 MVN_SETTINGS ?=
+DOCKER_ARGS ?=
 
 JARFILE = java/verticox/target/verticox-1.0-SNAPSHOT.jar
+
+
 
 ifeq ($(IMAGE_TAG), )
 	image := $(IMAGE_NAME)
@@ -35,7 +38,7 @@ deploy-docs: python-docs-deps
 
 
 docker: java
-	docker build -t $(image) .
+	docker build $(DOCKER_ARGS) -t $(image) .
 
 clean:
 	cd java/verticox && mvn clean
