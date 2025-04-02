@@ -8,8 +8,9 @@ from verticox.client import FitResult
 
 from test_constants import OUTCOME_TIME_COLUMN, OUTCOME, PRECISION
 from verticox.client import VerticoxClient
+from verticox.config import DOCKER_IMAGE
 
-IMAGE = "harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox:latest"
+IMAGE = f"{DOCKER_IMAGE}:latest"
 DATABASE = "default"
 TIMEOUT = 20 * 60
 TARGET_COEFS = {"age": 0.05566997593047372, "bmi": -0.0908968266847538}

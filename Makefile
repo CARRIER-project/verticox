@@ -1,5 +1,5 @@
 
-IMAGE_NAME ?= harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox
+IMAGE_NAME ?= harbor2.vantage6.ai/carrier/verticox
 IMAGE_TAG ?=
 MVN_ARGS =
 MVN_SETTINGS ?=
@@ -21,7 +21,7 @@ $(JARFILE):
 
 java: $(JARFILE)
 
-python:
+python: python/pyproject.toml
 	pip install -e python/
 
 python-docs-deps:
@@ -39,6 +39,7 @@ docker: java
 
 clean:
 	cd java/verticox && mvn clean
+	rm -rf python/__pycache__
 
 serve-docs:
 	mkdocs serve

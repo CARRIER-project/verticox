@@ -2,12 +2,11 @@ import vantage6.client as v6client
 from clize import run
 
 from verticox.client import VerticoxClient
-
-IMAGE = "harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox"
+from verticox.config import DOCKER_IMAGE
 
 
 def run_column_names_v6(host, port, user, password, private_key, tag="latest"):
-    image = f"{IMAGE}:{tag}"
+    image = f"{DOCKER_IMAGE}:{tag}"
 
     client = v6client.Client(host, port)
 
