@@ -43,7 +43,7 @@ jobs:
           context: .
           # Note: tags has to be all lower-case
           tags: |
-            ${{ env.HARBOR_HOST }}/carrier/verticox:dev
+            ${{ env.HARBOR_HOST }}/algorithms/verticox:dev
           # build on feature branches, push only on main branch
           push: true
           #${{ github.ref == 'refs/heads/main' }}

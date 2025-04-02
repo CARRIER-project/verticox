@@ -378,6 +378,6 @@
   ],
   "documentation_url": "https://carrier-project.github.io/verticox/",
   "partitioning": "vertical",
-  "image": "harbor2.vantage6.ai/carrier/verticox",
+  "image": "harbor2.vantage6.ai/algorithms/verticox",
   "vantage6_version": "4.7.1"
 }
