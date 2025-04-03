@@ -35,6 +35,7 @@ COPY java/verticox/target/verticox*.jar $JAR_PATH
 COPY python/ /app/
 
 WORKDIR /app
+RUN pip install setuptools
 RUN pip install -e .
 
 

@@ -1,10 +1,13 @@
 
-IMAGE_NAME ?= harbor.carrier-mu.src.surf-hosted.nl/carrier/verticox
+IMAGE_NAME ?= harbor2.vantage6.ai/carrier/verticox
 IMAGE_TAG ?=
 MVN_ARGS =
 MVN_SETTINGS ?=
+DOCKER_ARGS ?=
 
 JARFILE = java/verticox/target/verticox-1.0-SNAPSHOT.jar
+
+
 
 ifeq ($(IMAGE_TAG), )
 	image := $(IMAGE_NAME)
@@ -21,7 +24,9 @@ $(JARFILE):
 
 java: $(JARFILE)
 
-python:
+.PHONY: python
+
+python: python/pyproject.toml
 	pip install -e python/
 
 python-docs-deps:
@@ -33,12 +38,14 @@ docs: python-docs-deps
 deploy-docs: python-docs-deps
 	mkdocs gh-deploy --force
 
+.PHONY: docker
 
 docker: java
-	docker build -t $(image) .
+	docker build $(DOCKER_ARGS) -t $(image) .
 
 clean:
 	cd java/verticox && mvn clean
+	rm -rf python/__pycache__
 
 serve-docs:
 	mkdocs serve

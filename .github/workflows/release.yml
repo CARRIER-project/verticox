@@ -8,7 +8,7 @@
 
 name: Publish algorithm image
 env:
-  HARBOR_HOST: harbor.carrier-mu.src.surf-hosted.nl
+  HARBOR_HOST: harbor2.vantage6.ai
 
 on:
   release:
@@ -66,8 +66,8 @@ jobs:
           context: .
           # Note: tags has to be all lower-case
           tags: |
-            ${{ env.HARBOR_HOST }}/carrier/verticox:${{env.VERTICOX_VERSION}}
-            ${{ env.HARBOR_HOST }}/carrier/verticox
+            ${{ env.HARBOR_HOST }}/algorithms/verticox:${{env.VERTICOX_VERSION}}
+            ${{ env.HARBOR_HOST }}/algorithms/verticox
 
 
           # build on feature branches, push only on main branch
