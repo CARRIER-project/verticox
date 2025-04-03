@@ -24,6 +24,8 @@ $(JARFILE):
 
 java: $(JARFILE)
 
+.PHONY: python
+
 python: python/pyproject.toml
 	pip install -e python/
 
@@ -36,6 +38,7 @@ docs: python-docs-deps
 deploy-docs: python-docs-deps
 	mkdocs gh-deploy --force
 
+.PHONY: docker
 
 docker: java
 	docker build $(DOCKER_ARGS) -t $(image) .
