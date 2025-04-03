@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - main
-      - 220-move-algorithm-to-official-vantage6-docker-registry
 
 jobs:
   javabuild:
