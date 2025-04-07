@@ -20,3 +20,5 @@ python/build/
 .vscode/
 *.egg-info/
 site/
+config.py
+docs/demo.md
