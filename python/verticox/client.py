@@ -114,7 +114,7 @@ class VerticoxClient:
             "event_happened_column": right_censor_column,
             "datanode_ids": feature_nodes,
             "central_node_id": outcome_node,
-            "precision": precision,
+            "convergence_precision": precision,
         }
 
         return self._run_task(
@@ -196,9 +196,11 @@ class CrossValResult:
     baseline_hazards: List[HazardFunction]
 
     @staticmethod
-    def parse(partialResults: List[PartialResult]):
+    def parse(partialResults: list[dict]):
         # Cross validation should only have one partial result
-        c_indices, coefs, baseline_hazards = partialResults[0].content
+        result = partialResults[0]["result"]
+        result = json.loads(result)
+        c_indices, coefs, baseline_hazards = result
         baseline_hazards = [HazardFunction(*h) for h in baseline_hazards]
 
         return CrossValResult(c_indices, coefs, baseline_hazards)

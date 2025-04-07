@@ -108,7 +108,8 @@ def fit(
     finally:
         manager.kill_all_algorithms()
 
-
+@data(1)
+@algorithm_client
 def cross_validate(client: AlgorithmClient,
                    data: pd.DataFrame,
                    feature_columns: List[str],
@@ -149,6 +150,7 @@ def cross_validate(client: AlgorithmClient,
         # Make baseline hazard functions serializable
         baseline_hazards = [stepfunction_to_tuple(f) for f in baseline_hazards]
 
+        print(f'Returning c_indices: {c_indices}\ncoefs: {coefs}\nbaseline_hazards: {baseline_hazards}')
         return c_indices, coefs, baseline_hazards
     except Exception as e:
         info(f"Algorithm ended with exception {e}")

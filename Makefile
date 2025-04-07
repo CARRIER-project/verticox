@@ -29,13 +29,17 @@ java: $(JARFILE)
 python: python/pyproject.toml
 	pip install -e python/
 
+.PHONY: python-docs-deps
 python-docs-deps:
 	pip install -e "python[docs]"
 
-docs: python-docs-deps
+docs/demo.md: python python-docs-deps
+	jupyter nbconvert --to markdown --output-dir docs demo.ipynb
+
+docs: python-docs-deps docs/demo.md
 	mkdocs build
 
-deploy-docs: python-docs-deps
+deploy-docs: docs
 	mkdocs gh-deploy --force
 
 .PHONY: docker
