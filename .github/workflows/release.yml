@@ -9,6 +9,7 @@
 name: Publish algorithm image
 env:
   HARBOR_HOST: harbor2.vantage6.ai
+  MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN}}
 
 on:
   release:
@@ -56,7 +57,7 @@ jobs:
         uses: docker/login-action@v1
         with:
           registry: ${{ env.HARBOR_HOST }}
-          username: ${{ secrets.HARBOR_USERNAME }}
+          username: ${{ secrets.HARBOR_USER }}
           password: ${{ secrets.HARBOR_PASSWORD }}
 
       - name: Build image and push to Docker Hub and GitHub Container Registry
