@@ -9,7 +9,6 @@
 name: Publish algorithm image
 env:
   HARBOR_HOST: harbor2.vantage6.ai
-  MAVEN_TOKEN: ${{ secrets.GITHUB_TOKEN}}
 
 on:
   release:
