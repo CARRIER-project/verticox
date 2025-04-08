@@ -1,11 +1,24 @@
 site_name: Verticox+ docs
+site_url: https://carrier-project.github.io/verticox/
+repo_url: https://github.com/carrier-project/verticox
+repo_name: verticox
+
+nav:
+  - Introduction: index.md
+  - How to use: demo.md
+  - API: api.md
+  - Architecture: architecture.md
+  - Development: development.md
+  - Security considerations: security_considerations.md
+
 theme:
   name: material
 plugins:
-- mkdocstrings:
-    handlers:
-      python:
-        paths: [python]
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [python]
+  - search
 
 markdown_extensions:
   - pymdownx.arithmatex:

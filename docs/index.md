@@ -1,4 +1,4 @@
-# Welcome to verticox+'s documentation!
+# Introduction
 
 Verticox+ is a Cox proportional hazards algorithm for vertically distributed data.
 
@@ -60,3 +60,8 @@ for each sample whether it had an event at time \( t \) (indicated as 1) or not 
 \cdot
 \left[ \sum_{n=1}^{N} (\rho z_{nk}^{p-1} - \gamma_{nk}^{p-1} ) x_{nk}^{T} + \sum_{t=1}^{T} u_{kt} \right]
 \]
+
+Authors:
+
+- Djura Smits <d.smits@esciencecenter.nl>
+- Florian van Daalen <f.vandaalen@maastrichtuniversity.nl>
