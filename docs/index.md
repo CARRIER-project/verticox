@@ -10,6 +10,15 @@ This solution is extended with the scalar vector product protocol
 ([van Daalen et al.](https://doi.org/10.48550/arXiv.2112.09436)) to solve certain privacyconcerns in
 "vanilla" Verticox.
 
+## Quickstart
+The main way to use verticox+ is to run it within a vantage6 environment. For more info on vantage6, 
+see the [vantage6 documentation](https://docs.vantage6.ai/).
+
+When you have a vantage6 environment running either locally or remotely, you can test out verticox
+by running the [demo](demo.md).
+
+## Theory
+
 The original Verticox pseudocode can be summarized as below.
 The full pseudocode can be found in the original paper by Dai *et al.*
 
