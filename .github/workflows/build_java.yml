@@ -5,7 +5,7 @@ on:
 jobs:
   build:
     env:
-      MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN }}
+      MAVEN_TOKEN: ${{ secrets.GITHUB_TOKEN}}
       GITBOT: gitBot
     runs-on: ubuntu-latest
     permissions:

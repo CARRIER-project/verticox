@@ -9,21 +9,16 @@
 name: Publish algorithm image
 env:
   HARBOR_HOST: harbor2.vantage6.ai
-  MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN}}
 
 on:
   release:
     types: [ published ]
 
-permissions:
-  contents: write
-  packages: write
-
 jobs:
-  job1:
+  javabuild:
     uses: ./.github/workflows/build_java.yml
   build-and-push:
-    needs: job1
+    needs: javabuild
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
