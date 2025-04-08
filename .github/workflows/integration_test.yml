@@ -7,7 +7,7 @@ on:
   pull_request:
     branches: [ "main" ]
 env:
-  PWD: ./mock/
+  PWD: ./integration/
   MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN}}
 
 jobs:
@@ -44,7 +44,7 @@ jobs:
 
       - name: Run the compose until aggregator exits
 
-        working-directory: ./mock
+        working-directory: ./integration
         run: >
           export JARFILE=$GITHUB_WORKSPACE/java/verticox/target/verticox-1.0-SNAPSHOT.jar  && 
           docker compose up --build --exit-code-from aggregator

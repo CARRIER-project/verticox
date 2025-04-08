@@ -4,7 +4,7 @@ from pathlib import Path
 from test_constants import FEATURE_COLUMNS
 
 ROWS = 50
-OUTPUT_DIR = Path("../mock/data/")
+OUTPUT_DIR = Path("../integration/data/")
 FILENAMES = ["data_1", "data_2"]
 OUTCOME_FILENAME = "outcome"
 OUTCOME_COLUMN_NAMES = ["event_time", "event_happened"]
