@@ -9,21 +9,24 @@
 name: Publish algorithm image
 env:
   HARBOR_HOST: harbor2.vantage6.ai
-  MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN}}
+  MAVEN_TOKEN: ${{ secrets.GITHUB_TOKEN}}
 
 on:
   release:
     types: [ published ]
+  push:
+    branches:
+      - debug-release2
 
 permissions:
   contents: write
   packages: write
 
 jobs:
-  job1:
+  javabuild:
     uses: ./.github/workflows/build_java.yml
   build-and-push:
-    needs: job1
+    needs: javabuild
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -36,43 +39,43 @@ jobs:
         with:
           name: jarfile
           path: java/verticox/target
-      - name: Run Dunamai to get version
-        uses: mtkennerly/dunamai-action@v1.1.0
-        with:
-          # Version of Dunamai to install (e.g., "1.3.0").
-          # Name of environment variable in which to set the dynamic version.
-          #If this is empty, no environment variable will be set.
-          env-var: "VERTICOX_VERSION"# optional, default is
-          # Command to run Dunamai.
-          #command: # optional, default is dunamai from any
-          # Additional arguments to pass to the command.
-          args: --style semver --no-metadata
-
-        # setup Docker build action
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Login to Harbor
-        uses: docker/login-action@v1
-        with:
-          registry: ${{ env.HARBOR_HOST }}
-          username: ${{ secrets.HARBOR_USER }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Build image and push to Docker Hub and GitHub Container Registry
-        uses: docker/build-push-action@v4
-        with:
-          # relative path to the place where source code with Dockerfile is located
-          context: .
-          # Note: tags has to be all lower-case
-          tags: |
-            ${{ env.HARBOR_HOST }}/algorithms/verticox:${{env.VERTICOX_VERSION}}
-            ${{ env.HARBOR_HOST }}/algorithms/verticox
-
-
-          # build on feature branches, push only on main branch
-          push: true
-
-      - name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}
+#      - name: Run Dunamai to get version
+#        uses: mtkennerly/dunamai-action@v1.1.0
+#        with:
+#          # Version of Dunamai to install (e.g., "1.3.0").
+#          # Name of environment variable in which to set the dynamic version.
+#          #If this is empty, no environment variable will be set.
+#          env-var: "VERTICOX_VERSION"# optional, default is
+#          # Command to run Dunamai.
+#          #command: # optional, default is dunamai from any
+#          # Additional arguments to pass to the command.
+#          args: --style semver --no-metadata
+#
+#        # setup Docker build action
+#      - name: Set up Docker Buildx
+#        id: buildx
+#        uses: docker/setup-buildx-action@v2
+#
+#      - name: Login to Harbor
+#        uses: docker/login-action@v1
+#        with:
+#          registry: ${{ env.HARBOR_HOST }}
+#          username: ${{ secrets.HARBOR_USER }}
+#          password: ${{ secrets.HARBOR_PASSWORD }}
+#
+#      - name: Build image and push to Docker Hub and GitHub Container Registry
+#        uses: docker/build-push-action@v4
+#        with:
+#          # relative path to the place where source code with Dockerfile is located
+#          context: .
+#          # Note: tags has to be all lower-case
+#          tags: |
+#            ${{ env.HARBOR_HOST }}/algorithms/verticox:${{env.VERTICOX_VERSION}}
+#            ${{ env.HARBOR_HOST }}/algorithms/verticox
+#
+#
+#          # build on feature branches, push only on main branch
+#          push: true
+#
+#      - name: Image digest
+#        run: echo ${{ steps.docker_build.outputs.digest }}

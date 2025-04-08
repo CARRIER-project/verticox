@@ -1,7 +1,7 @@
 name: Build and Publish
 env:
   HARBOR_HOST: harbor2.vantage6.ai
-  MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN}}
+  MAVEN_TOKEN: ${{ secrets.GITHUB_TOKEN}}
 on:
   # run it on push to the default repository branch
   push:
