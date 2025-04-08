@@ -29,7 +29,7 @@ from verticox.node_manager import LocalNodeManager
 _logger = logging.getLogger()
 _logger.setLevel(os.environ.get("LOGLEVEL", "INFO"))
 
-TEST_DATA_PATH = "mock/data"
+TEST_DATA_PATH = "integration/data"
 COVARIATE_FILES = ["data_1.parquet", "data_2.parquet"]
 OUTCOME_FILE = "outcome.parquet"
 DECIMAL_PRECISION = 3
