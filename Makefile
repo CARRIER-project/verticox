@@ -51,5 +51,5 @@ clean:
 	cd java/verticox && mvn clean
 	rm -rf python/__pycache__
 
-serve-docs:
+serve-docs: docs
 	mkdocs serve
