@@ -10,6 +10,7 @@ plugins:
 markdown_extensions:
   - pymdownx.arithmatex:
       generic: true
+  - pymdownx.blocks.caption
 
 extra_javascript:
   - javascripts/mathjax.js
