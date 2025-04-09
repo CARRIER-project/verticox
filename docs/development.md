@@ -57,3 +57,12 @@ analysis.
 ```
 
 ## Further development
+If this code would be developed further, it would be good to add the following features:
+
+### Sample size threshold
+In order to further prevent data leakage, a threshold should be added to prevent the 
+analysis from being run if the sample size is below a certain threshold. 
+
+### Upgrade to latest vantage6 version
+The current version of vantage6 that is being used is 4.7.1. In order to make it compatible with
+the latest version, the code should comply with the new client api.

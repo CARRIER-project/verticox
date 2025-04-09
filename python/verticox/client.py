@@ -42,7 +42,13 @@ class VerticoxClient:
 
         self.collaboration_id = collaborations[0]["id"]
 
-    def get_active_node_organizations(self):
+    def get_active_node_organizations(self) -> List[int]:
+        """
+        Get the organization ids of the active nodes in the collaboration.
+
+        Returns: a list of organization ids
+
+        """
         nodes = self._v6client.node.list(is_online=True)
 
         # TODO: Add pagination support
@@ -50,6 +56,15 @@ class VerticoxClient:
         return [n["organization"]["id"] for n in nodes]
 
     def get_column_names(self, **kwargs):
+        """
+        Get the column names of the dataset at all active nodes.
+
+        Args:
+            **kwargs:
+
+        Returns:
+
+        """
         active_nodes = self.get_active_node_organizations()
         self._logger.debug(f"There are currently {len(active_nodes)} active nodes")
 
@@ -84,7 +99,7 @@ class VerticoxClient:
             database: If the nodes have multiple datasources, indicate the label of the datasource
             you would like to use. Otherwise the default will be used.
 
-        Returns:
+        Returns: a `Task` object containing info about the task.
 
         """
         input_params = {
@@ -107,7 +122,28 @@ class VerticoxClient:
                        feature_nodes,
                        outcome_node,
                        precision=_DEFAULT_PRECISION,
+                       n_splits = 10,
                        database="default"):
+        """
+        Run cox proportional hazard analysis on the entire dataset using cross-validation. Uses 10
+        fold by default.
+
+        Args:
+            feature_columns: a list of column names that you want to use as features
+            outcome_time_column: the column name of the outcome time
+            right_censor_column: the column name of the binary value that indicates if an event
+            happened.
+            feature_nodes: A list of node ids from the datasources that contain the feature columns
+            outcome_node: The node id of the datasource that contains the outcome
+            precision: precision of the verticox algorithm. The smaller the number, the more
+            precise the result. Smaller precision will take longer to compute though. The default is
+            1e-5
+            n_splits: The number of folds to use for cross-validation. Default is 10.
+            database: If the nodes have multiple datasources, indicate the label of the datasource
+            you would like to use. Otherwise the default will be used.
+
+        Returns: a `Task` object containing info about the task.
+        """
         input_params = {
             "feature_columns": feature_columns,
             "event_times_column": outcome_time_column,
@@ -115,6 +151,7 @@ class VerticoxClient:
             "datanode_ids": feature_nodes,
             "central_node_id": outcome_node,
             "convergence_precision": precision,
+            "n_splits": n_splits,
         }
 
         return self._run_task(
@@ -166,6 +203,10 @@ class VerticoxClient:
 
 @dataclass
 class FitResult:
+    """
+    FitResult contains the result of a fit task. It contains the coefficients and the baseline
+    hazard function.
+    """
     coefs: Dict[str, float]
     baseline_hazard: HazardFunction
 
@@ -191,6 +232,10 @@ class FitResult:
 
 @dataclass
 class CrossValResult:
+    """
+    CrossValResult contains the result of a cross-validation task. It contains the c-indices,
+    coefficients and baseline hazard functions for each fold.
+    """
     c_indices: List[float]
     coefs: List[Dict[str, float]]
     baseline_hazards: List[HazardFunction]
@@ -217,20 +262,27 @@ class CrossValResult:
 
 
 class Task:
-
+    """
+    Task is a wrapper around the vantage6 task object.
+    """
     def __init__(self, client: Client, task_data):
         self._raw_data = task_data
         self.client = client
         self.task_id = task_data["id"]
 
-    def get_results(self, timeout=_TIMEOUT):
+    def get_results(self) -> PartialResult:
+        """
+        Get the results of the task. This will block until the task is finished.
+
+        Returns:
+
+        """
         results = self.client.wait_for_results(self.task_id)
-        print(f"Results: {results}")
         return self._parse_results(results["data"])
 
 
     @staticmethod
-    def _parse_results(results):
+    def _parse_results(results) -> FitResult| CrossValResult:
         return results
 
 

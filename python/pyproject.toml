@@ -56,4 +56,6 @@ build-backend = "setuptools.build_meta"
 pythonpath = "."
 addopts = "-v --log-level=INFO --log-file=test.log"
 
+[tool.ruff]
+indent-width = 4
 

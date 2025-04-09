@@ -13,17 +13,28 @@ nav:
 
 theme:
   name: material
+  logo: images/vantage6.png
+  palette:
+    primary: white
 plugins:
   - mkdocstrings:
       handlers:
         python:
           paths: [python]
+      docstring_style: google
   - search
 
 markdown_extensions:
   - pymdownx.arithmatex:
       generic: true
   - pymdownx.blocks.caption
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
 
 extra_javascript:
   - javascripts/mathjax.js

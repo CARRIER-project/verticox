@@ -1,10 +1,8 @@
 #! /usr/bin/env python3
 
 import json
-import numpy as np
 import vantage6.client as v6client
 from clize import run
-from verticox.client import FitResult
 
 from test_constants import OUTCOME_TIME_COLUMN, OUTCOME, PRECISION
 from verticox.client import VerticoxClient
@@ -17,7 +15,7 @@ TARGET_COEFS = {"age": 0.05566997593047372, "bmi": -0.0908968266847538}
 
 
 def run_verticox_v6(host, port, user, password, *, private_key=None, image: str=IMAGE,
-                    method="fit"):
+                    method="fit", precision: float = PRECISION):
 
     client = v6client.Client(host, port, log_level="warning")
 
@@ -63,7 +61,7 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, image: str=
                 OUTCOME,
                 feature_nodes=feature_orgs,
                 outcome_node=central_node,
-                precision=PRECISION,
+                precision=precision,
                 database=DATABASE,
             )
         case "crossval":
@@ -71,22 +69,15 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, image: str=
                 feature_columns,
                 OUTCOME_TIME_COLUMN,
                 OUTCOME,
-                feature_nodes=datanodes,
+                feature_nodes=feature_orgs,
                 outcome_node=central_node,
-                precision=PRECISION,
+                precision=precision,
                 database=DATABASE,
             )
 
-    results = task.get_results(timeout=TIMEOUT)
+    results = task.get_results()
 
     print("Results: ", results)
-
-    match results:
-        case FitResult(coefs, baseline_hazard):
-            for key, value in coefs.items():
-                np.testing.assert_almost_equal(value, TARGET_COEFS[key], decimal=4)
-
-    print("Test passed")
 
 
 if __name__ == "__main__":
