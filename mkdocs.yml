@@ -13,6 +13,9 @@ nav:
 
 theme:
   name: material
+  logo: images/vantage6.png
+  palette:
+    primary: white
 plugins:
   - mkdocstrings:
       handlers:
