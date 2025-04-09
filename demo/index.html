@@ -1,0 +1,834 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://carrier-project.github.io/verticox/demo/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../api/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.11">
+    
+    
+      
+        <title>How to use - Verticox+ docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.4af4bdda.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#demo" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Verticox+ docs" class="md-header__button md-logo" aria-label="Verticox+ docs" data-md-component="logo">
+      
+  <img src="../images/vantage6.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Verticox+ docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              How to use
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/carrier-project/verticox" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    verticox
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Verticox+ docs" class="md-nav__button md-logo" aria-label="Verticox+ docs" data-md-component="logo">
+      
+  <img src="../images/vantage6.png" alt="logo">
+
+    </a>
+    Verticox+ docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/carrier-project/verticox" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    verticox
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Introduction
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    How to use
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    How to use
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-generic-vantage6-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      The generic vantage6 client
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-to-end-encryption" class="md-nav__link">
+    <span class="md-ellipsis">
+      End-to-end encryption
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-you-collaboration-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      Getting you collaboration id
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verticoxclient" class="md-nav__link">
+    <span class="md-ellipsis">
+      VerticoxClient
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#column-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      Column names
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      Getting results
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-cox-proportional-hazard-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running cox proportional hazard analysis
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#crossvalidation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Crossvalidation
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Development
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security_considerations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Security considerations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-generic-vantage6-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      The generic vantage6 client
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-to-end-encryption" class="md-nav__link">
+    <span class="md-ellipsis">
+      End-to-end encryption
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-you-collaboration-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      Getting you collaboration id
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verticoxclient" class="md-nav__link">
+    <span class="md-ellipsis">
+      VerticoxClient
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#column-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      Column names
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      Getting results
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-cox-proportional-hazard-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running cox proportional hazard analysis
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#crossvalidation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Crossvalidation
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="demo">Demo</h1>
+<p>This demo is both available as documentation page and Jupyter notebook. <a href="https://github.com/CARRIER-project/verticox/blob/main/demo.ipynb">The notebook can be found in the git repository</a>.</p>
+<p>More info about running algorithms using vantage6 can be found in the <a href="https://docs.vantage6.ai/en/main/user/pyclient.html">vantage6 documentation</a></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">vantage6.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Client</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">verticox.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerticoxClient</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">verticox.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">DOCKER_IMAGE</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">config</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="o">%</span><span class="n">matplotlib</span> <span class="n">inline</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">DOCKER_IMAGE</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">DOCKER_IMAGE</span><span class="si">}</span><span class="s2">:dev&quot;</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">DOCKER_IMAGE</span> <span class="o">=</span> <span class="s2">&quot;test&quot;</span>
+</span></code></pre></div>
+<p>The convention is to create your own file named <code>config.py</code> that contains your credentials. You can also use it to store your v6 server address and port.
+For a vantage6 demo network this file could look as follows:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">V6_USER</span> <span class="o">=</span> <span class="s2">&quot;dev_admin&quot;</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">V6_PASSWORD</span> <span class="o">=</span> <span class="s2">&quot;password&quot;</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">V6_SERVER_URL</span> <span class="o">=</span> <span class="s2">&quot;http://localhost&quot;</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">V6_SERVER_PORT</span> <span class="o">=</span> <span class="mi">7601</span>
+</span></code></pre></div>
+<h2 id="the-generic-vantage6-client">The generic vantage6 client</h2>
+<p>We need the <code>vantage6.client.Client</code> to connect with the vantage6 server.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">V6_SERVER_URL</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">V6_SERVER_PORT</span><span class="p">)</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code> Welcome to
+                  _                     __  
+                 | |                   / /  
+__   ____ _ _ __ | |_ __ _  __ _  ___ / /_  
+\ \ / / _` | &#39;_ \| __/ _` |/ _` |/ _ \ &#39;_ \ 
+ \ V / (_| | | | | || (_| | (_| |  __/ (_) |
+  \_/ \__,_|_| |_|\__\__,_|\__, |\___|\___/ 
+                            __/ |           
+                           |___/
+
+ --&gt; Join us on Discord! https://discord.gg/rwRvwyK
+ --&gt; Docs: https://docs.vantage6.ai
+ --&gt; Blog: https://vantage6.ai
+------------------------------------------------------------
+Cite us!
+If you publish your findings obtained using vantage6, 
+please cite the proper sources as mentioned in:
+https://vantage6.ai/vantage6/references
+------------------------------------------------------------
+</code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">client</span><span class="o">.</span><span class="n">authenticate</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">V6_USER</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">V6_PASSWORD</span><span class="p">)</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code>Successfully authenticated
+ --&gt; Succesfully authenticated
+ --&gt; Name: admin (id=1)
+ --&gt; Organization: org_1 (id=1)
+</code></pre></div>
+<h2 id="end-to-end-encryption">End-to-end encryption</h2>
+<p>Some vantage6 installations use end-to-end encryption. This means that the communication between nodes is encrypted. Some of this communication is relayed through the vantage6 server but this server can't read this.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1">#client.setup_encryption(&quot;your_private_key.pem&quot;)</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">client</span><span class="o">.</span><span class="n">setup_encryption</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+</span></code></pre></div>
+<h2 id="getting-you-collaboration-id">Getting you collaboration id</h2>
+<p>Vantage6 connects organizations together with the concept of <em>collaborations</em>.
+A collaboration is basically a collection of organizations that are allowed to run algorithms together.</p>
+<p>If you're running algorithms you sometimes need to specify your collaboration id. That is why we are retrieving it.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">collaborations</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">collaboration</span><span class="o">.</span><span class="n">list</span><span class="p">()</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">collaborations</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]:</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Name: </span><span class="si">{</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> id: </span><span class="si">{</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code>Name: demo id: 1
+</code></pre></div>
+<h2 id="verticoxclient">VerticoxClient</h2>
+<p>We have created a dedicated client to work with the verticox algorithm more easily.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">verticox_client</span> <span class="o">=</span> <span class="n">VerticoxClient</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">DOCKER_IMAGE</span><span class="p">)</span>
+</span></code></pre></div>
+<h2 id="column-names">Column names</h2>
+<p>We first need to know the names of the columns at the various datasources.</p>
+<p>Whenever we run something on vantage6 we create a task. We can use that task later to get the results back.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">task</span> <span class="o">=</span> <span class="n">verticox_client</span><span class="o">.</span><span class="n">get_column_names</span><span class="p">()</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code>                    task = self.v6client.task.create(collaboration=1,
+                                             organizations=[1, 2, 3],
+                                             name=method,
+                                             image=test,
+                                             description=,
+                                             input={&#39;method&#39;: &#39;column_names&#39;, &#39;master&#39;: False, &#39;kwargs&#39;: {&#39;database&#39;: &#39;default&#39;}},
+                                             data_format=json,
+                                             database=default
+                                             )
+</code></pre></div>
+<h2 id="getting-results">Getting results</h2>
+<p>In the <code>VerticoxClient</code>, you can get results by running <code>task.get_results</code></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">results</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">run_id</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;run&quot;</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">run</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">run_id</span><span class="p">)</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">organization</span> <span class="o">=</span> <span class="n">run</span><span class="p">[</span><span class="s2">&quot;organization&quot;</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="n">columns</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">&#39;result&#39;</span><span class="p">])</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;organization: </span><span class="si">{</span><span class="n">organization</span><span class="si">}</span><span class="s2">, columns: </span><span class="si">{</span><span class="n">columns</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code>Done!                  Results: {&#39;data&#39;: [{&#39;run&#39;: {&#39;id&#39;: 572, &#39;link&#39;: &#39;/api/run/572&#39;, &#39;methods&#39;: [&#39;GET&#39;, &#39;PATCH&#39;]}, &#39;result&#39;: &#39;[&quot;event_time&quot;, &quot;event_happened&quot;]&#39;, &#39;id&#39;: 572, &#39;task&#39;: {&#39;id&#39;: 374, &#39;link&#39;: &#39;/api/task/374&#39;, &#39;methods&#39;: [&#39;DELETE&#39;, &#39;GET&#39;]}}, {&#39;run&#39;: {&#39;id&#39;: 571, &#39;link&#39;: &#39;/api/run/571&#39;, &#39;methods&#39;: [&#39;GET&#39;, &#39;PATCH&#39;]}, &#39;result&#39;: &#39;[&quot;Months_from_Diagnosis&quot;, &quot;Prior_therapy&quot;, &quot;Treatment&quot;]&#39;, &#39;id&#39;: 571, &#39;task&#39;: {&#39;id&#39;: 374, &#39;link&#39;: &#39;/api/task/374&#39;, &#39;methods&#39;: [&#39;DELETE&#39;, &#39;GET&#39;]}}, {&#39;run&#39;: {&#39;id&#39;: 570, &#39;link&#39;: &#39;/api/run/570&#39;, &#39;methods&#39;: [&#39;GET&#39;, &#39;PATCH&#39;]}, &#39;result&#39;: &#39;[&quot;Age_in_years&quot;, &quot;Celltype&quot;, &quot;Karnofsky_score&quot;]&#39;, &#39;id&#39;: 570, &#39;task&#39;: {&#39;id&#39;: 374, &#39;link&#39;: &#39;/api/task/374&#39;, &#39;methods&#39;: [&#39;DELETE&#39;, &#39;GET&#39;]}}], &#39;links&#39;: {&#39;first&#39;: &#39;/api/result?task_id=374&amp;page=1&#39;, &#39;self&#39;: &#39;/api/result?task_id=374&amp;page=1&#39;, &#39;last&#39;: &#39;/api/result?task_id=374&amp;page=1&#39;}}
+--&gt; Attempting to decrypt results!
+organization: 3, columns: [&#39;event_time&#39;, &#39;event_happened&#39;]
+--&gt; Attempting to decrypt results!
+organization: 2, columns: [&#39;Months_from_Diagnosis&#39;, &#39;Prior_therapy&#39;, &#39;Treatment&#39;]
+--&gt; Attempting to decrypt results!
+organization: 1, columns: [&#39;Age_in_years&#39;, &#39;Celltype&#39;, &#39;Karnofsky_score&#39;]
+</code></pre></div>
+<h2 id="running-cox-proportional-hazard-analysis">Running cox proportional hazard analysis</h2>
+<p>If you want to fit a model on the entire dataset you can run <code>VerticoxClient.fit</code></p>
+<p>Args:</p>
+<ul>
+<li><strong>feature_columns:</strong> a list of column names that you want to use as features</li>
+<li><strong>outcome_time_column:</strong> the column name of the outcome time</li>
+<li><strong>right_censor_column:</strong> the column name of the binary value that indicates if an event happened.</li>
+<li><strong>feature_nodes:</strong> A list of node ids from the datasources that contain the feature columns</li>
+<li><strong>outcome_node:</strong> The node id of the datasource that contains the outcome</li>
+<li><strong>precision:</strong> precision of the verticox algorithm. The smaller the number, the more
+  precise the result. Smaller precision will take longer to compute though. The default is
+  1e-5</li>
+<li><strong>database:</strong> If the nodes have multiple datasources, indicate the label of the datasource
+  you would like to use. Otherwise the default will be used.</li>
+</ul>
+<p>Make sure you specify the feature and outcome columns and the nodes that apply to your setup.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">feature_columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Months_from_Diagnosis&#39;</span><span class="p">,</span> <span class="s1">&#39;Age_in_years&#39;</span><span class="p">]</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">outcome_time_column</span><span class="o">=</span><span class="s1">&#39;event_time&#39;</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">right_censor_column</span><span class="o">=</span><span class="s1">&#39;event_happened&#39;</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">feature_nodes</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">outcome_node</span><span class="o">=</span><span class="mi">3</span>
+</span></code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">task</span> <span class="o">=</span> <span class="n">verticox_client</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">feature_columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Months_from_Diagnosis&#39;</span><span class="p">,</span> <span class="s1">&#39;Age_in_years&#39;</span><span class="p">],</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>                    <span class="n">outcome_time_column</span><span class="o">=</span><span class="n">outcome_time_column</span><span class="p">,</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>                    <span class="n">right_censor_column</span><span class="o">=</span><span class="n">right_censor_column</span><span class="p">,</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>                    <span class="n">feature_nodes</span><span class="o">=</span><span class="n">feature_nodes</span><span class="p">,</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>                    <span class="n">outcome_node</span><span class="o">=</span><span class="n">outcome_node</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>                   <span class="p">)</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code>                    task = self.v6client.task.create(collaboration=1,
+                                             organizations=[3],
+                                             name=method,
+                                             image=test,
+                                             description=,
+                                             input={&#39;method&#39;: &#39;fit&#39;, &#39;master&#39;: True, &#39;kwargs&#39;: {&#39;feature_columns&#39;: [&#39;Months_from_Diagnosis&#39;, &#39;Age_in_years&#39;], &#39;event_times_column&#39;: &#39;event_time&#39;, &#39;event_happened_column&#39;: &#39;event_happened&#39;, &#39;datanode_ids&#39;: [1, 2], &#39;central_node_id&#39;: 3, &#39;precision&#39;: 1e-05, &#39;database&#39;: &#39;default&#39;}},
+                                             data_format=json,
+                                             database=default
+                                             )
+</code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">results</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code>Done!                  Results: {&#39;data&#39;: [{&#39;run&#39;: {&#39;id&#39;: 573, &#39;link&#39;: &#39;/api/run/573&#39;, &#39;methods&#39;: [&#39;GET&#39;, &#39;PATCH&#39;]}, &#39;result&#39;: &#39;{&quot;coefs&quot;: {&quot;Age_in_years&quot;: 0.003928637132048607, &quot;Months_from_Diagnosis&quot;: 0.009109284728765488}, &quot;baseline_hazard_x&quot;: [1.0, 2.0, 3.0, 4.0, 7.0, 8.0, 10.0, 11.0, 12.0, 13.0, 15.0, 16.0, 18.0, 19.0, 20.0, 21.0, 22.0, 24.0, 25.0, 27.0, 29.0, 30.0, 31.0, 33.0, 35.0, 36.0, 42.0, 43.0, 44.0, 45.0, 48.0, 49.0, 51.0, 52.0, 53.0, 54.0, 56.0, 59.0, 61.0, 63.0, 72.0, 73.0, 80.0, 82.0, 83.0, 84.0, 87.0, 90.0, 92.0, 95.0, 97.0, 99.0, 100.0, 103.0, 105.0, 110.0, 111.0, 112.0, 117.0, 118.0, 122.0, 123.0, 126.0, 132.0, 133.0, 139.0, 140.0, 143.0, 144.0, 151.0, 153.0, 156.0, 162.0, 164.0, 177.0, 182.0, 186.0, 200.0, 201.0, 216.0, 228.0, 231.0, 242.0, 250.0, 260.0, 278.0, 283.0, 287.0, 314.0, 340.0, 357.0, 378.0, 384.0, 389.0, 392.0, 411.0, 467.0, 553.0, 587.0, 991.0, 999.0], &quot;baseline_hazard_y&quot;: [0.005326103650510642, 0.005406326385005742, 0.005454988195933041, 0.005491439606158308, 0.005526904353807684, 0.005655915348016739, 0.0058673036461558, 0.005967908304327523, 0.006015829961280382, 0.006118354717360321, 0.006216931713352177, 0.006321381668957605, 0.006372833025452199, 0.006541132251089796, 0.006649907842504151, 0.006770443529499726, 0.006893412679744294, 0.006958393973469465, 0.007086252713859597, 0.0073921102505184345, 0.007467862784212865, 0.007546734029882196, 0.007705001541573937, 0.007856890860021334, 0.00794163174666074, 0.008027535502497091, 0.00811659543114285, 0.008211618298564724, 0.008302984017762036, 0.008406428699952284, 0.008502759812445575, 0.008607097720138047, 0.008696053906103564, 0.009127312350274449, 0.009451124796772311, 0.009582050080085053, 0.009830867000947206, 0.009960196936355435, 0.0100923491575739, 0.010226444176098927, 0.010367968950686358, 0.010520425673041641, 0.010672338419134246, 0.011009732792730993, 0.011186647793935982, 0.011349882399941637, 0.011522928646629597, 0.011870386827212332, 0.012083695433456129, 0.012291253962850118, 0.012675730471284778, 0.012893965040809557, 0.013356692936586739, 0.013854926188756621, 0.014377348138231057, 0.014679706255267584, 0.015055687175000646, 0.015683040020846504, 0.01601890986145049, 0.016663167833490446, 0.017069036818638583, 0.017544986470431227, 0.01794663350807346, 0.018405867446281306, 0.018847748729804097, 0.01931648349343108, 0.019813751484030605, 0.020344353160173006, 0.020923924712666738, 0.021522119068784023, 0.022221740723013552, 0.022964256552296333, 0.023682037497504648, 0.025287612051432845, 0.026282887255509743, 0.027361121204579557, 0.028369638660979028, 0.029456760583359127, 0.030639512851043098, 0.0322013990008373, 0.033728748005086046, 0.03514305306638737, 0.03905821813817985, 0.04119596458441893, 0.04357365549038198, 0.04608155436551294, 0.0493294047988791, 0.052555298631483616, 0.05747088630809162, 0.062480050328861565, 0.06850906589347278, 0.07585637559355607, 0.08443111898565195, 0.09466279197247372, 0.10793828114370953, 0.12642468511702307, 0.15234472961765222, 0.1903111617254013, 0.24816075394804712, 0.3651046490110427, 0.7250912096685127]}&#39;, &#39;id&#39;: 573, &#39;task&#39;: {&#39;id&#39;: 375, &#39;link&#39;: &#39;/api/task/375&#39;, &#39;methods&#39;: [&#39;DELETE&#39;, &#39;GET&#39;]}}], &#39;links&#39;: {&#39;first&#39;: &#39;/api/result?task_id=375&amp;page=1&#39;, &#39;self&#39;: &#39;/api/result?task_id=375&amp;page=1&#39;, &#39;last&#39;: &#39;/api/result?task_id=375&amp;page=1&#39;}}
+</code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">results</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</span></code></pre></div>
+<p><img alt="png" src="../demo_files/demo_20_0.png" /></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">coefs</span><span class="p">)</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">baseline_hazard</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">baseline_hazard</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code>{&#39;Age_in_years&#39;: 0.003928637132048607, &#39;Months_from_Diagnosis&#39;: 0.009109284728765488}
+[1.0, 2.0, 3.0, 4.0, 7.0, 8.0, 10.0, 11.0, 12.0, 13.0, 15.0, 16.0, 18.0, 19.0, 20.0, 21.0, 22.0, 24.0, 25.0, 27.0, 29.0, 30.0, 31.0, 33.0, 35.0, 36.0, 42.0, 43.0, 44.0, 45.0, 48.0, 49.0, 51.0, 52.0, 53.0, 54.0, 56.0, 59.0, 61.0, 63.0, 72.0, 73.0, 80.0, 82.0, 83.0, 84.0, 87.0, 90.0, 92.0, 95.0, 97.0, 99.0, 100.0, 103.0, 105.0, 110.0, 111.0, 112.0, 117.0, 118.0, 122.0, 123.0, 126.0, 132.0, 133.0, 139.0, 140.0, 143.0, 144.0, 151.0, 153.0, 156.0, 162.0, 164.0, 177.0, 182.0, 186.0, 200.0, 201.0, 216.0, 228.0, 231.0, 242.0, 250.0, 260.0, 278.0, 283.0, 287.0, 314.0, 340.0, 357.0, 378.0, 384.0, 389.0, 392.0, 411.0, 467.0, 553.0, 587.0, 991.0, 999.0]
+[0.005326103650510642, 0.005406326385005742, 0.005454988195933041, 0.005491439606158308, 0.005526904353807684, 0.005655915348016739, 0.0058673036461558, 0.005967908304327523, 0.006015829961280382, 0.006118354717360321, 0.006216931713352177, 0.006321381668957605, 0.006372833025452199, 0.006541132251089796, 0.006649907842504151, 0.006770443529499726, 0.006893412679744294, 0.006958393973469465, 0.007086252713859597, 0.0073921102505184345, 0.007467862784212865, 0.007546734029882196, 0.007705001541573937, 0.007856890860021334, 0.00794163174666074, 0.008027535502497091, 0.00811659543114285, 0.008211618298564724, 0.008302984017762036, 0.008406428699952284, 0.008502759812445575, 0.008607097720138047, 0.008696053906103564, 0.009127312350274449, 0.009451124796772311, 0.009582050080085053, 0.009830867000947206, 0.009960196936355435, 0.0100923491575739, 0.010226444176098927, 0.010367968950686358, 0.010520425673041641, 0.010672338419134246, 0.011009732792730993, 0.011186647793935982, 0.011349882399941637, 0.011522928646629597, 0.011870386827212332, 0.012083695433456129, 0.012291253962850118, 0.012675730471284778, 0.012893965040809557, 0.013356692936586739, 0.013854926188756621, 0.014377348138231057, 0.014679706255267584, 0.015055687175000646, 0.015683040020846504, 0.01601890986145049, 0.016663167833490446, 0.017069036818638583, 0.017544986470431227, 0.01794663350807346, 0.018405867446281306, 0.018847748729804097, 0.01931648349343108, 0.019813751484030605, 0.020344353160173006, 0.020923924712666738, 0.021522119068784023, 0.022221740723013552, 0.022964256552296333, 0.023682037497504648, 0.025287612051432845, 0.026282887255509743, 0.027361121204579557, 0.028369638660979028, 0.029456760583359127, 0.030639512851043098, 0.0322013990008373, 0.033728748005086046, 0.03514305306638737, 0.03905821813817985, 0.04119596458441893, 0.04357365549038198, 0.04608155436551294, 0.0493294047988791, 0.052555298631483616, 0.05747088630809162, 0.062480050328861565, 0.06850906589347278, 0.07585637559355607, 0.08443111898565195, 0.09466279197247372, 0.10793828114370953, 0.12642468511702307, 0.15234472961765222, 0.1903111617254013, 0.24816075394804712, 0.3651046490110427, 0.7250912096685127]
+</code></pre></div>
+<h2 id="crossvalidation">Crossvalidation</h2>
+<p>It's also possible to run crossvalidation. The parameters are similar to the <code>fit</code> method.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">crossval_task</span> <span class="o">=</span> <span class="n">verticox_client</span><span class="o">.</span><span class="n">cross_validate</span><span class="p">(</span><span class="n">feature_columns</span><span class="o">=</span><span class="n">feature_columns</span><span class="p">,</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>                    <span class="n">outcome_time_column</span><span class="o">=</span><span class="n">outcome_time_column</span><span class="p">,</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>                    <span class="n">right_censor_column</span><span class="o">=</span><span class="n">right_censor_column</span><span class="p">,</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>                    <span class="n">feature_nodes</span><span class="o">=</span><span class="n">feature_nodes</span><span class="p">,</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>                    <span class="n">outcome_node</span><span class="o">=</span><span class="n">outcome_node</span><span class="p">,</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>                    <span class="n">precision</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>                   <span class="p">)</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code>                    task = self.v6client.task.create(collaboration=1,
+                                             organizations=[3],
+                                             name=method,
+                                             image=test,
+                                             description=,
+                                             input={&#39;method&#39;: &#39;cross_validate&#39;, &#39;master&#39;: True, &#39;kwargs&#39;: {&#39;feature_columns&#39;: [&#39;Months_from_Diagnosis&#39;, &#39;Age_in_years&#39;], &#39;event_times_column&#39;: &#39;event_time&#39;, &#39;event_happened_column&#39;: &#39;event_happened&#39;, &#39;datanode_ids&#39;: [1, 2], &#39;central_node_id&#39;: 3, &#39;convergence_precision&#39;: 0.01, &#39;database&#39;: &#39;default&#39;}},
+                                             data_format=json,
+                                             database=default
+                                             )
+</code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">crossval_result</span> <span class="o">=</span> <span class="n">crossval_task</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code>Done!                  Results: {&#39;data&#39;: [{&#39;run&#39;: {&#39;id&#39;: 582, &#39;link&#39;: &#39;/api/run/582&#39;, &#39;methods&#39;: [&#39;GET&#39;, &#39;PATCH&#39;]}, &#39;result&#39;: &#39;[[0.54, 0.5075757575757576, 0.46893491124260356, 0.48714285714285716, 0.4935483870967742], [{&quot;Age_in_years&quot;: 0.002558924490585923, &quot;Months_from_Diagnosis&quot;: 0.007024750113487244}, {&quot;Age_in_years&quot;: -0.0010991113958880305, &quot;Months_from_Diagnosis&quot;: 0.008867615833878517}, {&quot;Age_in_years&quot;: 0.008877694606781006, &quot;Months_from_Diagnosis&quot;: 0.006313976366072893}, {&quot;Age_in_years&quot;: 0.0029411751311272383, &quot;Months_from_Diagnosis&quot;: 0.013149532489478588}, {&quot;Age_in_years&quot;: 0.0037725227884948254, &quot;Months_from_Diagnosis&quot;: 0.007962649688124657}], [[[1.0, 3.0, 4.0, 7.0, 8.0, 10.0, 11.0, 13.0, 15.0, 16.0, 18.0, 19.0, 20.0, 21.0, 24.0, 25.0, 27.0, 29.0, 30.0, 31.0, 33.0, 35.0, 36.0, 42.0, 43.0, 45.0, 48.0, 49.0, 51.0, 52.0, 53.0, 54.0, 56.0, 59.0, 61.0, 63.0, 72.0, 80.0, 82.0, 83.0, 84.0, 87.0, 90.0, 92.0, 95.0, 97.0, 99.0, 100.0, 103.0, 105.0, 111.0, 112.0, 118.0, 122.0, 123.0, 126.0, 132.0, 133.0, 139.0, 140.0, 143.0, 144.0, 162.0, 164.0, 182.0, 186.0, 200.0, 201.0, 216.0, 228.0, 231.0, 242.0, 250.0, 278.0, 283.0, 287.0, 340.0, 357.0, 378.0, 411.0, 467.0, 553.0, 587.0, 991.0, 999.0], [0.007412674171186806, 0.007488651104566306, 0.007553137854552637, 0.007616950478186405, 0.007839196405276241, 0.008026241534241377, 0.00819524115891717, 0.008278110821491894, 0.008360257198926, 0.008533668095838939, 0.00862031689279331, 0.0089021129212728, 0.008993093181999517, 0.009194599036312062, 0.009402147741229725, 0.009617500928931252, 0.010122215933975, 0.010250846466982317, 0.010384509430768803, 0.010514866050800986, 0.010641131853410268, 0.010782099988729227, 0.010926104409106895, 0.011075740212450417, 0.011233173267758757, 0.011389860930467939, 0.011550163516722951, 0.011721476852802056, 0.011877787808349666, 0.012556707612963097, 0.012937250190888257, 0.013156500212188468, 0.01336672065689876, 0.013587294822120774, 0.013812060149998348, 0.014042580496873644, 0.014287662086639197, 0.014548161347418702, 0.01480849838371187, 0.015094601320500676, 0.015368732062111399, 0.015658801558784866, 0.016255256110648028, 0.01661346655404249, 0.016967870013903524, 0.01765669177389395, 0.01804340055889348, 0.01887195433786103, 0.019787641484294516, 0.020783401213685153, 0.02135099981730697, 0.02251275221160828, 0.023146472894972164, 0.023850814239039956, 0.024671196821682385, 0.02540814784696718, 0.026242697852422274, 0.02707919531249837, 0.027973181245286565, 0.028935174086523758, 0.029975969458010312, 0.031126751635541745, 0.032343316228649666, 0.03510692384148549, 0.036816001390014876, 0.038500646887817534, 0.0403505524129925, 0.04241869715441821, 0.04507777776733487, 0.0478134477591911, 0.05053307005531846, 0.058026028289138554, 0.062386755611926435, 0.06748735999440235, 0.07385896691308537, 0.08075070624566667, 0.09113695355800643, 0.10299902814870897, 0.11851273721519336, 0.13844098894293486, 0.16657670134067798, 0.20795946418344435, 0.27286083530870087, 0.40319830556850433, 0.8005318768357108]], [[1.0, 2.0, 4.0, 7.0, 8.0, 10.0, 11.0, 12.0, 13.0, 15.0, 16.0, 18.0, 19.0, 20.0, 21.0, 22.0, 25.0, 27.0, 30.0, 31.0, 33.0, 35.0, 43.0, 44.0, 45.0, 48.0, 49.0, 51.0, 52.0, 54.0, 56.0, 59.0, 63.0, 72.0, 73.0, 80.0, 83.0, 84.0, 87.0, 90.0, 92.0, 95.0, 97.0, 99.0, 100.0, 105.0, 110.0, 111.0, 112.0, 117.0, 118.0, 122.0, 123.0, 132.0, 133.0, 139.0, 140.0, 143.0, 144.0, 151.0, 153.0, 156.0, 162.0, 164.0, 177.0, 186.0, 201.0, 231.0, 250.0, 260.0, 278.0, 283.0, 287.0, 314.0, 357.0, 384.0, 389.0, 392.0, 411.0, 467.0, 553.0, 587.0, 991.0, 999.0], [0.008966289610198776, 0.009142159691272437, 0.009253070391106939, 0.0093376997900685, 0.009605435597726362, 0.010047871522299075, 0.010148880137669696, 0.010257753309008934, 0.010472491025914504, 0.010687966446109946, 0.010927308041448218, 0.011045284623731558, 0.011164902529162427, 0.01142461182760136, 0.011691368722145995, 0.0119593371576601, 0.012098454945289534, 0.012433379814089427, 0.012590358831510764, 0.012755565761948858, 0.01307976520410939, 0.013250129021805291, 0.013425379276196291, 0.013616347162072237, 0.01381176361746975, 0.013995782964100385, 0.014183946089616067, 0.014385134502009693, 0.01524964554683303, 0.015959451759573164, 0.016209556212461333, 0.016493194100663387, 0.01675508888481482, 0.017053916947674833, 0.017345684752218066, 0.017636586133763992, 0.018295548695324217, 0.01862422535285887, 0.018966099222354996, 0.019314409926256954, 0.019753324695054923, 0.02015980847172243, 0.02098104797375358, 0.021419886936288216, 0.022336929413495254, 0.02341103587887881, 0.023986809186082963, 0.02469778537342617, 0.025936420776763842, 0.02661805763344831, 0.02807734949578077, 0.02891054741458883, 0.029957920611812187, 0.03085140399404535, 0.031822813595255815, 0.03280672887695535, 0.033863050991900505, 0.03499874066661077, 0.03627466463592451, 0.03759305291350223, 0.03910891947679908, 0.04079438594263142, 0.042433099951771164, 0.04426730846996186, 0.046446758390754295, 0.04888009180954917, 0.05129045073858505, 0.05468611213078991, 0.06179509229435451, 0.06592068181672267, 0.07054745962322577, 0.07612094876515298, 0.08213833909609637, 0.09079570630435706, 0.10106291584117934, 0.11309728840473329, 0.12807825403721812, 0.14583877797233294, 0.16962392027767426, 0.20320805526522007, 0.25174251042763773, 0.33270486668420507, 0.48968453649451227, 0.9540307424684884]], [[1.0, 2.0, 3.0, 7.0, 8.0, 10.0, 11.0, 12.0, 13.0, 15.0, 16.0, 18.0, 19.0, 20.0, 21.0, 22.0, 24.0, 25.0, 27.0, 29.0, 30.0, 31.0, 33.0, 35.0, 36.0, 42.0, 44.0, 45.0, 48.0, 49.0, 51.0, 52.0, 53.0, 54.0, 56.0, 59.0, 61.0, 72.0, 73.0, 80.0, 82.0, 84.0, 87.0, 90.0, 92.0, 95.0, 97.0, 99.0, 100.0, 103.0, 105.0, 110.0, 111.0, 112.0, 117.0, 123.0, 126.0, 132.0, 133.0, 139.0, 143.0, 144.0, 151.0, 153.0, 156.0, 162.0, 164.0, 177.0, 182.0, 200.0, 216.0, 228.0, 231.0, 242.0, 250.0, 260.0, 278.0, 283.0, 287.0, 314.0, 340.0, 357.0, 378.0, 384.0, 389.0, 392.0, 467.0, 553.0, 587.0, 991.0, 999.0], [0.005114953165334537, 0.005152537021776577, 0.005202261851563439, 0.005242979688478247, 0.005343128681573049, 0.005509271807568896, 0.005573632719210167, 0.005625095976143411, 0.005746869954023716, 0.005862844382403917, 0.0059804400702960555, 0.006039741239065371, 0.006237426517896001, 0.006356223248335501, 0.00642935743459919, 0.006498302965647335, 0.006578483798330266, 0.006726732565463294, 0.007098469008522302, 0.007191573082274729, 0.007291550414769116, 0.007489611937695699, 0.007590067601977053, 0.007697166108787432, 0.007805364270039375, 0.007917071766604911, 0.008051253938452956, 0.008184417777664082, 0.00831234697040116, 0.008460387499500064, 0.008562927579334252, 0.008698804192902266, 0.008951792170967036, 0.009109841087671374, 0.009420360112191504, 0.009562704943568067, 0.009730512068794942, 0.009899666589303713, 0.010092347852947927, 0.010289360605590967, 0.010515607050274583, 0.010737524576600894, 0.01094654701621935, 0.011136799141842922, 0.011363458867181419, 0.011607070208016003, 0.0118448538661567, 0.01210137198020159, 0.012367523499565427, 0.012670505480606177, 0.013176000017488813, 0.013519050781610361, 0.013932746338658467, 0.014284444050285752, 0.014654807602832642, 0.015317497351504344, 0.015717300765412, 0.016188452788960157, 0.016621323546967656, 0.01711780013569082, 0.01764829105390504, 0.018224564823073348, 0.01884061981539214, 0.019574672135007215, 0.02033541141228161, 0.021116731781291143, 0.022859978624421372, 0.02396124764641052, 0.025159506877761074, 0.026322442447399133, 0.027443823399241875, 0.02882361229429652, 0.030060948574734934, 0.03164870303849792, 0.03364344081781211, 0.035663699964175094, 0.03773468398482646, 0.040627816523960386, 0.04343851952718562, 0.0478076030255727, 0.0518778944173271, 0.05748462170869814, 0.06418766187147813, 0.07271144803128954, 0.08185842793587544, 0.09560045145889355, 0.1164879095903916, 0.14712127789088816, 0.19011258894813185, 0.28132891687447, 0.5739785818440031]], [[1.0, 2.0, 3.0, 4.0, 7.0, 8.0, 10.0, 12.0, 13.0, 15.0, 16.0, 18.0, 19.0, 20.0, 21.0, 22.0, 24.0, 25.0, 27.0, 29.0, 30.0, 31.0, 35.0, 36.0, 42.0, 43.0, 44.0, 48.0, 51.0, 52.0, 53.0, 54.0, 61.0, 63.0, 73.0, 80.0, 82.0, 83.0, 87.0, 92.0, 95.0, 97.0, 99.0, 100.0, 103.0, 105.0, 110.0, 111.0, 112.0, 117.0, 118.0, 122.0, 123.0, 126.0, 133.0, 140.0, 144.0, 151.0, 153.0, 156.0, 162.0, 164.0, 177.0, 182.0, 186.0, 200.0, 201.0, 216.0, 228.0, 231.0, 242.0, 250.0, 260.0, 278.0, 283.0, 314.0, 340.0, 357.0, 378.0, 384.0, 389.0, 392.0, 411.0, 587.0], [0.006677596104370252, 0.006805337326586104, 0.006891026123642256, 0.0069475423115454805, 0.007002907642550343, 0.007069995063288799, 0.007351347028092475, 0.007510434651390282, 0.007665810972184938, 0.007738900260533041, 0.007899055324470005, 0.007976669066635387, 0.008235757173862487, 0.008406954639410042, 0.008501250932123765, 0.008596162995960863, 0.00869235613333566, 0.008886071270507006, 0.009369117152710379, 0.009487622254819604, 0.009610987571576933, 0.009860762124005697, 0.01010131159348087, 0.010235572433016926, 0.01037675377484684, 0.0105228033412427, 0.010672707609182376, 0.010841367655664144, 0.011000889134379084, 0.011813069901578018, 0.01215534086438822, 0.012369106999445779, 0.012764207494593468, 0.012968140700768151, 0.013195884635419455, 0.013422249835398204, 0.013948229417731725, 0.014225452283698455, 0.014478813135223886, 0.015006801241834141, 0.015321497721938651, 0.015900636725614602, 0.016231401477084653, 0.016577317583818016, 0.017339707559401635, 0.018184391377343467, 0.0186605434803606, 0.019304802989258886, 0.019797499020247345, 0.02031674021300906, 0.021330372737393615, 0.02198651833428439, 0.022834422681731772, 0.023490364918210778, 0.024262502073638677, 0.025000035694588703, 0.025807821962905916, 0.026681344922709734, 0.02774310960460509, 0.02890328956915924, 0.029983621171444253, 0.0311891886360759, 0.03270680719510338, 0.034392499835240724, 0.03591426304701032, 0.0375896200637141, 0.03955368050221351, 0.042376165097667416, 0.04508801593705151, 0.04758370490344786, 0.055011408648175456, 0.05905566448917129, 0.06395969196797043, 0.06936851444392, 0.07688481953736097, 0.08464767134977737, 0.09637806317074162, 0.11112286075245584, 0.13171852315530524, 0.1583308112447384, 0.19832396769049612, 0.26245074013981223, 0.39637348101039255, 0.8105544598504546]], [[1.0, 2.0, 3.0, 4.0, 7.0, 8.0, 10.0, 11.0, 12.0, 13.0, 18.0, 19.0, 20.0, 21.0, 22.0, 24.0, 25.0, 29.0, 30.0, 31.0, 33.0, 36.0, 42.0, 43.0, 44.0, 45.0, 49.0, 51.0, 52.0, 53.0, 54.0, 56.0, 59.0, 61.0, 63.0, 72.0, 73.0, 80.0, 82.0, 83.0, 84.0, 87.0, 90.0, 95.0, 99.0, 100.0, 103.0, 110.0, 111.0, 117.0, 118.0, 122.0, 126.0, 132.0, 139.0, 140.0, 143.0, 151.0, 153.0, 156.0, 162.0, 177.0, 182.0, 186.0, 200.0, 201.0, 216.0, 228.0, 231.0, 242.0, 260.0, 287.0, 314.0, 340.0, 378.0, 384.0, 389.0, 392.0, 411.0, 467.0, 553.0, 991.0, 999.0], [0.006757802032273075, 0.0068842047675952015, 0.006959543159843521, 0.00701837908001735, 0.007075960449716788, 0.007284794826132239, 0.007625025105720839, 0.007791265789024771, 0.007871497748856728, 0.008044452772307363, 0.0082135351058008, 0.008397722637853268, 0.008488164367117808, 0.008682120291903723, 0.008882616075838439, 0.008989153565978097, 0.009200574796477106, 0.00943277639773436, 0.009556477715393481, 0.009807047377791554, 0.01005157265267764, 0.010188327399739273, 0.010329512653801352, 0.010481229518722962, 0.010627502404540313, 0.010793164351724817, 0.010950198390594048, 0.011093244234807526, 0.011583120158880567, 0.012103489493081947, 0.012313835870964868, 0.012722280260117893, 0.012935235089651763, 0.013156196290296561, 0.013382220373246292, 0.01362067670987006, 0.013880001332229632, 0.014141792738663058, 0.014726145960318095, 0.015037236713295146, 0.015329969745350528, 0.015642770237511577, 0.016282398745590936, 0.01667299701511806, 0.01700576966072517, 0.017807740384196108, 0.018221520348413747, 0.019115206495777377, 0.019729230401671568, 0.02080413665456635, 0.021893126938936972, 0.02258276213553009, 0.023388976434608647, 0.024158867551700398, 0.024915268581029725, 0.02573854516355262, 0.0266288296054466, 0.027611505712072097, 0.028744400508410636, 0.029965663934987338, 0.031183528199356214, 0.033980563135643446, 0.035750579479653426, 0.03747033559462469, 0.039364739214346474, 0.041460864171433784, 0.04425072523130757, 0.047108918619220674, 0.04988685519908714, 0.053881161456341926, 0.05798202652552451, 0.06244704561862874, 0.06921226334654902, 0.07638870610492549, 0.08538002662343229, 0.09621777927693181, 0.10947684835643319, 0.12737953160894583, 0.15346160797028413, 0.19262267544746065, 0.25654330797575636, 0.37246571804146944, 0.7413606761751308]]]]&#39;, &#39;id&#39;: 582, &#39;task&#39;: {&#39;id&#39;: 382, &#39;link&#39;: &#39;/api/task/382&#39;, &#39;methods&#39;: [&#39;DELETE&#39;, &#39;GET&#39;]}}], &#39;links&#39;: {&#39;first&#39;: &#39;/api/result?task_id=382&amp;page=1&#39;, &#39;self&#39;: &#39;/api/result?task_id=382&amp;page=1&#39;, &#39;last&#39;: &#39;/api/result?task_id=382&amp;page=1&#39;}}
+</code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">crossval_result</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</span></code></pre></div>
+<p><img alt="png" src="../demo_files/demo_25_0.png" /></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.c8b220af.min.js"></script>
+      
+        <script src="../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
