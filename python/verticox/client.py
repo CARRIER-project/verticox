@@ -122,6 +122,7 @@ class VerticoxClient:
                        feature_nodes,
                        outcome_node,
                        precision=_DEFAULT_PRECISION,
+                       n_splits = 10,
                        database="default"):
         """
         Run cox proportional hazard analysis on the entire dataset using cross-validation. Uses 10
@@ -137,6 +138,7 @@ class VerticoxClient:
             precision: precision of the verticox algorithm. The smaller the number, the more
             precise the result. Smaller precision will take longer to compute though. The default is
             1e-5
+            n_splits: The number of folds to use for cross-validation. Default is 10.
             database: If the nodes have multiple datasources, indicate the label of the datasource
             you would like to use. Otherwise the default will be used.
 
@@ -149,6 +151,7 @@ class VerticoxClient:
             "datanode_ids": feature_nodes,
             "central_node_id": outcome_node,
             "convergence_precision": precision,
+            "n_splits": n_splits,
         }
 
         return self._run_task(
@@ -275,7 +278,6 @@ class Task:
 
         """
         results = self.client.wait_for_results(self.task_id)
-        print(f"Results: {results}")
         return self._parse_results(results["data"])
 
 
