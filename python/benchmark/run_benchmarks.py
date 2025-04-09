@@ -250,7 +250,7 @@ def main(parameter_table: str, *, dataset="seer", repeats=1):
                     writer.writerow({"comment": "Not enough features"})
                     print("Skipping")
                 except DockerException:
-                    print(f"Current run threw error, skipping")
+                    print("Current run threw error, skipping")
                     writer.writerow({"records": records, "features": features,
                                      "parties": parties, "comment": "error", })
 

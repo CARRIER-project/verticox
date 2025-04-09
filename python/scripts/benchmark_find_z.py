@@ -36,7 +36,6 @@ def main():
     rho = RHO
     Rt = group_samples_at_risk(event_times)
     Dt = group_samples_on_event_time(event_times, event_happened)
-    K = 1
     deaths_per_t = Aggregator.compute_deaths_per_t(event_times, event_happened)
     eps = EPSILON
     relevant_event_times = Aggregator._group_relevant_event_times(event_times)

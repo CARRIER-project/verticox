@@ -23,7 +23,7 @@ SIGMA = Z
 RHO = 2.0
 DT = {t: np.array([t], dtype=int) for t in EVENT_TIMES}
 EPSILON = 1e-5
-DEATHS_PER_T = {t: len(l) for t, l in DT.items()}
+DEATHS_PER_T = {t: len(list_) for t, list_ in DT.items()}
 RELEVANT_EVENT_TIMES = {
     k: np.array([t for t in RT.keys() if t <= k]) for k in RT.keys()
 }

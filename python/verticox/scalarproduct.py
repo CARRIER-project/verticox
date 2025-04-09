@@ -91,7 +91,7 @@ class NPartyScalarProductClient:
                 pass
 
     def activate_fold(self, activated: Iterable[bool]):
-        _logger.debug(f"Activating fold")
+        _logger.debug("Activating fold")
         activated = list(activated)
         payload = {"activeRecords": activated}
         self._post("activateFold", json=payload)
@@ -117,7 +117,7 @@ class NPartyScalarProductClient:
             "secretServer": f"{_PROTOCOL}{internal_address}",
             "servers": other_nodes,
         }
-        debug(f"Initializing central server")
+        debug("Initializing central server")
         self._post(_INIT_CENTRAL_SERVER, json=json, timeout=_LONG_TIMEOUT)
 
         self._post(_SET_ID, params={"id": _COMMODITY_ID})

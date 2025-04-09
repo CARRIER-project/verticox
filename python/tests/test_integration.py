@@ -39,11 +39,11 @@ NUM_SELECTED_ROWS = 20
 
 
 @parser.value_converter
-def strlist(l: str):
-    return l.split(",")
+def str_list(some_string: str):
+    return some_string.split(",")
 
 
-def compute_central_coefs(all_data_features, all_data_outcome):
+def compute_central_coefficients(all_data_features, all_data_outcome):
     central_model = CoxPHSurvivalAnalysis()
     with warnings.catch_warnings():
         warnings.filterwarnings('error', category=LinAlgWarning)
@@ -53,7 +53,7 @@ def compute_central_coefs(all_data_features, all_data_outcome):
     return coef_dict
 
 
-def compare_central_coefs(decentralized: dict[str, float], centralized: dict[str, float]) -> \
+def compare_central_coefficients(decentralized: dict[str, float], centralized: dict[str, float]) -> \
         dict[str, float]:
     """
     Compares coefficients to results from centralized computation.
@@ -95,8 +95,8 @@ def compare_central_coefs(decentralized: dict[str, float], centralized: dict[str
 class IntegrationTest(ABC):
 
     def run(self, local_data, all_data, event_times_column, event_happened_column, *,
-            pythonnodes: strlist = ("pythonnode1:7777", "pythonnode2:7777"),
-            javanodes: strlist = ("javanode1:80", "javanode2:80", "javanode-outcome:80"),
+            pythonnodes: str_list = ("pythonnode1:7777", "pythonnode2:7777"),
+            javanodes: str_list = ("javanode1:80", "javanode2:80", "javanode-outcome:80"),
             total_num_iterations=None):
         """
         Run an integration test
@@ -131,10 +131,13 @@ class IntegrationTest(ABC):
         end_time = datetime.now()
         preparation_runtime = end_time - start_time
         start_time = datetime.now()
-        results = self.run_integration_test(all_data_features, all_data_outcome, node_manager,
+        self.run_integration_test(all_data_features, all_data_outcome, node_manager,
                                             check_correct)
         end_time = datetime.now()
         runtime = end_time - start_time
+
+        print(f"Finished test. Preparation took {preparation_runtime} seconds\n"
+              f"Convergence took {runtime} seconds")
 
     @staticmethod
     def run_integration_test(all_data_features, all_data_outcome, node_manager,
@@ -157,7 +160,7 @@ class OnlyTrain(IntegrationTest):
         )
         try:
             # Doing central one first to see if it succeeds
-            target_coefs = compute_central_coefs(all_data_features, all_data_outcome)
+            target_coefs = compute_central_coefficients(all_data_features, all_data_outcome)
 
             node_manager.reset()
             node_manager.fit()
@@ -165,7 +168,7 @@ class OnlyTrain(IntegrationTest):
             print(f"Betas: {coefs}")
             print(f"Baseline hazard ratio {node_manager.baseline_hazard}")
 
-            comparison_metrics = compare_central_coefs(coefs, target_coefs)
+            comparison_metrics = compare_central_coefficients(coefs, target_coefs)
             comparison_metrics["comment"] = "success"
 
             print(f"Benchmark output: {json.dumps(comparison_metrics)}")
@@ -173,8 +176,8 @@ class OnlyTrain(IntegrationTest):
             if check_correct:
                 for key, value in target_coefs.items():
                     np.testing.assert_almost_equal(value, coefs[key], decimal=DECIMAL_PRECISION)
-                print(f"Central and decentralized models are equal.")
-        except (LinAlgWarning, LinAlgError) as e:
+                print("Central and decentralized models are equal.")
+        except (LinAlgWarning, LinAlgError):
             output = {"mse": None, "sad": None, "mad": None, "comment": "unsolvable"}
             print(f"Benchmark output: {json.dumps(output)}")
 
@@ -223,8 +226,8 @@ class TrainTest(IntegrationTest):
         central_c_index, _, _, _, _ = concordance_index_censored(event_indicator, event_time,
                                                                  central_predictions)
 
-        target_coefs = compute_central_coefs(all_data_features_train, all_data_outcome_train)
-        comparison_metrics = compare_central_coefs(coefs, target_coefs)
+        target_coefs = compute_central_coefficients(all_data_features_train, all_data_outcome_train)
+        comparison_metrics = compare_central_coefficients(coefs, target_coefs)
         comparison_metrics.update({"c_index_verticox": c_index, "c_index_central": central_c_index})
         comparison_metrics["comment"] = "success"
         print(f"Benchmark output: {json.dumps(comparison_metrics)}")
