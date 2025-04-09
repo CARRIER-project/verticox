@@ -21,7 +21,6 @@ def run_verticox_v6(host, port, user, password, *, private_key=None, image: str=
 
     client.authenticate(user, password)
     client.setup_encryption(private_key)
-    nodes = client.node.list(is_online=True)
 
     verticox_client = VerticoxClient(client, image=image)
 

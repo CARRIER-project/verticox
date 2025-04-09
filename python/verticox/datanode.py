@@ -136,7 +136,6 @@ class DataNode(DataNodeServicer):
         return Empty()
 
     def _prepare(self, gamma, z, beta, rho):
-        num_samples = self.split.train.shape[0]
         covariates_multiplied = DataNode._multiply_features(self.split.train)
         sum_Dt = self._compute_sum_Dt_n_party_scalar_product(
             self.feature_names,

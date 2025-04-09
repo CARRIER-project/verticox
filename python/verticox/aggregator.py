@@ -18,7 +18,7 @@ from verticox.grpc.datanode_pb2 import (
     AverageSigmaRequest,
 )
 from verticox.grpc.datanode_pb2_grpc import DataNodeStub
-from verticox.likelihood import find_z, find_z_fast
+from verticox.likelihood import find_z_fast
 
 logger = logging.getLogger(__name__)
 

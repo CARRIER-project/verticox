@@ -236,7 +236,7 @@ class BaseNodeManager(ABC):
         print(f"Preparation runtime: {preparation_runtime.total_seconds()}")
         print(f"Fitting runtime: {runtime.total_seconds()}")
 
-        info(f"Finished fitting model")
+        info("Finished fitting model")
 
         betas = self._aggregator.betas_
         baseline_hazard = self._aggregator.baseline_hazard_function_
