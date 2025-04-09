@@ -21,6 +21,7 @@ plugins:
       handlers:
         python:
           paths: [python]
+      docstring_style: google
   - search
 
 markdown_extensions:

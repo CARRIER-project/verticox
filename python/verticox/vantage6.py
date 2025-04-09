@@ -1,10 +1,9 @@
 import os
-import shutil
 import subprocess
 import time
 import traceback
 from pathlib import Path
-from typing import List, Union, Tuple, NamedTuple
+from typing import List, Union, Tuple
 
 import pandas as pd
 from sksurv.functions import StepFunction
@@ -38,34 +37,40 @@ def fit(
         feature_columns: List[str],
         event_times_column: str,
         event_happened_column: str,
-        include_value=True,
+        include_value: any = True,
         datanode_ids: List[int] = None,
         central_node_id: int = None,
         precision: float = DEFAULT_PRECISION,
-        rho=DEFAULT_RHO,
-        database=None,
+        rho: float = DEFAULT_RHO,
+        database: str|None = None,
         *_args,
         **_kwargs,
 ):
     """
+    Fit a cox proportional hazards model using the Verticox+ algorithm
 
     Args:
-        client:
-        data:
-        feature_columns:
-        event_times_column:
-        event_happened_column:
-        include_value:
-        datanode_ids:
-        central_node_id:
-        precision:
-        rho:
+        client: v6 client provided by the algorithm wrapper
+        data: dataframe containing the data, provided by algorithm wrapper
+        feature_columns: The columns to be used as features
+        event_times_column: The name of the column that contains the event times
+        event_happened_column: The name of the column that contains whether an event has happened,
+        or whether the sample is right censored.
+        include_value: The value in the event_happened_column that means the record is NOT right-censored
+        datanode_ids: List of organization ids of the nodes that will be used as feature nodes
+        central_node_id:  Organization id of the node that will be used as the central node. This
+        node should contain the outcome data.
+        precision: Precision for the Cox model. The algorithm will stop when the difference
+        between iterations falls below this number
+        rho: Penalty parameter
+        database: Name of the database to be used (default is "default")
         *_args:
         **_kwargs:
 
-    Returns:
-
+    Returns: A dictionary containing the coefficients of the model ("coefs") and the baseline
+    hazard function of the model ("baseline_hazard_x" and "baseline_hazard_y").
     """
+
     # Preprocessing data
     # TODO: This can removed once we move to v6 version 5.x
     columns = Columns(feature_columns, event_times_column, event_happened_column)
@@ -119,10 +124,37 @@ def cross_validate(client: AlgorithmClient,
                    datanode_ids: List[int] = None,
                    central_node_id: int = None,
                    convergence_precision: float = DEFAULT_PRECISION,
-                   rho=DEFAULT_RHO,
-                   n_splits=DEFAULT_KFOLD_SPLITS,
+                   rho: float = DEFAULT_RHO,
+                   n_splits: int = DEFAULT_KFOLD_SPLITS,
                    *_args,
                    **_kwargs):
+    """
+    Fit a cox proportional hazards model using the Verticox+ algorithm using crossvalidation.
+    Works similarly to the `fit` method, but trains multiple times on smaller subsets of the data
+    using k-fold crossvalidation.
+
+    Args:
+        client: v6 client provided by the algorithm wrapper
+        data: dataframe containing the data, provided by algorithm wrapper
+        feature_columns: The columns to be used as features
+        event_times_column: The name of the column that contains the event times
+        event_happened_column: The name of the column that contains whether an event has happened,
+        or whether the sample is right censored.
+        include_value: The value in the event_happened_column that means the record is NOT right-censored
+        datanode_ids: List of organization ids of the nodes that will be used as feature nodes
+        central_node_id:  Organization id of the node that will be used as the central node. This
+        node should contain the outcome data.
+        between iterations falls below this number
+        convergence_precision: Precision for the Cox model. The algorithm will stop when the difference
+        rho: Penalty parameter
+        n_splits: Number of splits for crossvalidation
+        *_args:
+        **_kwargs:
+
+    Returns:  A tuple containing 3 lists: `c_indices`, `coefs`, `baseline_hazards`
+
+    """
+
     manager = node_manager.V6NodeManager(
         client,
         data,
@@ -148,7 +180,7 @@ def cross_validate(client: AlgorithmClient,
 
         info("Killing datanodes")
         # Make baseline hazard functions serializable
-        baseline_hazards = [stepfunction_to_tuple(f) for f in baseline_hazards]
+        baseline_hazards = [_stepfunction_to_tuple(f) for f in baseline_hazards]
 
         print(f'Returning c_indices: {c_indices}\ncoefs: {coefs}\nbaseline_hazards: {baseline_hazards}')
         return c_indices, coefs, baseline_hazards
@@ -159,7 +191,7 @@ def cross_validate(client: AlgorithmClient,
         manager.kill_all_algorithms()
 
 
-def stepfunction_to_tuple(f: StepFunction) -> Tuple[
+def _stepfunction_to_tuple(f: StepFunction) -> Tuple[
     List[Union[int, float]], List[Union[int, float]]]:
     """
     Converts stepfunction to a tuple of lists. This makes the object serializable.
@@ -189,6 +221,17 @@ def _get_data_dir(database:str= "default"):
 
 @data(1)
 def no_op(*args, **kwargs):
+    """
+    A function that does nothing for a while. It is used as a partial algorithm within the verticox+
+    algorithm and and should not be called by itself.
+
+    Args:
+        *args:
+        **kwargs:
+
+    Returns:
+
+    """
     info(f"Sleeping for {NO_OP_TIME}")
     time.sleep(NO_OP_TIME)
     info("Shutting down.")
@@ -205,18 +248,19 @@ def run_datanode(
         data: pd.DataFrame,
         *args,
         selected_columns: List[str] = (),
-        event_time_column: str = None,
-        include_column: str = None,
-        include_value: bool = None,
-        external_commodity_address=None,
+        event_time_column: str|None = None,
+        include_column: str|None = None,
+        include_value: bool|None = None,
+        external_commodity_address: str|None = None,
         address=None,
         **kwargs,
 ):
     """
-    Starts the datanode as gRPC server
+    Starts the datanode (feature node) as gRPC server. This function is a partial function called by
+    the main verticox algorithm. It is not meant to be called by itself.
+
     Args:
-        data: the entire dataset
-        external_commodity_address:
+        data: the entire dataset, provided by the algorithm wrapper
         include_value: This value in the data means the record is NOT right-censored
         selected_columns: the names of the columns that will be treated as features (covariants) in
         the analysis
@@ -224,7 +268,8 @@ def run_datanode(
         include_column: the name of the column that indicates whether an event has taken
                                 place or whether the sample is right censored. If the value is
                                 False, the sample is right censored.
-        address:
+        external_commodity_address: Address of the n-party product protocol commodity server
+        address: The address where this server will be running.
 
     Returns: None
 
@@ -261,21 +306,37 @@ def run_datanode(
 @data(1)
 def column_names(data: pd.DataFrame, *args, **kwargs):
     """
+    Returns the names of the columns in the data. Useful to investigate the dataset before
+    running the actual algorithm.
 
 
     Args:
-        client:
-        data:
+        client: v6 client provided by the algorithm wrapper
+        data: dataframe containing the data, provided by algorithm wrapper
 
-    Returns:
+    Returns: a list of column names
 
     """
     return data.columns.tolist()
 
 
 @data(1)
-def run_java_server(_data, *_args, database=None, features=None, event_times_column=None,
+def run_java_server(_data: pd.DataFrame, *_args, features=None,
+                    event_times_column=None,
                     event_happened_column=None, **kwargs):
+    """
+    Partial function that starts the java server. This function is called by the main verticox+
+    algorithm (`fit` or `cross_validate`) and should not be called by itself.
+    Args:
+        _data: data provided by the vantage6 algorithm wrapper
+        *_args:
+        features: list of column names that will be used as features
+        event_times_column: Name of the column that contains the event times
+        event_happened_column: Name of the column that contains whether an event has happened,
+        or whether the sample is right-censored
+        **kwargs:
+
+    """
     info("Starting java server")
     command = _get_java_command()
     info(f"Running command: {command}")
@@ -291,6 +352,19 @@ def run_java_server(_data, *_args, database=None, features=None, event_times_col
 def test_sum_local_features(
         data: pd.DataFrame, features: List[str], mask, *args, **kwargs
 ):
+    """
+    Obsolete
+
+    Args:
+        data:
+        features:
+        mask:
+        *args:
+        **kwargs:
+
+    Returns:
+
+    """
     # Only check requested features
     data = data[features]
 
