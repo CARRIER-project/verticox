@@ -21,4 +21,4 @@ outcome data needs to be available at all parties.
 ## References
 
 - <a id="1">[1]</a> van Daalen, F., Smits, D., Ippel, L. et al. Verticox+: vertically distributed Cox proportional hazards model with improved privacy guarantees. Complex Intell. Syst. 11, 388 (2025), https://doi.org/10.1007/s40747-025-02022-4
-- <a id="2">[2]</a> W. Dai, X. Jiang, L. Bonomi, Y. Li, H. Xiong and L. Ohno-Machado, "VERTICOX: Vertically Distributed Cox Proportional Hazards Model Using the Alternating Direction Method of Multipliers," in IEEE Transactions on Knowledge and Data Engineering, vol. 34, no. 2, pp. 996-1010, 1 Feb. 2022, doi: 10.1109/TKDE.2020.2989301.
+- <a id="2">[2]</a> W. Dai, X. Jiang, L. Bonomi, Y. Li, H. Xiong and L. Ohno-Machado, "VERTICOX: Vertically Distributed Cox Proportional Hazards Model Using the Alternating Direction Method of Multipliers," in IEEE Transactions on Knowledge and Data Engineering, vol. 34, no. 2, pp. 996-1010, 1 Feb. 2022, doi: https://10.1109/TKDE.2020.2989301.
