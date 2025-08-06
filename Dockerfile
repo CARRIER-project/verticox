@@ -1,4 +1,4 @@
-    FROM eclipse-temurin:17.0.14_7-jdk as runner
+FROM eclipse-temurin:17.0.14_7-jdk as runner
 
 ARG PKG_NAME="verticox"
 ENV JAR_PATH="/app/verticox.jar"
@@ -26,7 +26,10 @@ RUN arch=$(uname -m) && \
     bash miniconda.sh -b -p /root/miniconda3 && \
     rm -f miniconda.sh
 
-RUN conda create -n verticox python=3.10
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main &&\
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+
+RUN conda create -y -n verticox python=3.10
 ENV PATH="/root/miniconda3/envs/verticox/bin:${PATH}"
 
 COPY java/verticox/target/verticox*.jar $JAR_PATH
