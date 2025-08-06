@@ -1,5 +1,7 @@
 [![Build and Publish](https://github.com/CARRIER-project/verticox/actions/workflows/push.yml/badge.svg)](https://github.com/CARRIER-project/verticox/actions/workflows/push.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13933626.svg)](https://doi.org/10.5281/zenodo.13933626)
+[![Paper DOI](https://img.shields.io/badge/Paper_DOI-10.1007%2Fs40747--025--02022--4-blue)](https://doi.org/10.1007/s40747-025-02022-4)
+
 
 [Documentation](https://carrier-project.github.io/verticox/)
 

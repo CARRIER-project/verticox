@@ -1,4 +1,7 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13933626.svg)](https://doi.org/10.5281/zenodo.13933626)
+|   |   |
+|--|--|
+|Software DOI|  [![Software DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13933626.svg)](https://doi.org/10.5281/zenodo.13933626)|
+|Reference paper DOI|[![Reference paper DOI](https://img.shields.io/badge/DOI-10.1007%2Fs40747--025--02022--4-blue)](https://doi.org/10.1007/s40747-025-02022-4)
 
 # Introduction
 
